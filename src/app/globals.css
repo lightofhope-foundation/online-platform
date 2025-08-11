@@ -1,6 +1,22 @@
 @import "tailwindcss";
 
 :root {
+  --bg: #0b0613;
+}
+
+html, body {
+  background: var(--bg);
+}
+
+.glass {
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
+  backdrop-filter: blur(6px);
+}
+
+:root {
   --background: #ffffff;
   --foreground: #171717;
 }

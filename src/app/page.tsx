@@ -1,103 +1,62 @@
-import Image from "next/image";
+import { LightRays } from "@/components/LightRays";
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <main className="min-h-[100dvh] bg-[--bg] text-neutral-200">
+      <div className="mx-auto max-w-7xl px-6 py-10">
+        <div className="rounded-[28px] border border-white/10 bg-white/[0.02] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)] backdrop-blur-sm">
+          <div className="px-6 py-8 text-center">
+            <h1 className="text-3xl md:text-5xl font-semibold tracking-tight">Startseite</h1>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+          <aside className="rounded-[24px] border border-white/10 bg-white/[0.02] p-6">
+            <nav className="space-y-5">
+              {[
+                "Startseite",
+                "Video-Section",
+                "Sitzungsaufnahmen",
+                "Selbstcheck",
+                "Feedback",
+                "1:1 Therapie",
+                "Einstellungen",
+                "Ausloggen",
+              ].map((item, idx) => (
+                <a
+                  key={idx}
+                  href="#"
+                  className={`block rounded-full border border-white/10 px-5 py-3 text-lg transition-colors hover:bg-white/[0.04] ${
+                    idx === 0 ? "bg-white/[0.04]" : ""
+                  }`}
+                >
+                  {item}
+                </a>
+              ))}
+            </nav>
+          </aside>
+
+          <section className="relative rounded-[24px] border border-white/10 bg-white/[0.02] p-6 overflow-hidden">
+            {/* light rays accent */}
+            <div className="pointer-events-none absolute inset-x-0 -top-6 h-40">
+              <LightRays className="h-full w-full" raysOrigin="top-center" raysColor="#a445ff" rayLength={2.5} lightSpread={0.8} noiseAmount={0.1} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {["Insights", "Overview", "Teamwork", "Efficiency", "Connectivity", "Protection"].map(
+                (card, i) => (
+                  <div
+                    key={i}
+                    className="relative rounded-[20px] border border-white/10 bg-black/40 p-5 min-h-40 shadow-[0_0_30px_rgba(164,69,255,0.2)]"
+                  >
+                    <div className="text-sm text-white/60">{card}</div>
+                    <div className="mt-12 h-2 w-20 rounded-full bg-fuchsia-500/60"></div>
+                  </div>
+                )
+              )}
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
   );
 }
