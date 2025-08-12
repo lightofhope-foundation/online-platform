@@ -22,5 +22,6 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/(?!_next|favicon|api).*"]
+  // exclude _next static assets, next/image, api routes and favicon
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api).*)"],
 };
