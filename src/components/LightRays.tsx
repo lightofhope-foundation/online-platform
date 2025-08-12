@@ -10,14 +10,14 @@ interface OGLRenderer {
   dpr: number;
   gl: {
     canvas: HTMLCanvasElement;
-    getExtension: (name: string) => any;
+    getExtension: (name: string) => unknown;
   };
   setSize: (w: number, h: number) => void;
-  render: (args: { scene: any }) => void;
+  render: (args: { scene: unknown }) => void;
 }
 
 interface OGLMesh {
-  // Add any specific properties if needed
+  // OGL Mesh object - using unknown since we don't need specific properties
 }
 
 interface OGLUniforms {
@@ -287,13 +287,13 @@ void main() {
       };
       uniformsRef.current = uniforms;
 
-      const geometry = new Triangle(gl as any);
-      const program = new Program(gl as any, {
+      const geometry = new Triangle(gl as unknown as any);
+      const program = new Program(gl as unknown as any, {
         vertex: vert,
         fragment: frag,
         uniforms,
       });
-      const mesh = new Mesh(gl as any, { geometry, program });
+      const mesh = new Mesh(gl as unknown as any, { geometry, program });
       meshRef.current = mesh;
 
       const updatePlacement = () => {
@@ -363,7 +363,7 @@ void main() {
           try {
             const canvas = renderer.gl.canvas;
             const loseContextExt =
-              renderer.gl.getExtension("WEBGL_lose_context");
+              renderer.gl.getExtension("WEBGL_lose_context") as { loseContext: () => void } | null;
             if (loseContextExt) {
               loseContextExt.loseContext();
             }
