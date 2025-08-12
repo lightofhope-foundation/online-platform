@@ -6,7 +6,7 @@ export default function Home() {
       {/* Full page light rays background */}
       <div className="page-light-rays">
         <LightRays 
-          raysColor="#53e0b6" 
+          raysColor="#63eca9" 
         />
       </div>
 
