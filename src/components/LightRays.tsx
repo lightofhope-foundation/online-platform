@@ -5,7 +5,40 @@ import { Renderer, Program, Triangle, Mesh } from "ogl";
 
 const DEFAULT_COLOR = "#53e0b6";
 
-const hexToRgb = (hex: string) => {
+// Type definitions for OGL objects
+interface OGLRenderer {
+  dpr: number;
+  gl: {
+    canvas: HTMLCanvasElement;
+    getExtension: (name: string) => any;
+  };
+  setSize: (w: number, h: number) => void;
+  render: (args: { scene: any }) => void;
+}
+
+interface OGLMesh {
+  // Add any specific properties if needed
+}
+
+interface OGLUniforms {
+  iTime: { value: number };
+  iResolution: { value: [number, number] };
+  rayPos: { value: [number, number] };
+  rayDir: { value: [number, number] };
+  raysColor: { value: [number, number, number] };
+  raysSpeed: { value: number };
+  lightSpread: { value: number };
+  rayLength: { value: number };
+  pulsating: { value: number };
+  fadeDistance: { value: number };
+  saturation: { value: number };
+  mousePos: { value: [number, number] };
+  mouseInfluence: { value: number };
+  noiseAmount: { value: number };
+  distortion: { value: number };
+}
+
+const hexToRgb = (hex: string): [number, number, number] => {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return m
     ? [
@@ -16,7 +49,7 @@ const hexToRgb = (hex: string) => {
     : [1, 1, 1];
 };
 
-const getAnchorAndDir = (origin: string, w: number, h: number) => {
+const getAnchorAndDir = (origin: string, w: number, h: number): { anchor: [number, number]; dir: [number, number] } => {
   const outside = 0.2;
   switch (origin) {
     case "top-left":
@@ -70,12 +103,12 @@ export function LightRays({
   className = "",
 }: LightRaysProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const uniformsRef = useRef<any>(null);
-  const rendererRef = useRef<any>(null);
+  const uniformsRef = useRef<OGLUniforms | null>(null);
+  const rendererRef = useRef<OGLRenderer | null>(null);
   const mouseRef = useRef({ x: 0.5, y: 0.5 });
   const smoothMouseRef = useRef({ x: 0.5, y: 0.5 });
   const animationIdRef = useRef<number | null>(null);
-  const meshRef = useRef<any>(null);
+  const meshRef = useRef<OGLMesh | null>(null);
   const cleanupFunctionRef = useRef<(() => void) | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -119,7 +152,7 @@ export function LightRays({
       const renderer = new Renderer({
         dpr: Math.min(window.devicePixelRatio, 2),
         alpha: true,
-      });
+      }) as unknown as OGLRenderer;
       rendererRef.current = renderer;
 
       const gl = renderer.gl;
@@ -233,7 +266,7 @@ void main() {
   gl_FragColor  = color;
 }`;
 
-      const uniforms = {
+      const uniforms: OGLUniforms = {
         iTime: { value: 0 },
         iResolution: { value: [1, 1] },
 
@@ -254,13 +287,13 @@ void main() {
       };
       uniformsRef.current = uniforms;
 
-      const geometry = new Triangle(gl);
-      const program = new Program(gl, {
+      const geometry = new Triangle(gl as any);
+      const program = new Program(gl as any, {
         vertex: vert,
         fragment: frag,
         uniforms,
       });
-      const mesh = new Mesh(gl, { geometry, program });
+      const mesh = new Mesh(gl as any, { geometry, program });
       meshRef.current = mesh;
 
       const updatePlacement = () => {
