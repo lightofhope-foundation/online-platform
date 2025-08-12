@@ -3,17 +3,20 @@ import { LightRays } from "@/components/LightRays";
 export default function Home() {
   return (
     <>
-      {/* Full page light rays background - fresh deployment */}
+      {/* Full page light rays background */}
       <div className="page-light-rays">
         <LightRays 
           className="h-full w-full" 
           raysOrigin="top-center" 
-          raysColor="#a445ff" 
-          rayLength={3} 
-          lightSpread={0.6} 
-          noiseAmount={0.15}
+          raysColor="#53e0b6" 
+          rayLength={2.5} 
+          lightSpread={0.8} 
+          noiseAmount={0.1}
           pulsating={true}
-          raysSpeed={0.8}
+          raysSpeed={1.2}
+          followMouse={true}
+          mouseInfluence={0.15}
+          distortion={0.05}
         />
       </div>
 

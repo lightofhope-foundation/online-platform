@@ -27,3 +27,13 @@ html, body {
   pointer-events: none;
   z-index: 1;
 }
+
+/* Light rays container styling from original CSS */
+.light-rays-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  pointer-events: none;
+  z-index: 3;
+  overflow: hidden;
+}
