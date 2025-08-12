@@ -205,6 +205,23 @@ export function LightRays({
         }
         containerRef.current.appendChild(gl.canvas);
         console.log("Canvas appended to container");
+        
+        // Ensure canvas is visible and properly sized
+        gl.canvas.style.display = "block";
+        gl.canvas.style.position = "absolute";
+        gl.canvas.style.top = "0";
+        gl.canvas.style.left = "0";
+        gl.canvas.style.width = "100%";
+        gl.canvas.style.height = "100%";
+        
+        // Force a reflow to ensure dimensions are applied
+        gl.canvas.offsetHeight;
+        
+        // TEMPORARY: Add bright background to test visibility
+        gl.clearColor(1.0, 0.0, 0.0, 1.0); // Bright red
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        
+        console.log("Final canvas styles applied");
 
         console.log("Creating shaders...");
         const vert = `
