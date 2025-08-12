@@ -463,7 +463,28 @@ void main() {
     <div
       ref={containerRef}
       className={`light-rays-container ${className}`.trim()}
-    />
+      style={{ 
+        background: 'rgba(83, 224, 182, 0.1)', 
+        border: '2px solid #53e0b6',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%'
+      }}
+    >
+      <div style={{ 
+        position: 'absolute', 
+        top: '50%', 
+        left: '50%', 
+        transform: 'translate(-50%, -50%)',
+        color: '#53e0b6',
+        fontSize: '24px',
+        fontWeight: 'bold'
+      }}>
+        Light Rays Container
+      </div>
+    </div>
   );
 }
 
