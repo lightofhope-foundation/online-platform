@@ -59,7 +59,7 @@ export default function Home() {
                     <span>{item.name}</span>
                   </a>
                 ))}
-                <LogoutButton className="flex items-center gap-3 rounded-full border border-white/10 px-5 py-3 text-sm transition-all hover:bg-white/[0.08] hover:border-purple-400/50 hover:shadow-[0_0_20px_rgba(164,69,255,0.3)]">
+                <LogoutButton className="">
                   <span className="text-white"><LogoutIcon size={18} /></span>
                   <span>Ausloggen</span>
                 </LogoutButton>
