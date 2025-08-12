@@ -13,15 +13,20 @@ export default function LoginPage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setError(null);
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
       setError(error.message);
       return;
     }
-    router.replace("/");
+    if (data.session) {
+      router.replace("/");
+    } else {
+      setError("Login fehlgeschlagen. Bitte erneut versuchen.");
+    }
   };
 
   return (
