@@ -112,7 +112,13 @@ export function LightRays({
   const [isVisible, setIsVisible] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
+  // Log when component first renders
   useEffect(() => {
+    console.log("LightRays component rendered, container:", containerRef.current);
+  }, []);
+
+  useEffect(() => {
+    console.log("Container ref changed:", containerRef.current);
     if (!containerRef.current) return;
 
     observerRef.current = new IntersectionObserver(
@@ -466,11 +472,13 @@ void main() {
       style={{ 
         background: 'rgba(83, 224, 182, 0.1)', 
         border: '2px solid #53e0b6',
-        position: 'absolute',
+        position: 'fixed',
         top: 0,
         left: 0,
-        width: '100%',
-        height: '100%'
+        width: '100vw',
+        height: '100vh',
+        zIndex: 1,
+        pointerEvents: 'none'
       }}
     >
       <div style={{ 
@@ -480,9 +488,14 @@ void main() {
         transform: 'translate(-50%, -50%)',
         color: '#53e0b6',
         fontSize: '24px',
-        fontWeight: 'bold'
+        fontWeight: 'bold',
+        textAlign: 'center'
       }}>
         Light Rays Container
+        <br />
+        <small style={{ fontSize: '14px' }}>
+          WebGL: {rendererRef.current ? 'Initialized' : 'Not Ready'}
+        </small>
       </div>
     </div>
   );
