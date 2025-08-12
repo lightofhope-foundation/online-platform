@@ -11,7 +11,7 @@ export default function Home() {
       </div>
 
       {/* Main content */}
-      <main className="relative z-10 min-h-screen bg-black text-white">
+      <main className="relative z-10 min-h-screen text-white">
         <div className="mx-auto max-w-7xl px-6 py-10">
           {/* Header */}
           <div className="mb-12 text-center">
