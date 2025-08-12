@@ -1,27 +1,31 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs";
 
-export function middleware(req: NextRequest) {
-  const { nextUrl, cookies } = req;
-  const pathname = nextUrl.pathname;
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next();
+  const supabase = createMiddlewareClient({ req, res });
 
-  // Allow public routes
-  const isPublic = pathname.startsWith("/login") || pathname.startsWith("/_next") || pathname.startsWith("/favicon") || pathname.startsWith("/api") || pathname.startsWith("/vercel.svg");
-  if (isPublic) return NextResponse.next();
+  const { data: { session } } = await supabase.auth.getSession();
 
-  // Supabase JS stores a cookie named: sb-<project-ref>-auth-token
-  const hasSbAuth = cookies.getAll().some((c) => c.name.startsWith("sb-") && c.name.endsWith("-auth-token") && c.value);
+  const pathname = req.nextUrl.pathname;
+  const isPublic = pathname.startsWith("/login") || pathname.startsWith("/_next") || pathname.startsWith("/favicon") || pathname.startsWith("/api");
 
-  if (!hasSbAuth) {
+  if (!session && !isPublic) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
     url.search = "";
     return NextResponse.redirect(url);
   }
 
-  return NextResponse.next();
+  if (session && pathname.startsWith("/login")) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url);
+  }
+
+  return res;
 }
 
 export const config = {
-  // exclude _next static assets, next/image, api routes and favicon
   matcher: ["/((?!_next/static|_next/image|favicon.ico|api).*)"],
 };
