@@ -3,7 +3,7 @@ import { LightRays } from "@/components/LightRays";
 export default function Home() {
   return (
     <>
-      {/* Full page light rays background - updated for deployment */}
+      {/* Full page light rays background - fresh deployment */}
       <div className="page-light-rays">
         <LightRays 
           className="h-full w-full" 
