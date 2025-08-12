@@ -1,4 +1,6 @@
 import LightRays from "@/components/LightRays";
+import { MobileNav } from "@/components/MobileNav";
+import { FabSettings } from "@/components/FabSettings";
 
 export default function Home() {
   return (
@@ -9,6 +11,9 @@ export default function Home() {
           raysColor="#63eca9" 
         />
       </div>
+
+      <FabSettings />
+      <MobileNav />
 
       {/* Main content */}
       <main className="relative z-10 min-h-screen text-white">
@@ -24,7 +29,7 @@ export default function Home() {
 
           <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8">
             {/* Sidebar */}
-            <aside className="rounded-[24px] border border-white/10 bg-white/[0.02] p-6 backdrop-blur-sm">
+            <aside className="sticky top-6 self-start rounded-[24px] border border-white/10 bg-white/[0.02] p-6 backdrop-blur-sm hidden lg:block">
               <nav className="space-y-4">
                 {[
                   { name: "Startseite", icon: "🏠" },
