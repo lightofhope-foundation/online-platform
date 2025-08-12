@@ -6,17 +6,7 @@ export default function Home() {
       {/* Full page light rays background */}
       <div className="page-light-rays">
         <LightRays 
-          className="h-full w-full" 
-          raysOrigin="top-center" 
           raysColor="#53e0b6" 
-          rayLength={2.5} 
-          lightSpread={0.8} 
-          noiseAmount={0.1}
-          pulsating={true}
-          raysSpeed={1.2}
-          followMouse={true}
-          mouseInfluence={0.15}
-          distortion={0.05}
         />
       </div>
 
