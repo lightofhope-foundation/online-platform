@@ -44,20 +44,26 @@ export const MobileNav: React.FC = () => {
 
       {/* Popup menu */}
       <div
-        className={`fixed inset-0 z-30 flex items-center justify-center md:hidden transition-opacity duration-300 ${
-          menuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        className={`fixed inset-0 z-30 flex items-center justify-center md:hidden ${
+          menuOpen ? "pointer-events-auto" : "pointer-events-none"
         }`}
       >
-        {/* Backdrop */}
+        {/* Backdrop with synced fade */}
         <div
-          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
+            menuOpen ? "opacity-100" : "opacity-0"
+          }`}
           onClick={() => setMenuOpen(false)}
         />
-        {/* Panel */}
-        <div className="relative mx-6 w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.06] p-4 text-white shadow-xl">
+        {/* Panel with synced fade/translate */}
+        <div
+          className={`relative mx-6 w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.06] p-4 text-white shadow-xl transition-all duration-300 ${
+            menuOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"
+          }`}
+        >
           <button
             aria-label="Schließen"
-            className="absolute right-3 top-3 rounded-full border border-white/15 bg-white/10 px-2 py-1 text-lg leading-none"
+            className="absolute right-3 top-3 px-2 py-1 text-lg leading-none bg-transparent"
             onClick={() => setMenuOpen(false)}
           >
             ×
