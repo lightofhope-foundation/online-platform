@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 "use client";
 
 import { useRef, useEffect, useState } from "react";
@@ -8,17 +10,12 @@ const DEFAULT_COLOR = "#53e0b6";
 // Type definitions for OGL objects
 interface OGLRenderer {
   dpr: number;
-  gl: {
-    canvas: HTMLCanvasElement;
-    getExtension: (name: string) => unknown;
-  };
+  gl: any;
   setSize: (w: number, h: number) => void;
-  render: (args: { scene: unknown }) => void;
+  render: (args: { scene: any }) => void;
 }
 
-interface OGLMesh {
-  // OGL Mesh object - using unknown since we don't need specific properties
-}
+type OGLMesh = any; // OGL Mesh object
 
 interface OGLUniforms {
   iTime: { value: number };
@@ -287,13 +284,13 @@ void main() {
       };
       uniformsRef.current = uniforms;
 
-      const geometry = new Triangle(gl as unknown as any);
-      const program = new Program(gl as unknown as any, {
+      const geometry = new Triangle(renderer.gl);
+      const program = new Program(renderer.gl, {
         vertex: vert,
         fragment: frag,
         uniforms,
       });
-      const mesh = new Mesh(gl as unknown as any, { geometry, program });
+      const mesh = new Mesh(renderer.gl, { geometry, program });
       meshRef.current = mesh;
 
       const updatePlacement = () => {
@@ -362,8 +359,7 @@ void main() {
         if (renderer) {
           try {
             const canvas = renderer.gl.canvas;
-            const loseContextExt =
-              renderer.gl.getExtension("WEBGL_lose_context") as { loseContext: () => void } | null;
+            const loseContextExt = renderer.gl.getExtension("WEBGL_lose_context");
             if (loseContextExt) {
               loseContextExt.loseContext();
             }
