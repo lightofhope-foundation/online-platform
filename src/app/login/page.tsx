@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
+import LightRays from "@/components/LightRays";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,8 +31,11 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center text-white px-6">
-      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.06] p-6 backdrop-blur">
+    <main className="min-h-screen flex items-center justify-center text-white px-6 relative">
+      <div className="page-light-rays">
+        <LightRays raysColor="#63eca9" />
+      </div>
+      <div className="relative z-10 w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.06] p-6 backdrop-blur">
         <h1 className="text-2xl font-semibold mb-4">Login</h1>
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
