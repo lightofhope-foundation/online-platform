@@ -150,29 +150,48 @@ export function LightRays({
 
     const initializeWebGL = async () => {
       console.log("Starting WebGL initialization...");
-      if (!containerRef.current) return;
+      if (!containerRef.current) {
+        console.error("Container ref is null!");
+        return;
+      }
 
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      if (!containerRef.current) return;
-
-      console.log("Creating OGL renderer...");
-      const renderer = new Renderer({
-        dpr: Math.min(window.devicePixelRatio, 2),
-        alpha: true,
-      }) as unknown as OGLRenderer;
-      rendererRef.current = renderer;
-
-      const gl = renderer.gl;
-      gl.canvas.style.width = "100%";
-      gl.canvas.style.height = "100%";
-
-      while (containerRef.current.firstChild) {
-        containerRef.current.removeChild(containerRef.current.firstChild);
+      if (!containerRef.current) {
+        console.error("Container ref is still null after delay!");
+        return;
       }
-      containerRef.current.appendChild(gl.canvas);
 
-      const vert = `
+      try {
+        console.log("Creating OGL renderer...");
+        const renderer = new Renderer({
+          dpr: Math.min(window.devicePixelRatio, 2),
+          alpha: true,
+        }) as unknown as OGLRenderer;
+        rendererRef.current = renderer;
+
+        console.log("Renderer created, gl context:", renderer.gl);
+        const gl = renderer.gl;
+        
+        // Check if WebGL context is valid
+        if (!gl) {
+          console.error("WebGL context is null!");
+          return;
+        }
+
+        console.log("Setting canvas styles...");
+        gl.canvas.style.width = "100%";
+        gl.canvas.style.height = "100%";
+
+        console.log("Clearing container and appending canvas...");
+        while (containerRef.current.firstChild) {
+          containerRef.current.removeChild(containerRef.current.firstChild);
+        }
+        containerRef.current.appendChild(gl.canvas);
+        console.log("Canvas appended to container");
+
+        console.log("Creating shaders...");
+        const vert = `
 attribute vec2 position;
 varying vec2 vUv;
 void main() {
@@ -180,7 +199,7 @@ void main() {
   gl_Position = vec4(position, 0.0, 1.0);
 }`;
 
-      const frag = `precision highp float;
+        const frag = `precision highp float;
 
 uniform float iTime;
 uniform vec2  iResolution;
@@ -274,119 +293,127 @@ void main() {
   gl_FragColor  = color;
 }`;
 
-      const uniforms: OGLUniforms = {
-        iTime: { value: 0 },
-        iResolution: { value: [1, 1] },
+        console.log("Creating uniforms...");
+        const uniforms: OGLUniforms = {
+          iTime: { value: 0 },
+          iResolution: { value: [1, 1] },
 
-        rayPos: { value: [0, 0] },
-        rayDir: { value: [0, 1] },
+          rayPos: { value: [0, 0] },
+          rayDir: { value: [0, 1] },
 
-        raysColor: { value: hexToRgb(raysColor) },
-        raysSpeed: { value: raysSpeed },
-        lightSpread: { value: lightSpread },
-        rayLength: { value: rayLength },
-        pulsating: { value: pulsating ? 1.0 : 0.0 },
-        fadeDistance: { value: fadeDistance },
-        saturation: { value: saturation },
-        mousePos: { value: [0.5, 0.5] },
-        mouseInfluence: { value: mouseInfluence },
-        noiseAmount: { value: noiseAmount },
-        distortion: { value: distortion },
-      };
-      uniformsRef.current = uniforms;
+          raysColor: { value: hexToRgb(raysColor) },
+          raysSpeed: { value: raysSpeed },
+          lightSpread: { value: lightSpread },
+          rayLength: { value: rayLength },
+          pulsating: { value: pulsating ? 1.0 : 0.0 },
+          fadeDistance: { value: fadeDistance },
+          saturation: { value: saturation },
+          mousePos: { value: [0.5, 0.5] },
+          mouseInfluence: { value: mouseInfluence },
+          noiseAmount: { value: noiseAmount },
+          distortion: { value: distortion },
+        };
+        uniformsRef.current = uniforms;
 
-      const geometry = new Triangle(renderer.gl);
-      const program = new Program(renderer.gl, {
-        vertex: vert,
-        fragment: frag,
-        uniforms,
-      });
-      const mesh = new Mesh(renderer.gl, { geometry, program });
-      meshRef.current = mesh;
+        console.log("Creating geometry, program, and mesh...");
+        const geometry = new Triangle(renderer.gl);
+        const program = new Program(renderer.gl, {
+          vertex: vert,
+          fragment: frag,
+          uniforms,
+        });
+        const mesh = new Mesh(renderer.gl, { geometry, program });
+        meshRef.current = mesh;
 
-      const updatePlacement = () => {
-        if (!containerRef.current || !renderer) return;
+        console.log("WebGL setup complete, starting render loop...");
 
-        renderer.dpr = Math.min(window.devicePixelRatio, 2);
+        const updatePlacement = () => {
+          if (!containerRef.current || !renderer) return;
 
-        const { clientWidth: wCSS, clientHeight: hCSS } = containerRef.current;
-        renderer.setSize(wCSS, hCSS);
+          renderer.dpr = Math.min(window.devicePixelRatio, 2);
 
-        const dpr = renderer.dpr;
-        const w = wCSS * dpr;
-        const h = hCSS * dpr;
+          const { clientWidth: wCSS, clientHeight: hCSS } = containerRef.current;
+          renderer.setSize(wCSS, hCSS);
 
-        uniforms.iResolution.value = [w, h];
+          const dpr = renderer.dpr;
+          const w = wCSS * dpr;
+          const h = hCSS * dpr;
 
-        const { anchor, dir } = getAnchorAndDir(raysOrigin, w, h);
-        uniforms.rayPos.value = anchor;
-        uniforms.rayDir.value = dir;
-      };
+          uniforms.iResolution.value = [w, h];
 
-      const loop = (t: number) => {
-        if (!rendererRef.current || !uniformsRef.current || !meshRef.current) {
-          return;
-        }
+          const { anchor, dir } = getAnchorAndDir(raysOrigin, w, h);
+          uniforms.rayPos.value = anchor;
+          uniforms.rayDir.value = dir;
+        };
 
-        uniforms.iTime.value = t * 0.001;
-
-        if (followMouse && mouseInfluence > 0.0) {
-          const smoothing = 0.92;
-
-          smoothMouseRef.current.x =
-            smoothMouseRef.current.x * smoothing +
-            mouseRef.current.x * (1 - smoothing);
-          smoothMouseRef.current.y =
-            smoothMouseRef.current.y * smoothing +
-            mouseRef.current.y * (1 - smoothing);
-
-          uniforms.mousePos.value = [
-            smoothMouseRef.current.x,
-            smoothMouseRef.current.y,
-          ];
-        }
-
-        try {
-          renderer.render({ scene: mesh });
-          animationIdRef.current = requestAnimationFrame(loop);
-        } catch (error) {
-          console.warn("WebGL rendering error:", error);
-          return;
-        }
-      };
-
-      window.addEventListener("resize", updatePlacement);
-      updatePlacement();
-      animationIdRef.current = requestAnimationFrame(loop);
-
-      cleanupFunctionRef.current = () => {
-        if (animationIdRef.current) {
-          cancelAnimationFrame(animationIdRef.current);
-          animationIdRef.current = null;
-        }
-
-        window.removeEventListener("resize", updatePlacement);
-
-        if (renderer) {
-          try {
-            const canvas = renderer.gl.canvas;
-            const loseContextExt = renderer.gl.getExtension("WEBGL_lose_context");
-            if (loseContextExt) {
-              loseContextExt.loseContext();
-            }
-
-            if (canvas && canvas.parentNode) {
-              canvas.parentNode.removeChild(canvas);
-            }
-          } catch (error) {
-            console.warn("Error during WebGL cleanup:", error);
+        const loop = (t: number) => {
+          if (!rendererRef.current || !uniformsRef.current || !meshRef.current) {
+            console.warn("Render loop: missing refs, stopping");
+            return;
           }
-        }
 
-        rendererRef.current = null;
-        uniformsRef.current = null;
-        meshRef.current = null;
-      };
+          try {
+            uniforms.iTime.value = t * 0.001;
+
+            if (followMouse && mouseInfluence > 0.0) {
+              const smoothing = 0.92;
+
+              smoothMouseRef.current.x =
+                smoothMouseRef.current.x * smoothing +
+                mouseRef.current.x * (1 - smoothing);
+              smoothMouseRef.current.y =
+                smoothMouseRef.current.y * smoothing +
+                mouseRef.current.y * (1 - smoothing);
+
+              uniforms.mousePos.value = [
+                smoothMouseRef.current.x,
+                smoothMouseRef.current.y,
+              ];
+            }
+
+            renderer.render({ scene: mesh });
+            animationIdRef.current = requestAnimationFrame(loop);
+          } catch (error) {
+            console.error("WebGL rendering error in loop:", error);
+            return;
+          }
+        };
+
+        window.addEventListener("resize", updatePlacement);
+        updatePlacement();
+        animationIdRef.current = requestAnimationFrame(loop);
+
+        cleanupFunctionRef.current = () => {
+          if (animationIdRef.current) {
+            cancelAnimationFrame(animationIdRef.current);
+            animationIdRef.current = null;
+          }
+
+          window.removeEventListener("resize", updatePlacement);
+
+          if (renderer) {
+            try {
+              const canvas = renderer.gl.canvas;
+              const loseContextExt = renderer.gl.getExtension("WEBGL_lose_context");
+              if (loseContextExt) {
+                loseContextExt.loseContext();
+              }
+
+              if (canvas && canvas.parentNode) {
+                canvas.parentNode.removeChild(canvas);
+              }
+            } catch (error) {
+              console.warn("Error during WebGL cleanup:", error);
+            }
+          }
+
+          rendererRef.current = null;
+          uniformsRef.current = null;
+          meshRef.current = null;
+        };
+      } catch (error) {
+        console.error("Error during WebGL initialization:", error);
+      }
     };
 
     initializeWebGL();
