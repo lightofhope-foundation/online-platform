@@ -182,6 +182,22 @@ export function LightRays({
         console.log("Setting canvas styles...");
         gl.canvas.style.width = "100%";
         gl.canvas.style.height = "100%";
+        
+        // Force canvas to get proper dimensions
+        const container = containerRef.current;
+        const containerWidth = container.clientWidth;
+        const containerHeight = container.clientHeight;
+        
+        console.log("Container dimensions:", containerWidth, "x", containerHeight);
+        
+        // Set the actual canvas size
+        gl.canvas.width = containerWidth;
+        gl.canvas.height = containerHeight;
+        
+        // Set the WebGL viewport
+        gl.viewport(0, 0, containerWidth, containerHeight);
+        
+        console.log("Canvas dimensions set to:", gl.canvas.width, "x", gl.canvas.height);
 
         console.log("Clearing container and appending canvas...");
         while (containerRef.current.firstChild) {
@@ -330,20 +346,27 @@ void main() {
         const updatePlacement = () => {
           if (!containerRef.current || !renderer) return;
 
+          console.log("Updating placement...");
           renderer.dpr = Math.min(window.devicePixelRatio, 2);
 
           const { clientWidth: wCSS, clientHeight: hCSS } = containerRef.current;
+          console.log("Container CSS dimensions:", wCSS, "x", hCSS);
+          
           renderer.setSize(wCSS, hCSS);
 
           const dpr = renderer.dpr;
           const w = wCSS * dpr;
           const h = hCSS * dpr;
+          
+          console.log("WebGL dimensions:", w, "x", h);
 
           uniforms.iResolution.value = [w, h];
 
           const { anchor, dir } = getAnchorAndDir(raysOrigin, w, h);
           uniforms.rayPos.value = anchor;
           uniforms.rayDir.value = dir;
+          
+          console.log("Placement updated, rayPos:", anchor, "rayDir:", dir);
         };
 
         const loop = (t: number) => {
