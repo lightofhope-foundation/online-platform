@@ -1,4 +1,4 @@
-import { LightRays } from "@/components/LightRays";
+import LightRays from "@/components/LightRays";
 
 export default function Home() {
   return (
