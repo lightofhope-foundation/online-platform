@@ -9,8 +9,9 @@ import {
   HamburgerIcon,
   FeedbackIcon,
   TherapyIcon,
-  LogoutIcon,
 } from "./icons/Icons";
+import { LogoutIcon } from "./icons/Icons";
+import { LogoutButton } from "./LogoutButton";
 
 export const MobileNav: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -89,15 +90,11 @@ export const MobileNav: React.FC = () => {
                 <span>1:1 Therapie</span>
               </a>
             </li>
-            <li>
-              <a
-                href="#"
-                className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3"
-                onClick={() => setMenuOpen(false)}
-              >
+            <li onClick={() => setMenuOpen(false)}>
+              <LogoutButton className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 w-full">
                 <LogoutIcon size={20} />
                 <span>Ausloggen</span>
-              </a>
+              </LogoutButton>
             </li>
           </ul>
         </div>
