@@ -99,6 +99,8 @@ export function LightRays({
   distortion = 0.0,
   className = "",
 }: LightRaysProps) {
+  console.log("LightRays component mounting with color:", raysColor);
+  
   const containerRef = useRef<HTMLDivElement | null>(null);
   const uniformsRef = useRef<OGLUniforms | null>(null);
   const rendererRef = useRef<OGLRenderer | null>(null);
@@ -116,6 +118,7 @@ export function LightRays({
     observerRef.current = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
+        console.log("LightRays visibility changed:", entry.isIntersecting);
         setIsVisible(entry.isIntersecting);
       },
       { threshold: 0.1 }
@@ -140,12 +143,14 @@ export function LightRays({
     }
 
     const initializeWebGL = async () => {
+      console.log("Starting WebGL initialization...");
       if (!containerRef.current) return;
 
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       if (!containerRef.current) return;
 
+      console.log("Creating OGL renderer...");
       const renderer = new Renderer({
         dpr: Math.min(window.devicePixelRatio, 2),
         alpha: true,

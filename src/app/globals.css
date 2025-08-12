@@ -25,7 +25,7 @@ html, body {
   width: 100vw;
   height: 100vh;
   pointer-events: none;
-  z-index: 1;
+  z-index: 0;
 }
 
 /* Light rays container styling from original CSS */
@@ -34,6 +34,6 @@ html, body {
   height: 100%;
   position: relative;
   pointer-events: none;
-  z-index: 3;
+  z-index: 1;
   overflow: hidden;
 }
