@@ -1,39 +1,35 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-empty-object-type */
 "use client";
 
 import { useRef, useEffect, useState } from "react";
 import { Renderer, Program, Triangle, Mesh } from "ogl";
 
+export type RaysOrigin =
+  | "top-center"
+  | "top-left"
+  | "top-right"
+  | "right"
+  | "left"
+  | "bottom-center"
+  | "bottom-right"
+  | "bottom-left";
+
+interface LightRaysProps {
+  raysOrigin?: RaysOrigin;
+  raysColor?: string;
+  raysSpeed?: number;
+  lightSpread?: number;
+  rayLength?: number;
+  pulsating?: boolean;
+  fadeDistance?: number;
+  saturation?: number;
+  followMouse?: boolean;
+  mouseInfluence?: number;
+  noiseAmount?: number;
+  distortion?: number;
+  className?: string;
+}
+
 const DEFAULT_COLOR = "#53e0b6";
-
-// Type definitions for OGL objects
-interface OGLRenderer {
-  dpr: number;
-  gl: any;
-  setSize: (w: number, h: number) => void;
-  render: (args: { scene: any }) => void;
-}
-
-type OGLMesh = any; // OGL Mesh object
-
-interface OGLUniforms {
-  iTime: { value: number };
-  iResolution: { value: [number, number] };
-  rayPos: { value: [number, number] };
-  rayDir: { value: [number, number] };
-  raysColor: { value: [number, number, number] };
-  raysSpeed: { value: number };
-  lightSpread: { value: number };
-  rayLength: { value: number };
-  pulsating: { value: number };
-  fadeDistance: { value: number };
-  saturation: { value: number };
-  mousePos: { value: [number, number] };
-  mouseInfluence: { value: number };
-  noiseAmount: { value: number };
-  distortion: { value: number };
-}
 
 const hexToRgb = (hex: string): [number, number, number] => {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -46,7 +42,11 @@ const hexToRgb = (hex: string): [number, number, number] => {
     : [1, 1, 1];
 };
 
-const getAnchorAndDir = (origin: string, w: number, h: number): { anchor: [number, number]; dir: [number, number] } => {
+const getAnchorAndDir = (
+  origin: RaysOrigin,
+  w: number,
+  h: number
+): { anchor: [number, number]; dir: [number, number] } => {
   const outside = 0.2;
   switch (origin) {
     case "top-left":
@@ -68,23 +68,7 @@ const getAnchorAndDir = (origin: string, w: number, h: number): { anchor: [numbe
   }
 };
 
-interface LightRaysProps {
-  raysOrigin?: string;
-  raysColor?: string;
-  raysSpeed?: number;
-  lightSpread?: number;
-  rayLength?: number;
-  pulsating?: boolean;
-  fadeDistance?: number;
-  saturation?: number;
-  followMouse?: boolean;
-  mouseInfluence?: number;
-  noiseAmount?: number;
-  distortion?: number;
-  className?: string;
-}
-
-export function LightRays({
+const LightRays: React.FC<LightRaysProps> = ({
   raysOrigin = "top-center",
   raysColor = DEFAULT_COLOR,
   raysSpeed = 1,
@@ -98,33 +82,24 @@ export function LightRays({
   noiseAmount = 0.0,
   distortion = 0.0,
   className = "",
-}: LightRaysProps) {
-  console.log("LightRays component mounting with color:", raysColor);
-  
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const uniformsRef = useRef<OGLUniforms | null>(null);
-  const rendererRef = useRef<OGLRenderer | null>(null);
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const uniformsRef = useRef<any>(null);
+  const rendererRef = useRef<Renderer | null>(null);
   const mouseRef = useRef({ x: 0.5, y: 0.5 });
   const smoothMouseRef = useRef({ x: 0.5, y: 0.5 });
   const animationIdRef = useRef<number | null>(null);
-  const meshRef = useRef<OGLMesh | null>(null);
+  const meshRef = useRef<any>(null);
   const cleanupFunctionRef = useRef<(() => void) | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
-  // Log when component first renders
   useEffect(() => {
-    console.log("LightRays component rendered, container:", containerRef.current);
-  }, []);
-
-  useEffect(() => {
-    console.log("Container ref changed:", containerRef.current);
     if (!containerRef.current) return;
 
     observerRef.current = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
-        console.log("LightRays visibility changed:", entry.isIntersecting);
         setIsVisible(entry.isIntersecting);
       },
       { threshold: 0.1 }
@@ -149,82 +124,28 @@ export function LightRays({
     }
 
     const initializeWebGL = async () => {
-      console.log("Starting WebGL initialization...");
-      if (!containerRef.current) {
-        console.error("Container ref is null!");
-        return;
-      }
+      if (!containerRef.current) return;
 
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      if (!containerRef.current) {
-        console.error("Container ref is still null after delay!");
-        return;
+      if (!containerRef.current) return;
+
+      const renderer = new Renderer({
+        dpr: Math.min(window.devicePixelRatio, 2),
+        alpha: true,
+      });
+      rendererRef.current = renderer;
+
+      const gl = renderer.gl;
+      gl.canvas.style.width = "100%";
+      gl.canvas.style.height = "100%";
+
+      while (containerRef.current.firstChild) {
+        containerRef.current.removeChild(containerRef.current.firstChild);
       }
+      containerRef.current.appendChild(gl.canvas);
 
-      try {
-        console.log("Creating OGL renderer...");
-        const renderer = new Renderer({
-          dpr: Math.min(window.devicePixelRatio, 2),
-          alpha: true,
-        }) as unknown as OGLRenderer;
-        rendererRef.current = renderer;
-
-        console.log("Renderer created, gl context:", renderer.gl);
-        const gl = renderer.gl;
-        
-        // Check if WebGL context is valid
-        if (!gl) {
-          console.error("WebGL context is null!");
-          return;
-        }
-
-        console.log("Setting canvas styles...");
-        gl.canvas.style.width = "100%";
-        gl.canvas.style.height = "100%";
-        
-        // Force canvas to get proper dimensions
-        const container = containerRef.current;
-        const containerWidth = container.clientWidth;
-        const containerHeight = container.clientHeight;
-        
-        console.log("Container dimensions:", containerWidth, "x", containerHeight);
-        
-        // Set the actual canvas size
-        gl.canvas.width = containerWidth;
-        gl.canvas.height = containerHeight;
-        
-        // Set the WebGL viewport
-        gl.viewport(0, 0, containerWidth, containerHeight);
-        
-        console.log("Canvas dimensions set to:", gl.canvas.width, "x", gl.canvas.height);
-
-        console.log("Clearing container and appending canvas...");
-        while (containerRef.current.firstChild) {
-          containerRef.current.removeChild(containerRef.current.firstChild);
-        }
-        containerRef.current.appendChild(gl.canvas);
-        console.log("Canvas appended to container");
-        
-        // Ensure canvas is visible and properly sized
-        gl.canvas.style.display = "block";
-        gl.canvas.style.position = "absolute";
-        gl.canvas.style.top = "0";
-        gl.canvas.style.left = "0";
-        gl.canvas.style.width = "100%";
-        gl.canvas.style.height = "100%";
-        
-        // Force a reflow to ensure dimensions are applied
-        gl.canvas.offsetHeight;
-        
-        // TEMPORARY: Add bright background to test visibility
-        gl.clearColor(1.0, 0.0, 0.0, 1.0); // Bright red
-        gl.clear(gl.COLOR_BUFFER_BIT);
-        
-        console.log("Final canvas styles applied");
-
-        console.log("Creating shaders...");
-        const vert = `
+      const vert = `
 attribute vec2 position;
 varying vec2 vUv;
 void main() {
@@ -232,7 +153,7 @@ void main() {
   gl_Position = vec4(position, 0.0, 1.0);
 }`;
 
-        const frag = `precision highp float;
+      const frag = `precision highp float;
 
 uniform float iTime;
 uniform vec2  iResolution;
@@ -326,134 +247,120 @@ void main() {
   gl_FragColor  = color;
 }`;
 
-        console.log("Creating uniforms...");
-        const uniforms: OGLUniforms = {
-          iTime: { value: 0 },
-          iResolution: { value: [1, 1] },
+      const uniforms = {
+        iTime: { value: 0 },
+        iResolution: { value: [1, 1] },
 
-          rayPos: { value: [0, 0] },
-          rayDir: { value: [0, 1] },
+        rayPos: { value: [0, 0] },
+        rayDir: { value: [0, 1] },
 
-          raysColor: { value: hexToRgb(raysColor) },
-          raysSpeed: { value: raysSpeed },
-          lightSpread: { value: lightSpread },
-          rayLength: { value: rayLength },
-          pulsating: { value: pulsating ? 1.0 : 0.0 },
-          fadeDistance: { value: fadeDistance },
-          saturation: { value: saturation },
-          mousePos: { value: [0.5, 0.5] },
-          mouseInfluence: { value: mouseInfluence },
-          noiseAmount: { value: noiseAmount },
-          distortion: { value: distortion },
-        };
-        uniformsRef.current = uniforms;
+        raysColor: { value: hexToRgb(raysColor) },
+        raysSpeed: { value: raysSpeed },
+        lightSpread: { value: lightSpread },
+        rayLength: { value: rayLength },
+        pulsating: { value: pulsating ? 1.0 : 0.0 },
+        fadeDistance: { value: fadeDistance },
+        saturation: { value: saturation },
+        mousePos: { value: [0.5, 0.5] },
+        mouseInfluence: { value: mouseInfluence },
+        noiseAmount: { value: noiseAmount },
+        distortion: { value: distortion },
+      };
+      uniformsRef.current = uniforms;
 
-        console.log("Creating geometry, program, and mesh...");
-        const geometry = new Triangle(renderer.gl);
-        const program = new Program(renderer.gl, {
-          vertex: vert,
-          fragment: frag,
-          uniforms,
-        });
-        const mesh = new Mesh(renderer.gl, { geometry, program });
-        meshRef.current = mesh;
+      const geometry = new Triangle(gl);
+      const program = new Program(gl, {
+        vertex: vert,
+        fragment: frag,
+        uniforms,
+      });
+      const mesh = new Mesh(gl, { geometry, program });
+      meshRef.current = mesh;
 
-        console.log("WebGL setup complete, starting render loop...");
+      const updatePlacement = () => {
+        if (!containerRef.current || !renderer) return;
 
-        const updatePlacement = () => {
-          if (!containerRef.current || !renderer) return;
+        renderer.dpr = Math.min(window.devicePixelRatio, 2);
 
-          console.log("Updating placement...");
-          renderer.dpr = Math.min(window.devicePixelRatio, 2);
+        const { clientWidth: wCSS, clientHeight: hCSS } = containerRef.current;
+        renderer.setSize(wCSS, hCSS);
 
-          const { clientWidth: wCSS, clientHeight: hCSS } = containerRef.current;
-          console.log("Container CSS dimensions:", wCSS, "x", hCSS);
-          
-          renderer.setSize(wCSS, hCSS);
+        const dpr = renderer.dpr;
+        const w = wCSS * dpr;
+        const h = hCSS * dpr;
 
-          const dpr = renderer.dpr;
-          const w = wCSS * dpr;
-          const h = hCSS * dpr;
-          
-          console.log("WebGL dimensions:", w, "x", h);
+        uniforms.iResolution.value = [w, h];
 
-          uniforms.iResolution.value = [w, h];
+        const { anchor, dir } = getAnchorAndDir(raysOrigin, w, h);
+        uniforms.rayPos.value = anchor;
+        uniforms.rayDir.value = dir;
+      };
 
-          const { anchor, dir } = getAnchorAndDir(raysOrigin, w, h);
-          uniforms.rayPos.value = anchor;
-          uniforms.rayDir.value = dir;
-          
-          console.log("Placement updated, rayPos:", anchor, "rayDir:", dir);
-        };
+      const loop = (t: number) => {
+        if (!rendererRef.current || !uniformsRef.current || !meshRef.current) {
+          return;
+        }
 
-        const loop = (t: number) => {
-          if (!rendererRef.current || !uniformsRef.current || !meshRef.current) {
-            console.warn("Render loop: missing refs, stopping");
-            return;
-          }
+        uniforms.iTime.value = t * 0.001;
 
+        if (followMouse && mouseInfluence > 0.0) {
+          const smoothing = 0.92;
+
+          smoothMouseRef.current.x =
+            smoothMouseRef.current.x * smoothing +
+            mouseRef.current.x * (1 - smoothing);
+          smoothMouseRef.current.y =
+            smoothMouseRef.current.y * smoothing +
+            mouseRef.current.y * (1 - smoothing);
+
+          uniforms.mousePos.value = [
+            smoothMouseRef.current.x,
+            smoothMouseRef.current.y,
+          ];
+        }
+
+        try {
+          renderer.render({ scene: mesh });
+          animationIdRef.current = requestAnimationFrame(loop);
+        } catch (error) {
+          console.warn("WebGL rendering error:", error);
+          return;
+        }
+      };
+
+      window.addEventListener("resize", updatePlacement);
+      updatePlacement();
+      animationIdRef.current = requestAnimationFrame(loop);
+
+      cleanupFunctionRef.current = () => {
+        if (animationIdRef.current) {
+          cancelAnimationFrame(animationIdRef.current);
+          animationIdRef.current = null;
+        }
+
+        window.removeEventListener("resize", updatePlacement);
+
+        if (renderer) {
           try {
-            uniforms.iTime.value = t * 0.001;
-
-            if (followMouse && mouseInfluence > 0.0) {
-              const smoothing = 0.92;
-
-              smoothMouseRef.current.x =
-                smoothMouseRef.current.x * smoothing +
-                mouseRef.current.x * (1 - smoothing);
-              smoothMouseRef.current.y =
-                smoothMouseRef.current.y * smoothing +
-                mouseRef.current.y * (1 - smoothing);
-
-              uniforms.mousePos.value = [
-                smoothMouseRef.current.x,
-                smoothMouseRef.current.y,
-              ];
+            const canvas = renderer.gl.canvas;
+            const loseContextExt =
+              renderer.gl.getExtension("WEBGL_lose_context");
+            if (loseContextExt) {
+              loseContextExt.loseContext();
             }
 
-            renderer.render({ scene: mesh });
-            animationIdRef.current = requestAnimationFrame(loop);
+            if (canvas && canvas.parentNode) {
+              canvas.parentNode.removeChild(canvas);
+            }
           } catch (error) {
-            console.error("WebGL rendering error in loop:", error);
-            return;
+            console.warn("Error during WebGL cleanup:", error);
           }
-        };
+        }
 
-        window.addEventListener("resize", updatePlacement);
-        updatePlacement();
-        animationIdRef.current = requestAnimationFrame(loop);
-
-        cleanupFunctionRef.current = () => {
-          if (animationIdRef.current) {
-            cancelAnimationFrame(animationIdRef.current);
-            animationIdRef.current = null;
-          }
-
-          window.removeEventListener("resize", updatePlacement);
-
-          if (renderer) {
-            try {
-              const canvas = renderer.gl.canvas;
-              const loseContextExt = renderer.gl.getExtension("WEBGL_lose_context");
-              if (loseContextExt) {
-                loseContextExt.loseContext();
-              }
-
-              if (canvas && canvas.parentNode) {
-                canvas.parentNode.removeChild(canvas);
-              }
-            } catch (error) {
-              console.warn("Error during WebGL cleanup:", error);
-            }
-          }
-
-          rendererRef.current = null;
-          uniformsRef.current = null;
-          meshRef.current = null;
-        };
-      } catch (error) {
-        console.error("Error during WebGL initialization:", error);
-      }
+        rendererRef.current = null;
+        uniformsRef.current = null;
+        meshRef.current = null;
+      };
     };
 
     initializeWebGL();
@@ -536,36 +443,10 @@ void main() {
     <div
       ref={containerRef}
       className={`light-rays-container ${className}`.trim()}
-      style={{ 
-        background: 'rgba(83, 224, 182, 0.1)', 
-        border: '2px solid #53e0b6',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        zIndex: 1,
-        pointerEvents: 'none'
-      }}
-    >
-      <div style={{ 
-        position: 'absolute', 
-        top: '50%', 
-        left: '50%', 
-        transform: 'translate(-50%, -50%)',
-        color: '#53e0b6',
-        fontSize: '24px',
-        fontWeight: 'bold',
-        textAlign: 'center'
-      }}>
-        Light Rays Container
-        <br />
-        <small style={{ fontSize: '14px' }}>
-          WebGL: {rendererRef.current ? 'Initialized' : 'Not Ready'}
-        </small>
-      </div>
-    </div>
+    />
   );
-}
+};
+
+export default LightRays;
 
 
