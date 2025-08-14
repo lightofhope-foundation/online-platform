@@ -19,7 +19,6 @@ export default function CourseDetailPage({ params }: Params) {
   const { slug } = params;
   const router = useRouter();
   const supabase = getSupabaseBrowserClient();
-  const [courseId, setCourseId] = useState<string | null>(null);
   const [videos, setVideos] = useState<VideoRow[]>([]);
   const [completedVideoIds, setCompletedVideoIds] = useState<Set<string>>(new Set());
 
@@ -28,19 +27,18 @@ export default function CourseDetailPage({ params }: Params) {
     (async () => {
       const { data: course } = await supabase.from("courses").select("id").eq("slug", slug).is("deleted_at", null).single();
       if (cancelled || !course) return;
-      setCourseId(course.id);
       const { data: vids } = await supabase
         .from("videos")
         .select("id,title,position,requires_workbook,chapters(course_id)")
         .eq("chapters.course_id", course.id)
         .is("deleted_at", null)
         .order("position", { ascending: true });
-      if (!cancelled && vids) setVideos(vids.map(v => ({ id: v.id, title: v.title, position: v.position, requires_workbook: v.requires_workbook })) as VideoRow[]);
+      if (!cancelled && vids) setVideos((vids as { id: string; title: string; position: number; requires_workbook: boolean }[]).map(v => ({ id: v.id, title: v.title, position: v.position, requires_workbook: v.requires_workbook })) as VideoRow[]);
 
       const { data: progress } = await supabase
         .from("video_progress")
         .select("video_id,percent,completed_at")
-        .in("video_id", (vids || []).map((v: any) => v.id));
+        .in("video_id", (vids || []).map((v: { id: string }) => v.id));
       if (!cancelled && progress) setCompletedVideoIds(new Set(progress.filter(p => p.completed_at != null || Number(p.percent) >= 95).map(p => p.video_id)));
     })();
     return () => { cancelled = true; };

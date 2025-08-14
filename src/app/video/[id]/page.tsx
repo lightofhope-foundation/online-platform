@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 
 type Params = { params: { id: string } };
@@ -15,7 +15,6 @@ export default function VideoPage({ params }: Params) {
   const [requiresWorkbook, setRequiresWorkbook] = useState<boolean>(false);
 
   // Placeholder: we will integrate Bunny player next step
-  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
