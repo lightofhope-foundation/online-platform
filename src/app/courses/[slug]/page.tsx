@@ -33,10 +33,15 @@ export default function CourseDetailPage(props: unknown) {
       }
       const { data: course } = await supabase.from("courses").select("id").eq("slug", slug).is("deleted_at", null).single();
       if (cancelled || !course) return;
+      const { data: chapterRows } = await supabase
+        .from("chapters")
+        .select("id")
+        .eq("course_id", course.id);
+      const chapterIds = (chapterRows || []).map((c: { id: string }) => c.id);
       const { data: vids } = await supabase
         .from("videos")
         .select("id,title,position,requires_workbook,chapter_id")
-        .in("chapter_id", (await supabase.from("chapters").select("id").eq("course_id", course.id)).data?.map((c:any)=>c.id) || [])
+        .in("chapter_id", chapterIds)
         .is("deleted_at", null)
         .order("position", { ascending: true });
       if (!cancelled && vids) setVideos((vids as { id: string; title: string; position: number; requires_workbook: boolean }[]).map(v => ({ id: v.id, title: v.title, position: v.position, requires_workbook: v.requires_workbook })) as VideoRow[]);
