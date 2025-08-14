@@ -5,6 +5,7 @@ import LightRays from "./LightRays";
 import { FabSettings } from "./FabSettings";
 import { MobileNav } from "./MobileNav";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   HomeIcon,
   VideosIcon,
@@ -23,6 +24,16 @@ type AppShellProps = {
 };
 
 export const AppShell: React.FC<AppShellProps> = ({ title, children }) => {
+  const pathname = usePathname();
+
+  const isActive = (href: string) => {
+    if (href === "/") return pathname === "/";
+    return pathname.startsWith(href);
+  };
+
+  const activeClasses =
+    "bg-gradient-to-r from-[#63eca9]/20 to-[#63eca9]/10 border-[#63eca9]/50 shadow-[0_0_20px_rgba(99,236,169,0.4)]";
+
   return (
     <>
       <div className="page-light-rays">
@@ -59,8 +70,8 @@ export const AppShell: React.FC<AppShellProps> = ({ title, children }) => {
                   <Link
                     key={idx}
                     href={item.href}
-                    className={`flex items-center gap-3 rounded-full border border-white/10 px-5 py-3 text-sm transition-all hover:bg-white/[0.08] hover:border-purple-400/50 hover:shadow-[0_0_20px_rgba(164,69,255,0.3)] ${
-                      idx === 0 ? "bg-gradient-to-r from-purple-500/20 to-purple-600/20 border-purple-400/50 shadow-[0_0_20px_rgba(164,69,255,0.4)]" : ""
+                    className={`flex items-center gap-3 rounded-full border border-white/10 px-5 py-3 text-sm transition-all hover:bg-white/[0.08] ${
+                      isActive(item.href) ? activeClasses : ""
                     }`}
                   >
                     <span className="text-white">{item.icon}</span>

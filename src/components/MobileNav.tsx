@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   HomeIcon,
   VideosIcon,
@@ -16,6 +17,9 @@ import { LogoutButton } from "./LogoutButton";
 
 export const MobileNav: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  const active = "text-[#63eca9]";
 
   return (
     <>
@@ -24,10 +28,10 @@ export const MobileNav: React.FC = () => {
         <div className="mx-4 mb-4 rounded-2xl bg-white/5 backdrop-blur border border-white/10">
           <ul className="grid grid-cols-5 items-center justify-between px-6 py-3 text-white">
             <li className="flex items-center justify-center">
-              <Link href="/" aria-label="Home"><HomeIcon size={24} /></Link>
+              <Link href="/" aria-label="Home" className={isActive("/") ? active : ""}><HomeIcon size={24} /></Link>
             </li>
             <li className="flex items-center justify-center">
-              <Link href="/courses" aria-label="Videos"><VideosIcon size={24} /></Link>
+              <Link href="/courses" aria-label="Videos" className={isActive("/courses") ? active : ""}><VideosIcon size={24} /></Link>
             </li>
             <li className="flex items-center justify-center">
               <a href="#" aria-label="Selbstcheck"><SelbstcheckIcon size={24} /></a>
