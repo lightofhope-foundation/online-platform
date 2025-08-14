@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
+import AppShell from "@/components/AppShell";
 
 export default function VideoPage(props: unknown) {
   const { params } = props as { params: { id: string } };
@@ -34,19 +35,15 @@ export default function VideoPage(props: unknown) {
   }, [id, supabase]);
 
   return (
-    <main className="relative z-10 min-h-screen text-white">
-      <div className="mx-auto max-w-6xl px-6 py-10 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
-        <section className="rounded-[16px] border border-white/10 bg-white/[0.02] p-4">
-          <div className="mb-3">
-            <button onClick={() => router.back()} className="text-white/70 hover:text-white">← Zurück</button>
-          </div>
-          <h1 className="text-2xl font-semibold mb-4">{title}</h1>
+    <AppShell title={title || "Video"}>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
+        <section>
           <div className="aspect-video w-full rounded-lg bg-black/60 flex items-center justify-center text-white/60">
             {/* TODO Bunny player integration */}
             <span>{bunnyId ? `Video-Quelle bereit (${bunnyId})` : "Video-Player Platzhalter"}</span>
           </div>
         </section>
-        <aside className="rounded-[16px] border border-white/10 bg-white/[0.02] p-4">
+        <aside>
           <h2 className="text-lg font-semibold mb-3">Aufgaben</h2>
           {requiresWorkbook ? (
             <div className="text-white/80">Workbook wird hier angezeigt (MVP folgt).</div>
@@ -55,7 +52,7 @@ export default function VideoPage(props: unknown) {
           )}
         </aside>
       </div>
-    </main>
+    </AppShell>
   );
 }
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import LockIcon from "@/components/LockIcon";
+import AppShell from "@/components/AppShell";
 
 type VideoRow = {
   id: string;
@@ -20,10 +21,16 @@ export default function CourseDetailPage(props: unknown) {
   const supabase = getSupabaseBrowserClient();
   const [videos, setVideos] = useState<VideoRow[]>([]);
   const [completedVideoIds, setCompletedVideoIds] = useState<Set<string>>(new Set());
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      const { data: me } = await supabase.auth.getUser();
+      if (me?.user) {
+        const { data: prof } = await supabase.from("profiles").select("role").eq("user_id", me.user.id).single();
+        if (prof?.role === "admin") setIsAdmin(true);
+      }
       const { data: course } = await supabase.from("courses").select("id").eq("slug", slug).is("deleted_at", null).single();
       if (cancelled || !course) return;
       const { data: vids } = await supabase
@@ -56,41 +63,42 @@ export default function CourseDetailPage(props: unknown) {
   }, [videos, completedVideoIds]);
 
   return (
-    <main className="relative z-10 min-h-screen text-white">
-      <div className="mx-auto max-w-5xl px-6 py-10">
-        <div className="mb-6">
-          <button onClick={() => router.back()} className="text-white/70 hover:text-white">← Zurück</button>
-        </div>
-        <h1 className="text-3xl font-bold mb-6">Kurs</h1>
-        <div className="space-y-3">
-          {videos.map((v) => {
-            const unlocked = unlockMap[v.id];
-            return (
-              <div key={v.id} className="flex items-center justify-between rounded-[16px] border border-white/10 bg-white/[0.02] p-4">
-                <div className="flex items-center gap-3">
-                  {!unlocked ? (
-                    <span className="text-white/60" title="Dieses Video wird freigeschaltet, sobald das vorherige abgeschlossen ist."><LockIcon /></span>
-                  ) : null}
-                  <div>
-                    <div className="font-medium">{v.title}</div>
-                    {!unlocked ? (
-                      <div className="text-xs text-white/60">Wird freigeschaltet, sobald das vorherige Video abgeschlossen ist.</div>
-                    ) : null}
-                  </div>
-                </div>
-                {unlocked ? (
-                  <Link href={`/video/${v.id}`} className="rounded-full border border-white/10 px-3 py-2 text-sm hover:bg-white/[0.08]">Öffnen</Link>
-                ) : (
-                  <button className="rounded-full border border-white/10 px-3 py-2 text-sm text-white/60 cursor-not-allowed" disabled>
-                    Gesperrt
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
+    <AppShell title="Kurs">
+      <div className="mb-6">
+        <button onClick={() => router.back()} className="text-white/70 hover:text-white">← Zurück</button>
       </div>
-    </main>
+      <div className="space-y-3">
+        {videos.map((v) => {
+          const unlocked = unlockMap[v.id];
+          return (
+            <div key={v.id} className="flex items-center justify-between rounded-[16px] border border-white/10 bg-white/[0.02] p-4">
+              <div className="flex items-center gap-3">
+                {!unlocked ? (
+                  <span className="text-white/60" title="Dieses Video wird freigeschaltet, sobald das vorherige abgeschlossen ist."><LockIcon /></span>
+                ) : null}
+                <div>
+                  <div className="font-medium">{v.title}</div>
+                  {!unlocked ? (
+                    <div className="text-xs text-white/60">Wird freigeschaltet, sobald das vorherige Video abgeschlossen ist.</div>
+                  ) : null}
+                </div>
+              </div>
+              {isAdmin ? (
+                <div className="flex items-center gap-2">
+                  <Link href={`/video/${v.id}`} className="rounded-full border border-white/10 px-3 py-2 text-sm hover:bg-white/[0.08]">Bearbeiten</Link>
+                </div>
+              ) : unlocked ? (
+                <Link href={`/video/${v.id}`} className="rounded-full border border-white/10 px-3 py-2 text-sm hover:bg-white/[0.08]">Öffnen</Link>
+              ) : (
+                <button className="rounded-full border border-white/10 px-3 py-2 text-sm text-white/60 cursor-not-allowed" disabled>
+                  Gesperrt
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </AppShell>
   );
 }
 
