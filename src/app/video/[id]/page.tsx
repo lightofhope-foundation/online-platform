@@ -26,7 +26,8 @@ export default function VideoPage({ params }: Params) {
         .single();
       if (!cancelled && v) {
         setTitle(v.title || "Video");
-        setBunnyId(v.bunny_video_id || null);
+        const idOrNull = v.bunny_video_id || null;
+        setBunnyId(idOrNull);
         setRequiresWorkbook(!!v.requires_workbook);
       }
     })();

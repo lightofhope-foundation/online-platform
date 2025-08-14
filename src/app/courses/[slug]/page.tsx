@@ -13,9 +13,8 @@ type VideoRow = {
   requires_workbook: boolean;
 };
 
-type Params = { params: { slug: string } };
-
-export default function CourseDetailPage({ params }: Params) {
+export default function CourseDetailPage(props: unknown) {
+  const { params } = props as { params: { slug: string } };
   const { slug } = params;
   const router = useRouter();
   const supabase = getSupabaseBrowserClient();
