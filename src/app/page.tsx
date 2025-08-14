@@ -1,4 +1,5 @@
 import LightRays from "@/components/LightRays";
+import Link from "next/link";
 import { MobileNav } from "@/components/MobileNav";
 import { FabSettings } from "@/components/FabSettings";
 import {
@@ -40,24 +41,25 @@ export default function Home() {
             {/* Sidebar */}
             <aside className="sticky top-6 self-start rounded-[24px] border border-white/10 bg-white/[0.02] p-6 backdrop-blur-sm hidden lg:block">
               <nav className="space-y-4 text-white/90">
-                {[{ name: "Startseite", icon: <HomeIcon size={18} /> },
-                  { name: "Video-Section", icon: <VideosIcon size={18} /> },
-                  { name: "Sitzungsaufnahmen", icon: <RecordingsIcon size={18} /> },
-                  { name: "Selbstcheck", icon: <SelbstcheckIcon size={18} /> },
-                  { name: "Feedback", icon: <FeedbackIcon size={18} /> },
-                  { name: "1:1 Therapie", icon: <TherapyIcon size={18} /> },
-                  { name: "Einstellungen", icon: <SettingsIcon size={18} /> },
+                {[
+                  { name: "Startseite", href: "/", icon: <HomeIcon size={18} /> },
+                  { name: "Video-Section", href: "/courses", icon: <VideosIcon size={18} /> },
+                  { name: "Sitzungsaufnahmen", href: "#", icon: <RecordingsIcon size={18} /> },
+                  { name: "Selbstcheck", href: "#", icon: <SelbstcheckIcon size={18} /> },
+                  { name: "Feedback", href: "#", icon: <FeedbackIcon size={18} /> },
+                  { name: "1:1 Therapie", href: "#", icon: <TherapyIcon size={18} /> },
+                  { name: "Einstellungen", href: "#", icon: <SettingsIcon size={18} /> },
                 ].map((item, idx) => (
-                  <a
+                  <Link
                     key={idx}
-                    href="#"
+                    href={item.href}
                     className={`flex items-center gap-3 rounded-full border border-white/10 px-5 py-3 text-sm transition-all hover:bg-white/[0.08] hover:border-purple-400/50 hover:shadow-[0_0_20px_rgba(164,69,255,0.3)] ${
                       idx === 0 ? "bg-gradient-to-r from-purple-500/20 to-purple-600/20 border-purple-400/50 shadow-[0_0_20px_rgba(164,69,255,0.4)]" : ""
                     }`}
                   >
                     <span className="text-white">{item.icon}</span>
                     <span>{item.name}</span>
-                  </a>
+                  </Link>
                 ))}
                 <LogoutButton className="">
                   <span className="text-white"><LogoutIcon size={18} /></span>
