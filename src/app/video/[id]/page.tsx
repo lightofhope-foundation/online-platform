@@ -4,9 +4,8 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 
-type Params = { params: { id: string } };
-
-export default function VideoPage({ params }: Params) {
+export default function VideoPage(props: unknown) {
+  const { params } = props as { params: { id: string } };
   const { id } = params;
   const router = useRouter();
   const supabase = getSupabaseBrowserClient();
@@ -44,7 +43,7 @@ export default function VideoPage({ params }: Params) {
           <h1 className="text-2xl font-semibold mb-4">{title}</h1>
           <div className="aspect-video w-full rounded-lg bg-black/60 flex items-center justify-center text-white/60">
             {/* TODO Bunny player integration */}
-            <span>Video-Player Platzhalter</span>
+            <span>{bunnyId ? `Video-Quelle bereit (${bunnyId})` : "Video-Player Platzhalter"}</span>
           </div>
         </section>
         <aside className="rounded-[16px] border border-white/10 bg-white/[0.02] p-4">
