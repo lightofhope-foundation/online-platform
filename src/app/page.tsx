@@ -68,8 +68,14 @@ export default function Home() {
               </nav>
             </aside>
 
-            {/* Dashboard */}
+            {/* Page Content */}
             <section className="rounded-[24px] border border-white/10 bg-white/[0.02] p-8 backdrop-blur-sm">
+              {/* Page Title */}
+              <div className="mb-8 text-center">
+                <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-[#63eca9]">
+                  Startseite
+                </h1>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {[
                   { title: "Insights", subtitle: "Analytics", icon: "📊", color: "from-blue-500 to-cyan-500" },

@@ -16,45 +16,110 @@ export default function VideoPage(props: unknown) {
   const [requiresWorkbook, setRequiresWorkbook] = useState<boolean>(false);
   const [course, setCourse] = useState<{ title: string; slug: string } | null>(null);
   const [video, setVideo] = useState<{ title: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Placeholder: we will integrate Bunny player next step
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data: v } = await supabase
-        .from("videos")
-        .select("title,bunny_video_id,requires_workbook,course_id")
-        .eq("id", id)
-        .single();
-      if (!cancelled && v) {
-        setTitle(v.title || "Video");
-        const idOrNull = v.bunny_video_id || null;
-        setBunnyId(idOrNull);
-        setRequiresWorkbook(!!v.requires_workbook);
-
-        // Fetch course and video details
-        const { data: courseData } = await supabase
-          .from("courses")
-          .select("title,slug")
-          .eq("id", v.course_id)
-          .single();
-        if (courseData) {
-          setCourse(courseData);
-        }
-
-        const { data: videoData } = await supabase
+      try {
+        setLoading(true);
+        setError(null);
+        
+        console.log("Fetching video with ID:", id);
+        
+        const { data: v, error: videoError } = await supabase
           .from("videos")
-          .select("title")
+          .select("title,bunny_video_id,requires_workbook,course_id")
           .eq("id", id)
           .single();
-        if (videoData) {
-          setVideo(videoData);
+          
+        if (videoError) {
+          console.error("Video fetch error:", videoError);
+          setError(`Video nicht gefunden: ${videoError.message}`);
+          return;
+        }
+        
+        if (!cancelled && v) {
+          console.log("Video data:", v);
+          setTitle(v.title || "Video");
+          const idOrNull = v.bunny_video_id || null;
+          setBunnyId(idOrNull);
+          setRequiresWorkbook(!!v.requires_workbook);
+
+          // Fetch course details
+          if (v.course_id) {
+            const { data: courseData, error: courseError } = await supabase
+              .from("courses")
+              .select("title,slug")
+              .eq("id", v.course_id)
+              .single();
+              
+            if (courseError) {
+              console.error("Course fetch error:", courseError);
+            } else if (courseData) {
+              setCourse(courseData);
+            }
+          }
+
+          setVideo({ title: v.title || "Video" });
+        }
+      } catch (err) {
+        console.error("Unexpected error:", err);
+        setError("Ein unerwarteter Fehler ist aufgetreten");
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
         }
       }
     })();
     return () => { cancelled = true; };
   }, [id, supabase]);
+
+  if (loading) {
+    return (
+      <AppShell>
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-16 w-16 border-b-2 border-[#63eca9] mb-4"></div>
+            <p className="text-white/70 text-lg">Lade Video...</p>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (error) {
+    return (
+      <AppShell>
+        <div className="text-center py-20">
+          <div className="text-red-400 text-xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-white mb-4">Video nicht verfügbar</h2>
+          <p className="text-white/70 mb-6">{error}</p>
+          <Link href="/courses" className="inline-block rounded-full border border-[#63eca9] px-6 py-3 text-[#63eca9] hover:bg-[#63eca9]/10 transition-colors">
+            Zurück zu den Kursen
+          </Link>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!bunnyId) {
+    return (
+      <AppShell>
+        <div className="text-center py-20">
+          <div className="text-yellow-400 text-xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-white mb-4">Video nicht verknüpft</h2>
+          <p className="text-white/70 mb-6">Dieses Video ist noch nicht mit Bunny verknüpft.</p>
+          <Link href="/courses" className="inline-block rounded-full border border-[#63eca9] px-6 py-3 text-[#63eca9] hover:bg-[#63eca9]/10 transition-colors">
+            Zurück zu den Kursen
+          </Link>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
