@@ -1,7 +1,12 @@
-import LightRays from "@/components/LightRays";
+"use client";
+
+import React from "react";
 import Link from "next/link";
+import LightRays from "@/components/LightRays";
 import { MobileNav } from "@/components/MobileNav";
 import { FabSettings } from "@/components/FabSettings";
+import { useVideoProgress } from "@/hooks/useVideoProgress";
+import { ProgressBar } from "@/components/ProgressBar";
 import {
   HomeIcon,
   VideosIcon,
@@ -11,10 +16,28 @@ import {
   TherapyIcon,
   SettingsIcon,
   LogoutIcon,
+  PlayIcon,
 } from "@/components/icons/Icons";
 import { LogoutButton } from "@/components/LogoutButton";
 
 export default function Home() {
+  const { courseProgress, loading, getOverallProgress } = useVideoProgress();
+  const overallProgress = getOverallProgress();
+
+  // Find the course with the most recent video progress
+  let continueWatching = null;
+  if (courseProgress.size > 0) {
+    let latestProgress = null;
+    courseProgress.forEach(course => {
+      if (course.lastVideoId && course.lastVideoProgress !== null) {
+        if (!latestProgress || course.lastVideoProgress > (latestProgress.lastVideoProgress || 0)) {
+          latestProgress = course;
+        }
+      }
+    });
+    continueWatching = latestProgress;
+  }
+
   return (
     <>
       {/* Full page light rays background */}
@@ -67,6 +90,64 @@ export default function Home() {
                   Startseite
                 </h1>
               </div>
+
+              {/* Overall Progress */}
+              {!loading && (
+                <div className="mb-8 p-6 rounded-2xl border border-white/10 bg-white/[0.02]">
+                  <h2 className="text-xl font-semibold mb-4 text-white">Gesamtfortschritt</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-white/70">Videos</span>
+                        <span className="text-white font-medium">
+                          {overallProgress.completedVideos} / {overallProgress.totalVideos}
+                        </span>
+                      </div>
+                      <ProgressBar progress={overallProgress.videoProgress} size="lg" />
+                    </div>
+                    {overallProgress.totalWorkbooks > 0 && (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-white/70">Workbooks</span>
+                          <span className="text-white font-medium">
+                            {overallProgress.completedWorkbooks} / {overallProgress.totalWorkbooks}
+                          </span>
+                        </div>
+                        <ProgressBar progress={overallProgress.workbookProgress} size="lg" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Continue Watching */}
+              {continueWatching && (
+                <div className="mb-8 p-6 rounded-2xl border border-white/10 bg-white/[0.02]">
+                  <h2 className="text-xl font-semibold mb-4 text-white">Weiter schauen</h2>
+                  <div className="flex items-center gap-4 p-4 rounded-xl border border-white/10 bg-white/[0.02]">
+                    <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-[#63eca9] to-[#53e0b6] flex items-center justify-center">
+                      <PlayIcon size={24} />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium text-white mb-1">{continueWatching.lastVideoTitle}</h3>
+                      <p className="text-white/60 text-sm mb-2">Fortsetzen wo du aufgehört hast</p>
+                      <ProgressBar 
+                        progress={continueWatching.lastVideoProgress || 0} 
+                        size="sm" 
+                        showPercentage 
+                      />
+                    </div>
+                    <Link
+                      href={`/video/${continueWatching.lastVideoId}`}
+                      className="px-4 py-2 rounded-full bg-[#63eca9] text-black font-medium hover:bg-[#53e0b6] transition-colors"
+                    >
+                      Fortsetzen
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {/* Dashboard Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {[
                   { title: "Insights", subtitle: "Analytics", icon: "📊", color: "from-blue-500 to-cyan-500" },

@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
+import { useVideoProgress } from "@/hooks/useVideoProgress";
+import { CircularProgress } from "@/components/CircularProgress";
 import AppShell from "@/components/AppShell";
 
 type Course = { id: string; title: string; slug: string };
@@ -12,6 +14,7 @@ export default function CoursesPage() {
   const supabase = getSupabaseBrowserClient();
   const [courses, setCourses] = useState<Course[]>([]);
   const [role, setRole] = useState<Profile["role"] | null>(null);
+  const { courseProgress, loading: progressLoading } = useVideoProgress();
 
   useEffect(() => {
     let cancelled = false;
@@ -26,6 +29,10 @@ export default function CoursesPage() {
     })();
     return () => { cancelled = true; };
   }, [supabase]);
+
+  const getCourseProgress = (courseId: string) => {
+    return courseProgress.get(courseId);
+  };
 
   return (
     <AppShell>
@@ -47,18 +54,66 @@ export default function CoursesPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {courses.map((c) => (
-              role === "admin" ? (
-                <Link key={c.id} href={`/courses/${c.slug}`} className="rounded-[16px] border border-white/10 bg-white/[0.02] p-5 hover:bg-white/[0.06] transition">
-                  <div className="text-lg font-semibold">{c.title}</div>
-                  <div className="mt-3 text-xs text-white/60">Admin-Ansicht: Klicke zum Verwalten von Videos</div>
+            {courses.map((c) => {
+              const progress = getCourseProgress(c.id);
+              const videoProgress = progress ? Math.round((progress.completedVideos / progress.totalVideos) * 100) : 0;
+              const hasWorkbooks = progress && progress.totalWorkbooks > 0;
+              const workbookCompleted = progress && progress.completedWorkbooks === progress.totalWorkbooks;
+
+              return (
+                <Link key={c.id} href={`/courses/${c.slug}`} className="group">
+                  <div className="rounded-[16px] border border-white/10 bg-white/[0.02] p-5 hover:bg-white/[0.06] transition-all hover:scale-105">
+                    {/* Course Header */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="text-lg font-semibold text-white">{c.title}</div>
+                      {!progressLoading && progress && (
+                        <CircularProgress 
+                          progress={videoProgress} 
+                          size={50} 
+                          strokeWidth={3}
+                          showPercentage={false}
+                        />
+                      )}
+                    </div>
+
+                    {/* Progress Info */}
+                    {!progressLoading && progress && (
+                      <div className="space-y-3">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-[#63eca9] mb-1">
+                            {videoProgress}%
+                          </div>
+                          <div className="text-sm text-white/70">
+                            {progress.completedVideos} von {progress.totalVideos} Videos abgeschlossen
+                          </div>
+                        </div>
+
+                        {/* Workbook Status */}
+                        {hasWorkbooks && (
+                          <div className="text-center p-3 rounded-lg border border-white/10 bg-white/[0.02]">
+                            <div className="text-sm text-white/70 mb-1">
+                              {workbookCompleted ? "✅ Workbook abgeschlossen" : "📝 Workbook muss noch abgeschlossen werden"}
+                            </div>
+                            {!workbookCompleted && (
+                              <div className="text-xs text-white/50">
+                                {progress.completedWorkbooks} von {progress.totalWorkbooks} Workbooks
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Admin View */}
+                    {role === "admin" && (
+                      <div className="mt-4 pt-3 border-t border-white/10">
+                        <div className="text-xs text-white/60">Admin-Ansicht: Klicke zum Verwalten von Videos</div>
+                      </div>
+                    )}
+                  </div>
                 </Link>
-              ) : (
-                <Link key={c.id} href={`/courses/${c.slug}`} className="rounded-[16px] border border-white/10 bg-white/[0.02] p-5 hover:bg-white/[0.06] transition">
-                  <div className="text-lg font-semibold">{c.title}</div>
-                </Link>
-              )
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

@@ -110,6 +110,12 @@ export function LogoutIcon({ className, size = 24 }: IconProps) {
   );
 }
 
+export const PlayIcon: React.FC<IconProps> = ({ size = 18, className = '' }) => (
+  <svg width={size} height={size} viewBox="0 0 14 14" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M4.5 3.5L10.5 7L4.5 10.5V3.5Z" />
+  </svg>
+);
+
 export const HamburgerIcon = withIcon(
   "M0 8H12V6.66667H0V8ZM0 4.66667H12V3.33333H0V4.66667ZM0 0V1.33333H12V0H0Z",
   "0 0 12 8"
