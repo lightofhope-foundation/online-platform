@@ -157,14 +157,13 @@ export default function VideoPage(props: unknown) {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
           {/* Video Player */}
           <div className="lg:col-span-2">
-            <div className="aspect-video w-full rounded-lg bg-black/60 overflow-hidden">
+            <div className="aspect-video w-full rounded-lg bg-black/60 overflow-hidden relative">
               <iframe 
                 src={`https://iframe.mediadelivery.net/embed/423953/${bunnyId}?autoplay=false&loop=false&muted=false&preload=false&responsive=true`}
                 loading="lazy"
-                style={{ border: 0, position: 'absolute', top: 0, height: '100%', width: '100%' }}
+                className="w-full h-full absolute inset-0"
                 allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;"
                 allowFullScreen={true}
-                className="w-full h-full"
               />
             </div>
           </div>
