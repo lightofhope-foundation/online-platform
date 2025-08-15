@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { useVideoProgress } from "@/hooks/useVideoProgress";
 import AppShell from "@/components/AppShell";
