@@ -32,7 +32,7 @@ export default function CoursesPage() {
       <div className="space-y-8">
         {/* Page Title */}
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-white bg-gradient-to-r from-[#63eca9]/20 to-[#63eca9]/20 border border-[#63eca9]/50 rounded-2xl px-8 py-4 shadow-[0_0_20px_rgba(99,236,169,0.4)]">
+          <h1 className="text-4xl font-bold text-white">
             Kurse
           </h1>
         </div>

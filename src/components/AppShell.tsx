@@ -70,9 +70,13 @@ export const AppShell: React.FC<AppShellProps> = ({ title, children }) => {
                   <Link
                     key={idx}
                     href={item.href}
-                    className={`flex items-center gap-3 rounded-full border border-white/10 px-5 py-3 text-sm transition-all hover:bg-white/[0.08] ${
-                      isActive(item.href) ? activeClasses : ""
-                    }`}
+                    className={`flex items-center gap-3 rounded-full border border-white/10 px-5 py-3 text-sm transition-all hover:bg-white/[0.08] hover:border-[#63eca9]/50 hover:shadow-[0_0_20px_rgba(99,236,169,0.3)] ${
+                                  pathname === item.href || 
+                                  (item.href === "/courses" && (pathname.startsWith("/courses") || pathname.startsWith("/video"))) || 
+                                  (item.href === "/" && pathname === "/")
+                                    ? "bg-gradient-to-r from-[#63eca9]/20 to-[#63eca9]/20 border-[#63eca9]/50 shadow-[0_0_20px_rgba(99,236,169,0.4)]"
+                                    : ""
+                                }`}
                   >
                     <span className="text-white">{item.icon}</span>
                     <span>{item.name}</span>

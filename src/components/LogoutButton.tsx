@@ -32,7 +32,7 @@ export const LogoutButton: React.FC<Props> = ({ className, children }) => {
       onClick={onLogout}
       disabled={loading}
       aria-busy={loading}
-      className={`w-full flex items-center gap-3 rounded-full border border-white/10 px-5 py-3 text-sm transition-all hover:bg-white/[0.08] hover:border-purple-400/50 hover:shadow-[0_0_20px_rgba(164,69,255,0.3)] ${className ?? ""}`}
+      className={`flex items-center gap-3 rounded-full border border-white/10 px-5 py-3 text-sm transition-all hover:bg-white/[0.08] hover:border-[#63eca9]/50 hover:shadow-[0_0_20px_rgba(99,236,169,0.3)] w-full ${className}`}
     >
       {!loading ? (
         <>{children}</>
