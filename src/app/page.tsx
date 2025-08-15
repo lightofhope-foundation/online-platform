@@ -28,15 +28,6 @@ export default function Home() {
       {/* Main content */}
       <main className="relative z-10 min-h-screen text-white">
         <div className="mx-auto max-w-7xl px-6 py-10">
-          {/* Header */}
-          <div className="mb-12 text-center">
-            <div className="inline-block rounded-[28px] border border-white/10 bg-white/[0.02] px-8 py-6 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)] backdrop-blur-sm">
-              <h1 className="text-4xl md:text-6xl font-bold tracking-tight bg-gradient-to-r from-[#63eca9]/20 to-[#63eca9]/20 border border-[#63eca9]/50 rounded-2xl px-8 py-4 shadow-[0_0_20px_rgba(99,236,169,0.4)]">
-                Startseite
-              </h1>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8">
             {/* Sidebar */}
             <aside className="sticky top-6 self-start rounded-[24px] border border-white/10 bg-white/[0.02] p-6 backdrop-blur-sm hidden lg:block">

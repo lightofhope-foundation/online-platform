@@ -32,7 +32,7 @@ export default function VideoPage(props: unknown) {
         
         const { data: v, error: videoError } = await supabase
           .from("videos")
-          .select("title,bunny_video_id,requires_workbook,course_id")
+          .select("title,bunny_video_id,requires_workbook,chapter_id")
           .eq("id", id)
           .single();
           
@@ -49,18 +49,31 @@ export default function VideoPage(props: unknown) {
           setBunnyId(idOrNull);
           setRequiresWorkbook(!!v.requires_workbook);
 
-          // Fetch course details
-          if (v.course_id) {
-            const { data: courseData, error: courseError } = await supabase
-              .from("courses")
-              .select("title,slug")
-              .eq("id", v.course_id)
+          // Fetch course details via chapter
+          if (v.chapter_id) {
+            const { data: chapterData, error: chapterError } = await supabase
+              .from("chapters")
+              .select("course_id")
+              .eq("id", v.chapter_id)
               .single();
               
-            if (courseError) {
-              console.error("Course fetch error:", courseError);
-            } else if (courseData) {
-              setCourse(courseData);
+            if (chapterError) {
+              console.error("Chapter fetch error:", chapterError);
+            } else if (chapterData && chapterData.course_id) {
+              const { data: courseData, error: courseError } = await supabase
+                .from("courses")
+                .select("title,slug")
+                .eq("id", chapterData.course_id)
+                .single();
+                
+              if (courseError) {
+                console.error("Course fetch error:", courseError);
+              } else if (courseData) {
+                setCourse({
+                  title: courseData.title,
+                  slug: courseData.slug
+                });
+              }
             }
           }
 
