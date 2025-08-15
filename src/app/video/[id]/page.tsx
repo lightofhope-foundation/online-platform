@@ -35,14 +35,21 @@ export default function VideoPage(props: unknown) {
   }, [id, supabase]);
 
   return (
-    <AppShell title={title || "Video"}>
+    <AppShell>
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
-        <section>
-          <div className="aspect-video w-full rounded-lg bg-black/60 flex items-center justify-center text-white/60">
-            {/* TODO Bunny player integration */}
-            <span>{bunnyId ? `Video-Quelle bereit (${bunnyId})` : "Video-Player Platzhalter"}</span>
+        {/* Video Player */}
+        <div className="lg:col-span-2">
+          <div className="aspect-video w-full rounded-lg bg-black/60 overflow-hidden">
+            <iframe 
+              src={`https://iframe.mediadelivery.net/embed/423953/${bunnyId}?autoplay=false&loop=false&muted=false&preload=false&responsive=true`}
+              loading="lazy"
+              style={{ border: 0, position: 'absolute', top: 0, height: '100%', width: '100%' }}
+              allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;"
+              allowFullScreen={true}
+              className="w-full h-full"
+            />
           </div>
-        </section>
+        </div>
         <aside>
           <h2 className="text-lg font-semibold mb-3">Aufgaben</h2>
           {requiresWorkbook ? (

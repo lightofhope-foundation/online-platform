@@ -28,23 +28,39 @@ export default function CoursesPage() {
   }, [supabase]);
 
   return (
-    <AppShell title="Kurse">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <AppShell>
+      <div className="space-y-8">
+        {/* Page Title */}
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-white bg-gradient-to-r from-[#63eca9]/20 to-[#63eca9]/20 border border-[#63eca9]/50 rounded-2xl px-8 py-4 shadow-[0_0_20px_rgba(99,236,169,0.4)]">
+            Kurse
+          </h1>
+        </div>
+
+        {/* Content */}
         {courses.length === 0 ? (
-          <div className="text-white/70">Noch keine Kurse verfügbar.</div>
-        ) : null}
-        {courses.map((c) => (
-          role === "admin" ? (
-            <Link key={c.id} href={`/courses/${c.slug}`} className="rounded-[16px] border border-white/10 bg-white/[0.02] p-5 hover:bg-white/[0.06] transition">
-              <div className="text-lg font-semibold">{c.title}</div>
-              <div className="mt-3 text-xs text-white/60">Admin-Ansicht: Klicke zum Verwalten von Videos</div>
-            </Link>
-          ) : (
-            <Link key={c.id} href={`/courses/${c.slug}`} className="rounded-[16px] border border-white/10 bg-white/[0.02] p-5 hover:bg-white/[0.06] transition">
-              <div className="text-lg font-semibold">{c.title}</div>
-            </Link>
-          )
-        ))}
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <div className="inline-block animate-spin rounded-full h-16 w-16 border-b-2 border-[#63eca9] mb-4"></div>
+              <p className="text-white/70 text-lg">Lade Kurse...</p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {courses.map((c) => (
+              role === "admin" ? (
+                <Link key={c.id} href={`/courses/${c.slug}`} className="rounded-[16px] border border-white/10 bg-white/[0.02] p-5 hover:bg-white/[0.06] transition">
+                  <div className="text-lg font-semibold">{c.title}</div>
+                  <div className="mt-3 text-xs text-white/60">Admin-Ansicht: Klicke zum Verwalten von Videos</div>
+                </Link>
+              ) : (
+                <Link key={c.id} href={`/courses/${c.slug}`} className="rounded-[16px] border border-white/10 bg-white/[0.02] p-5 hover:bg-white/[0.06] transition">
+                  <div className="text-lg font-semibold">{c.title}</div>
+                </Link>
+              )
+            ))}
+          </div>
+        )}
       </div>
     </AppShell>
   );

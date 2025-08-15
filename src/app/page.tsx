@@ -31,7 +31,7 @@ export default function Home() {
           {/* Header */}
           <div className="mb-12 text-center">
             <div className="inline-block rounded-[28px] border border-white/10 bg-white/[0.02] px-8 py-6 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)] backdrop-blur-sm">
-              <h1 className="text-4xl md:text-6xl font-bold tracking-tight bg-gradient-to-r from-white via-purple-200 to-purple-400 bg-clip-text text-transparent">
+              <h1 className="text-4xl md:text-6xl font-bold tracking-tight bg-gradient-to-r from-[#63eca9]/20 to-[#63eca9]/20 border border-[#63eca9]/50 rounded-2xl px-8 py-4 shadow-[0_0_20px_rgba(99,236,169,0.4)]">
                 Startseite
               </h1>
             </div>
@@ -53,15 +53,15 @@ export default function Home() {
                   <Link
                     key={idx}
                     href={item.href}
-                    className={`flex items-center gap-3 rounded-full border border-white/10 px-5 py-3 text-sm transition-all hover:bg-white/[0.08] hover:border-purple-400/50 hover:shadow-[0_0_20px_rgba(164,69,255,0.3)] ${
-                      idx === 0 ? "bg-gradient-to-r from-purple-500/20 to-purple-600/20 border-purple-400/50 shadow-[0_0_20px_rgba(164,69,255,0.4)]" : ""
+                    className={`flex items-center gap-3 rounded-full border border-white/10 px-5 py-3 text-sm transition-all hover:bg-white/[0.08] hover:border-[#63eca9]/50 hover:shadow-[0_0_20px_rgba(99,236,169,0.3)] ${
+                      idx === 0 ? "bg-gradient-to-r from-[#63eca9]/20 to-[#63eca9]/20 border-[#63eca9]/50 shadow-[0_0_20px_rgba(99,236,169,0.4)]" : ""
                     }`}
                   >
                     <span className="text-white">{item.icon}</span>
                     <span>{item.name}</span>
                   </Link>
                 ))}
-                <LogoutButton className="">
+                <LogoutButton className="w-full">
                   <span className="text-white"><LogoutIcon size={18} /></span>
                   <span>Ausloggen</span>
                 </LogoutButton>
