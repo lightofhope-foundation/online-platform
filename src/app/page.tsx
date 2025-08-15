@@ -7,6 +7,7 @@ import { MobileNav } from "@/components/MobileNav";
 import { FabSettings } from "@/components/FabSettings";
 import { useVideoProgress } from "@/hooks/useVideoProgress";
 import { ProgressBar } from "@/components/ProgressBar";
+import type { CourseProgress } from "@/hooks/useVideoProgress";
 import {
   HomeIcon,
   VideosIcon,
@@ -25,17 +26,15 @@ export default function Home() {
   const overallProgress = getOverallProgress();
 
   // Find the course with the most recent video progress
-  let continueWatching = null;
+  let continueWatching: CourseProgress | null = null;
   if (courseProgress.size > 0) {
-    let latestProgress = null;
+    let highestProgress = 0;
     courseProgress.forEach(course => {
-      if (course.lastVideoId && course.lastVideoProgress !== null) {
-        if (!latestProgress || course.lastVideoProgress > (latestProgress.lastVideoProgress || 0)) {
-          latestProgress = course;
-        }
+      if (course.lastVideoId && course.lastVideoProgress !== null && course.lastVideoProgress > highestProgress) {
+        highestProgress = course.lastVideoProgress;
+        continueWatching = course;
       }
     });
-    continueWatching = latestProgress;
   }
 
   return (
@@ -121,7 +120,7 @@ export default function Home() {
               )}
 
               {/* Continue Watching */}
-              {continueWatching && (
+              {continueWatching && (continueWatching as CourseProgress).lastVideoId && (
                 <div className="mb-8 p-6 rounded-2xl border border-white/10 bg-white/[0.02]">
                   <h2 className="text-xl font-semibold mb-4 text-white">Weiter schauen</h2>
                   <div className="flex items-center gap-4 p-4 rounded-xl border border-white/10 bg-white/[0.02]">
@@ -129,16 +128,16 @@ export default function Home() {
                       <PlayIcon size={24} />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-medium text-white mb-1">{continueWatching.lastVideoTitle}</h3>
+                      <h3 className="font-medium text-white mb-1">{(continueWatching as CourseProgress).lastVideoTitle}</h3>
                       <p className="text-white/60 text-sm mb-2">Fortsetzen wo du aufgehört hast</p>
                       <ProgressBar 
-                        progress={continueWatching.lastVideoProgress || 0} 
+                        progress={(continueWatching as CourseProgress).lastVideoProgress || 0} 
                         size="sm" 
                         showPercentage 
                       />
                     </div>
                     <Link
-                      href={`/video/${continueWatching.lastVideoId}`}
+                      href={`/video/${(continueWatching as CourseProgress).lastVideoId}`}
                       className="px-4 py-2 rounded-full bg-[#63eca9] text-black font-medium hover:bg-[#53e0b6] transition-colors"
                     >
                       Fortsetzen

@@ -10,10 +10,8 @@ import Link from "next/link";
 export default function VideoPage(props: unknown) {
   const { params } = props as { params: { id: string } };
   const { id } = params;
-  const router = useRouter();
   const supabase = getSupabaseBrowserClient();
   const { updateProgress, getVideoProgress } = useVideoProgress();
-  const [title, setTitle] = useState<string>("");
   const [bunnyId, setBunnyId] = useState<string | null>(null);
   const [requiresWorkbook, setRequiresWorkbook] = useState<boolean>(false);
   const [course, setCourse] = useState<{ title: string; slug: string } | null>(null);
@@ -99,7 +97,6 @@ export default function VideoPage(props: unknown) {
         
         if (!cancelled && v) {
           console.log("Video data:", v);
-          setTitle(v.title || "Video");
           const idOrNull = v.bunny_video_id || null;
           setBunnyId(idOrNull);
           setRequiresWorkbook(!!v.requires_workbook);
