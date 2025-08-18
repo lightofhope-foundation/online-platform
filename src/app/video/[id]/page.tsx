@@ -20,48 +20,90 @@ export default function VideoPage(props: unknown) {
   const [currentProgress, setCurrentProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   // Get existing progress
   const existingProgress = getVideoProgress(id);
 
-  // Update progress periodically
+  // Manual progress tracking
   useEffect(() => {
     if (!bunnyId || !duration) return;
 
-    const interval = setInterval(() => {
-      if (currentTime > 0 && duration > 0) {
-        const percent = (currentTime / duration) * 100;
-        setCurrentProgress(percent);
-        
-        // Update progress every 5 seconds or when significant change
-        if (Math.abs(percent - (existingProgress?.percent || 0)) > 5) {
-          updateProgress(id, currentTime, percent, percent >= 90);
-        }
-      }
-    }, 5000);
+    let interval: NodeJS.Timeout;
+    
+    if (isPlaying) {
+      interval = setInterval(() => {
+        setCurrentTime(prev => {
+          const newTime = Math.min(prev + 1, duration);
+          const percent = (newTime / duration) * 100;
+          setCurrentProgress(percent);
+          
+          // Update progress every 10 seconds or when significant change
+          if (Math.abs(percent - (existingProgress?.percent || 0)) > 10) {
+            updateProgress(id, newTime, percent, percent >= 90);
+          }
+          
+          return newTime;
+        });
+      }, 1000);
+    }
 
-    return () => clearInterval(interval);
-  }, [bunnyId, currentTime, duration, id, updateProgress, existingProgress]);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [bunnyId, duration, isPlaying, id, updateProgress, existingProgress]);
 
-  // Handle iframe message for progress
+  // Handle iframe load and setup
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== 'https://iframe.mediadelivery.net') return;
-      
-      try {
-        const data = event.data;
-        if (data.type === 'video-progress') {
-          setCurrentTime(data.currentTime || 0);
-          setDuration(data.duration || 0);
-        }
-      } catch (error) {
-        console.warn('Error parsing iframe message:', error);
+    if (!bunnyId) return;
+
+    const handleIframeLoad = () => {
+      // Try to communicate with Bunny iframe
+      const iframe = document.querySelector('iframe[src*="mediadelivery.net"]') as HTMLIFrameElement;
+      if (iframe) {
+        // Set up message listener for iframe communication
+        const handleMessage = (event: MessageEvent) => {
+          if (event.origin !== 'https://iframe.mediadelivery.net') return;
+          
+          try {
+            const data = event.data;
+            if (data.type === 'video-progress' || data.currentTime) {
+              setCurrentTime(data.currentTime || 0);
+              setDuration(data.duration || 0);
+              setIsPlaying(data.isPlaying || false);
+            }
+          } catch (error) {
+            console.warn('Error parsing iframe message:', error);
+          }
+        };
+
+        window.addEventListener('message', handleMessage);
+        
+        // Try to get video duration from iframe
+        setTimeout(() => {
+          if (duration === 0) {
+            // Fallback: estimate duration based on video ID or set a default
+            setDuration(600); // 10 minutes default
+          }
+        }, 2000);
+
+        return () => window.removeEventListener('message', handleMessage);
       }
     };
 
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
+    // Wait for iframe to load
+    setTimeout(handleIframeLoad, 1000);
+  }, [bunnyId, duration]);
+
+  // Manual progress controls
+  const updateManualProgress = (newTime: number) => {
+    if (duration > 0) {
+      setCurrentTime(newTime);
+      const percent = (newTime / duration) * 100;
+      setCurrentProgress(percent);
+      updateProgress(id, newTime, percent, percent >= 90);
+    }
+  };
 
   // Initialize progress on mount
   useEffect(() => {
@@ -70,6 +112,13 @@ export default function VideoPage(props: unknown) {
       setCurrentTime(existingProgress.last_second);
     }
   }, [existingProgress]);
+
+  // Set default duration if not available
+  useEffect(() => {
+    if (duration === 0) {
+      setDuration(600); // 10 minutes default
+    }
+  }, [duration]);
 
   // Placeholder: we will integrate Bunny player next step
 
@@ -238,6 +287,34 @@ export default function VideoPage(props: unknown) {
                   {existingProgress.completed_at && (
                     <span className="text-[#63eca9]">✅ Abgeschlossen</span>
                   )}
+                </div>
+
+                {/* Manual Progress Controls */}
+                <div className="mt-4 flex items-center gap-4">
+                  <button
+                    onClick={() => setIsPlaying(!isPlaying)}
+                    className="px-4 py-2 rounded-lg bg-[#63eca9] text-black font-medium hover:bg-[#53e0b6] transition-colors"
+                  >
+                    {isPlaying ? '⏸️ Pause' : '▶️ Play'}
+                  </button>
+                  <button
+                    onClick={() => updateManualProgress(Math.min(currentTime + 60, duration))}
+                    className="px-3 py-2 rounded-lg border border-white/20 text-white hover:bg-white/10 transition-colors"
+                  >
+                    +1 Min
+                  </button>
+                  <button
+                    onClick={() => updateManualProgress(Math.min(currentTime + 300, duration))}
+                    className="px-3 py-2 rounded-lg border border-white/20 text-white hover:bg-white/10 transition-colors"
+                  >
+                    +5 Min
+                  </button>
+                  <button
+                    onClick={() => updateManualProgress(duration)}
+                    className="px-3 py-2 rounded-lg border border-white/20 text-white hover:bg-white/10 transition-colors"
+                  >
+                    Als abgeschlossen markieren
+                  </button>
                 </div>
               </div>
             )}

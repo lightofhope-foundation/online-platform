@@ -6,6 +6,7 @@ import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import LockIcon from "@/components/LockIcon";
 import AppShell from "@/components/AppShell";
+import { useVideoProgress } from "@/hooks/useVideoProgress";
 
 type VideoRow = {
   id: string;
@@ -23,6 +24,7 @@ export default function CourseDetailPage(props: unknown) {
   const [completedVideoIds, setCompletedVideoIds] = useState<Set<string>>(new Set());
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [course, setCourse] = useState<{ id: string; title: string } | null>(null);
+  const { getVideoProgress } = useVideoProgress();
 
   useEffect(() => {
     let cancelled = false;
@@ -30,7 +32,9 @@ export default function CourseDetailPage(props: unknown) {
       const { data: me } = await supabase.auth.getUser();
       if (me?.user) {
         const { data: prof } = await supabase.from("profiles").select("role").eq("user_id", me.user.id).single();
-        if (prof?.role === "admin") setIsAdmin(true);
+        if (!cancelled && prof) {
+          if (prof.role === "admin") setIsAdmin(true);
+        }
       }
       const { data: courseData } = await supabase.from("courses").select("id,title,slug").eq("slug", slug).is("deleted_at", null).single();
       if (cancelled || !courseData) return;
@@ -46,28 +50,44 @@ export default function CourseDetailPage(props: unknown) {
         .in("chapter_id", chapterIds)
         .is("deleted_at", null)
         .order("position", { ascending: true });
-      if (!cancelled && vids) setVideos((vids as { id: string; title: string; position: number; requires_workbook: boolean }[]).map(v => ({ id: v.id, title: v.title, position: v.position, requires_workbook: v.requires_workbook })) as VideoRow[]);
-
-      const { data: progress } = await supabase
-        .from("video_progress")
-        .select("video_id,percent,completed_at")
-        .in("video_id", (vids || []).map((v: { id: string }) => v.id));
-      if (!cancelled && progress) setCompletedVideoIds(new Set(progress.filter(p => p.completed_at != null || Number(p.percent) >= 95).map(p => p.video_id)));
+      if (!cancelled && vids) {
+        setVideos(vids as VideoRow[]);
+        
+        // Check completion status for each video
+        const completedIds = new Set<string>();
+        vids.forEach(video => {
+          const progress = getVideoProgress(video.id);
+          if (progress && progress.completed_at) {
+            completedIds.add(video.id);
+          }
+        });
+        setCompletedVideoIds(completedIds);
+      }
     })();
     return () => { cancelled = true; };
-  }, [slug, supabase]);
+  }, [supabase, slug, getVideoProgress]);
 
-  const unlockMap = useMemo(() => {
-    const map: Record<string, boolean> = {};
-    let previousCompleted = true;
-    const ordered = [...videos].sort((a, b) => a.position - b.position);
-    for (const v of ordered) {
-      const done = completedVideoIds.has(v.id);
-      map[v.id] = previousCompleted;
-      previousCompleted = done;
-    }
-    return map;
-  }, [videos, completedVideoIds]);
+  // Calculate which videos are unlocked
+  const getUnlockMap = () => {
+    const unlockMap: Record<string, boolean> = {};
+    let lastCompletedIndex = -1;
+    
+    // Find the last completed video
+    videos.forEach((video, index) => {
+      if (completedVideoIds.has(video.id)) {
+        lastCompletedIndex = index;
+      }
+    });
+    
+    // Videos are unlocked if previous video is completed (N+1 unlocks if N is completed)
+    videos.forEach((video, index) => {
+      unlockMap[video.id] = index === 0 || index <= lastCompletedIndex + 1;
+    });
+    
+    return unlockMap;
+  };
+
+  const unlockMap = getUnlockMap();
 
   return (
     <AppShell>
