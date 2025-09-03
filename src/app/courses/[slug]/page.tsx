@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
@@ -15,18 +15,22 @@ type VideoRow = {
   requires_workbook: boolean;
 };
 
-export default function CourseDetailPage(props: unknown) {
-  const { params } = props as { params: { slug: string } };
-  const { slug } = params;
+type PageProps = {
+  params: Promise<{ slug: string }>;
+};
+
+export default function CourseDetailPage({ params }: PageProps) {
+  const { slug } = use(params);
   const router = useRouter();
   const supabase = getSupabaseBrowserClient();
   const [videos, setVideos] = useState<VideoRow[]>([]);
   const [completedVideoIds, setCompletedVideoIds] = useState<Set<string>>(new Set());
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [course, setCourse] = useState<{ id: string; title: string } | null>(null);
-  const { getVideoProgress } = useVideoProgress();
+  const { getVideoProgress, refreshProgress } = useVideoProgress();
 
-  useEffect(() => {
+  // Load course data and progress
+  const loadCourseData = async () => {
     let cancelled = false;
     (async () => {
       const { data: me } = await supabase.auth.getUser();
@@ -65,7 +69,24 @@ export default function CourseDetailPage(props: unknown) {
       }
     })();
     return () => { cancelled = true; };
+  };
+
+  useEffect(() => {
+    loadCourseData();
   }, [supabase, slug, getVideoProgress]);
+
+  // Refresh when page becomes visible (user navigates back from video)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refreshProgress();
+        loadCourseData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [refreshProgress]);
 
   // Calculate which videos are unlocked
   const getUnlockMap = () => {

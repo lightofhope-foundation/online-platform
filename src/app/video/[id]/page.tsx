@@ -1,16 +1,19 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, use } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { useVideoProgress } from "@/hooks/useVideoProgress";
 import AppShell from "@/components/AppShell";
 import Link from "next/link";
 
-export default function VideoPage(props: unknown) {
-  const { params } = props as { params: { id: string } };
-  const { id } = params;
+type PageProps = {
+  params: Promise<{ id: string }>;
+};
+
+export default function VideoPage({ params }: PageProps) {
+  const { id } = use(params);
   const supabase = getSupabaseBrowserClient();
-  const { updateProgress, getVideoProgress } = useVideoProgress();
+  const { updateProgress, getVideoProgress, refreshProgress } = useVideoProgress();
   const [bunnyId, setBunnyId] = useState<string | null>(null);
   const [requiresWorkbook, setRequiresWorkbook] = useState<boolean>(false);
   const [course, setCourse] = useState<{ title: string; slug: string } | null>(null);
@@ -96,12 +99,14 @@ export default function VideoPage(props: unknown) {
   }, [bunnyId, duration]);
 
   // Manual progress controls
-  const updateManualProgress = (newTime: number) => {
+  const updateManualProgress = async (newTime: number) => {
     if (duration > 0) {
       setCurrentTime(newTime);
       const percent = (newTime / duration) * 100;
       setCurrentProgress(percent);
-      updateProgress(id, newTime, percent, percent >= 90);
+      await updateProgress(id, newTime, percent, percent >= 90);
+      // Refresh progress to update the UI
+      refreshProgress();
     }
   };
 
@@ -268,56 +273,54 @@ export default function VideoPage(props: unknown) {
             </div>
 
             {/* Progress Display */}
-            {existingProgress && (
-              <div className="mt-4 p-4 rounded-lg border border-white/10 bg-white/[0.02]">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-white/70 text-sm">Fortschritt</span>
-                  <span className="text-white font-medium text-sm">
-                    {Math.round(currentProgress)}%
-                  </span>
-                </div>
-                <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
-                  <div 
-                    className="bg-gradient-to-r from-[#63eca9] to-[#53e0b6] h-full rounded-full transition-all duration-300"
-                    style={{ width: `${currentProgress}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between mt-2 text-xs text-white/50">
-                  <span>Letzte Position: {Math.floor(currentTime / 60)}:{(currentTime % 60).toString().padStart(2, '0')}</span>
-                  {existingProgress.completed_at && (
-                    <span className="text-[#63eca9]">✅ Abgeschlossen</span>
-                  )}
-                </div>
-
-                {/* Manual Progress Controls */}
-                <div className="mt-4 flex items-center gap-4">
-                  <button
-                    onClick={() => setIsPlaying(!isPlaying)}
-                    className="px-4 py-2 rounded-lg bg-[#63eca9] text-black font-medium hover:bg-[#53e0b6] transition-colors"
-                  >
-                    {isPlaying ? '⏸️ Pause' : '▶️ Play'}
-                  </button>
-                  <button
-                    onClick={() => updateManualProgress(Math.min(currentTime + 60, duration))}
-                    className="px-3 py-2 rounded-lg border border-white/20 text-white hover:bg-white/10 transition-colors"
-                  >
-                    +1 Min
-                  </button>
-                  <button
-                    onClick={() => updateManualProgress(Math.min(currentTime + 300, duration))}
-                    className="px-3 py-2 rounded-lg border border-white/20 text-white hover:bg-white/10 transition-colors"
-                  >
-                    +5 Min
-                  </button>
-                  <button
-                    onClick={() => updateManualProgress(duration)}
-                    className="px-3 py-2 rounded-lg border border-white/20 text-white hover:bg-white/10 transition-colors"
-                  >
-                    Als abgeschlossen markieren
-                  </button>
-                </div>
+            <div className="mt-4 p-4 rounded-lg border border-white/10 bg-white/[0.02]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-white/70 text-sm">Fortschritt</span>
+                <span className="text-white font-medium text-sm">
+                  {Math.round(currentProgress)}%
+                </span>
               </div>
-            )}
+              <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-[#63eca9] to-[#53e0b6] h-full rounded-full transition-all duration-300"
+                  style={{ width: `${currentProgress}%` }}
+                />
+              </div>
+              <div className="flex items-center justify-between mt-2 text-xs text-white/50">
+                <span>Letzte Position: {Math.floor(currentTime / 60)}:{(currentTime % 60).toString().padStart(2, '0')}</span>
+                {existingProgress?.completed_at && (
+                  <span className="text-[#63eca9]">✅ Abgeschlossen</span>
+                )}
+              </div>
+
+              {/* Manual Progress Controls */}
+              <div className="mt-4 flex items-center gap-4 flex-wrap">
+                <button
+                  onClick={() => setIsPlaying(!isPlaying)}
+                  className="px-4 py-2 rounded-lg bg-[#63eca9] text-black font-medium hover:bg-[#53e0b6] transition-colors"
+                >
+                  {isPlaying ? '⏸️ Pause' : '▶️ Play'}
+                </button>
+                <button
+                  onClick={() => updateManualProgress(Math.min(currentTime + 60, duration))}
+                  className="px-3 py-2 rounded-lg border border-white/20 text-white hover:bg-white/10 transition-colors"
+                >
+                  +1 Min
+                </button>
+                <button
+                  onClick={() => updateManualProgress(Math.min(currentTime + 300, duration))}
+                  className="px-3 py-2 rounded-lg border border-white/20 text-white hover:bg-white/10 transition-colors"
+                >
+                  +5 Min
+                </button>
+                <button
+                  onClick={() => updateManualProgress(duration)}
+                  className="px-3 py-2 rounded-lg border border-white/20 text-white hover:bg-white/10 transition-colors"
+                >
+                  Als abgeschlossen markieren
+                </button>
+              </div>
+            </div>
           </div>
           <aside>
             <h2 className="text-lg font-semibold mb-3">Aufgaben</h2>
