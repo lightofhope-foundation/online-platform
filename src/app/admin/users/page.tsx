@@ -3,20 +3,50 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
+type Profile = {
+  user_id: string;
+  role: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export default async function AdminUsers() {
   // Use the Service Role client so admin can see all users, bypassing RLS.
-  const admin = getSupabaseAdminClient();
+  let admin;
+  let profiles: Profile[] | null = null;
+  let authById = new Map();
+  
+  try {
+    admin = getSupabaseAdminClient();
 
-  const { data: profiles } = await admin
-    .from("profiles")
-    .select("user_id, role, created_at, updated_at")
-    .order("created_at", { ascending: false });
+    const profilesResult = await admin
+      .from("profiles")
+      .select("user_id, role, created_at, updated_at")
+      .order("created_at", { ascending: false });
+    profiles = profilesResult.data;
 
-  // Fetch auth users via Admin API to augment emails and last sign in times
-  // We’ll load up to 1k and map by id. Adjust as needed later with filters/pagination.
-  const { data: authUsersRes } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  const authUsers = authUsersRes?.users ?? [];
-  const authById = new Map(authUsers.map((u) => [u.id, u]));
+    // Fetch auth users via Admin API to augment emails and last sign in times
+    // We'll load up to 1k and map by id. Adjust as needed later with filters/pagination.
+    const { data: authUsersRes } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    const authUsers = authUsersRes?.users ?? [];
+    authById = new Map(authUsers.map((u) => [u.id, u]));
+  } catch (error) {
+    console.error("Error initializing admin client:", error);
+    return (
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-semibold">Users & Progress</h1>
+          <Link href="/admin" className="text-sm text-[#63eca9] hover:underline">
+            Back to Dashboard
+          </Link>
+        </div>
+        <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-red-400">
+          <p className="font-semibold">Error: Missing SUPABASE_SERVICE_ROLE_KEY</p>
+          <p className="text-sm mt-2">Please add the SUPABASE_SERVICE_ROLE_KEY environment variable to Vercel.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
