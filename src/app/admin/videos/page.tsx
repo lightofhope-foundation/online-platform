@@ -39,7 +39,11 @@ async function softDeleteVideo(id: string) {
     .select("role")
     .eq("user_id", user.id)
     .maybeSingle();
-  if (!profile || profile.role !== "admin") return;
+  
+  type Profile = { role: string } | null;
+  const typedProfile = profile as Profile;
+  
+  if (!typedProfile || typedProfile.role !== "admin") return;
   await supabase.from("videos").update({ deleted_at: new Date().toISOString() }).eq("id", id);
   revalidatePath("/admin/videos");
 }
