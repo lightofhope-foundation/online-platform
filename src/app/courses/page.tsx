@@ -8,7 +8,7 @@ import { CircularProgress } from "@/components/CircularProgress";
 import AppShell from "@/components/AppShell";
 
 type Course = { id: string; title: string; slug: string };
-type Profile = { role: "admin" | "therapist" | "patient" };
+type Profile = { role: "admin" | "therapist" | "patient" | "client" };
 
 export default function CoursesPage() {
   const supabase = getSupabaseBrowserClient();

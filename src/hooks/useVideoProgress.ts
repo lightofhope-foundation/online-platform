@@ -146,9 +146,9 @@ export const useVideoProgress = () => {
 
         // Count completed videos
         let completedVideos = 0;
-        let lastVideoId = null;
-        let lastVideoTitle = null;
-        let lastVideoProgress = null;
+        let lastVideoId: string | null = null;
+        let lastVideoTitle: string | null = null;
+        let lastVideoProgress: number | null = null;
 
         videos.forEach(video => {
           const videoProgress = progressMap.get(video.id);
