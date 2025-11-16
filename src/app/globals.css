@@ -37,3 +37,15 @@ html, body {
   z-index: 1;
   overflow: hidden;
 }
+
+
+.video-js .vjs-control-bar {
+  display: flex !important;
+  visibility: visible !important;
+}
+
+/* Ensure player is clickable above any decorative overlays */
+.video-js {
+  pointer-events: auto !important;
+  z-index: 10;
+}

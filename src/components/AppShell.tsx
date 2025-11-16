@@ -1,6 +1,7 @@
 "use client";
 
-import LightRays from "./LightRays";
+import dynamic from "next/dynamic";
+const LightRays = dynamic(() => import("./LightRays"), { ssr: false });
 import { FabSettings } from "./FabSettings";
 import { MobileNav } from "./MobileNav";
 import Link from "next/link";

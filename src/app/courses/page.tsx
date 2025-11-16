@@ -21,8 +21,10 @@ export default function CoursesPage() {
     (async () => {
       const { data: me } = await supabase.auth.getUser();
       if (me?.user) {
-        const { data: prof } = await supabase.from("profiles").select("role").eq("user_id", me.user.id).single();
-        if (!cancelled && prof) setRole(prof.role as Profile["role"]);
+        // Temporarily disable profiles query to avoid 500 error
+        // const { data: prof } = await supabase.from("profiles").select("role").eq("user_id", me.user.id).single();
+        // if (!cancelled && prof) setRole(prof.role as Profile["role"]);
+        setRole("client"); // Default to client role for now
       }
       const { data } = await supabase.from("courses").select("id,title,slug").eq("published", true).is("deleted_at", null).order("title", { ascending: true });
       if (!cancelled && data) setCourses(data as Course[]);

@@ -25,23 +25,49 @@ export const useVideoProgress = () => {
   const [progress, setProgress] = useState<Map<string, VideoProgress>>(new Map());
   const [courseProgress, setCourseProgress] = useState<Map<string, CourseProgress>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
   const supabase = getSupabaseBrowserClient();
+
+  // Cache user ID to avoid repeated auth calls
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!cancelled && user) {
+          setUserId(user.id);
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [supabase]);
 
   // Load user's video progress
   const loadProgress = useCallback(async () => {
+    if (!userId) return;
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: progressData } = await supabase
+      const { data: progressData, error } = await supabase
         .from('video_progress')
         .select('*')
-        .eq('user_id', user.id)
-        .is('deleted_at', null);
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Error fetching progress:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        });
+        return;
+      }
 
       if (progressData) {
         const progressMap = new Map();
-        progressData.forEach(p => progressMap.set(p.video_id, p));
+        progressData.forEach(p => {
+          progressMap.set(p.video_id, p);
+        });
         setProgress(progressMap);
       }
     } catch (error) {
@@ -49,91 +75,117 @@ export const useVideoProgress = () => {
     } finally {
       setLoading(false);
     }
-  }, [supabase]);
+  }, [supabase, userId]);
 
   // Load course progress
   const loadCourseProgress = useCallback(async () => {
+    if (!userId) return;
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      // Fetch fresh progress data to avoid dependency issues
+      const { data: progressData, error: progressError } = await supabase
+        .from('video_progress')
+        .select('*')
+        .eq('user_id', userId);
 
-      // Get all courses with video and workbook counts
-      const { data: courses } = await supabase
+      if (progressError) {
+        console.error('Error fetching course progress rows:', {
+          message: progressError.message,
+          details: progressError.details,
+          hint: progressError.hint,
+          code: progressError.code,
+        });
+        return;
+      }
+
+      const progressMap = new Map<string, VideoProgress>();
+      if (progressData) {
+        progressData.forEach(p => {
+          progressMap.set(p.video_id, p);
+        });
+      }
+
+      // Get all courses
+      const { data: courses, error: coursesError } = await supabase
         .from('courses')
-        .select(`
-          id,
-          title,
-          videos!inner(
-            id,
-            title,
-            position,
-            requires_workbook,
-            video_progress!inner(
-              last_second,
-              percent,
-              completed_at
-            )
-          ),
-          workbooks!inner(
-            id,
-            workbook_submissions!inner(
-              status
-            )
-          )
-        `)
+        .select('id, title')
         .eq('published', true)
         .is('deleted_at', null);
 
-      if (courses) {
-        const courseProgressMap = new Map();
-        
-        courses.forEach(course => {
-          const videos = course.videos || [];
-          const totalVideos = videos.length;
-          const completedVideos = videos.filter(v => 
-            v.video_progress?.[0]?.completed_at !== null
-          ).length;
-          
-          const workbooks = course.workbooks || [];
-          const totalWorkbooks = workbooks.length;
-          const completedWorkbooks = workbooks.filter(w => 
-            w.workbook_submissions?.[0]?.status === 'submitted'
-          ).length;
+      if (coursesError) {
+        console.error('Error fetching courses:', coursesError);
+        return;
+      }
 
-          // Find last watched video
-          let lastVideoId = null;
-          let lastVideoTitle = null;
-          let lastVideoProgress = null;
-          
-          const sortedVideos = videos.sort((a, b) => a.position - b.position);
-          for (let i = sortedVideos.length - 1; i >= 0; i--) {
-            const video = sortedVideos[i];
-            if (video.video_progress?.[0]) {
+      if (!courses || courses.length === 0) {
+        setCourseProgress(new Map());
+        return;
+      }
+
+      const courseProgressMap = new Map();
+
+      // For each course, calculate progress
+      for (const course of courses) {
+        // Get chapters for this course
+        const { data: chapters } = await supabase
+          .from('chapters')
+          .select('id')
+          .eq('course_id', course.id);
+
+        if (!chapters || chapters.length === 0) continue;
+
+        const chapterIds = chapters.map(c => c.id);
+
+        // Get videos for these chapters
+        const { data: videos } = await supabase
+          .from('videos')
+          .select('id, title, position, requires_workbook')
+          .in('chapter_id', chapterIds)
+          .is('deleted_at', null);
+
+        if (!videos || videos.length === 0) continue;
+
+        // Count completed videos
+        let completedVideos = 0;
+        let lastVideoId = null;
+        let lastVideoTitle = null;
+        let lastVideoProgress = null;
+
+        videos.forEach(video => {
+          const videoProgress = progressMap.get(video.id);
+          if (videoProgress && videoProgress.completed_at) {
+            completedVideos++;
+          }
+          // Find the most recently updated video (by updated_at timestamp)
+          if (videoProgress && videoProgress.updated_at) {
+            if (!lastVideoId || new Date(videoProgress.updated_at) > new Date(progressMap.get(lastVideoId)?.updated_at || 0)) {
               lastVideoId = video.id;
               lastVideoTitle = video.title;
-              lastVideoProgress = video.video_progress[0].percent;
-              break;
+              lastVideoProgress = videoProgress.percent;
             }
           }
-
-          courseProgressMap.set(course.id, {
-            courseId: course.id,
-            totalVideos,
-            completedVideos,
-            totalWorkbooks,
-            completedWorkbooks,
-            lastVideoId,
-            lastVideoTitle,
-            lastVideoProgress
-          });
         });
 
-        setCourseProgress(courseProgressMap);
+        // Count workbooks (simplified - assume each video can have a workbook)
+        const totalWorkbooks = videos.filter(v => v.requires_workbook).length;
+        const completedWorkbooks = 0; // TODO: Implement workbook completion tracking
+
+        courseProgressMap.set(course.id, {
+          courseId: course.id,
+          totalVideos: videos.length,
+          completedVideos,
+          totalWorkbooks,
+          completedWorkbooks,
+          lastVideoId,
+          lastVideoTitle,
+          lastVideoProgress
+        });
       }
+
+      setCourseProgress(courseProgressMap);
     } catch (error) {
       console.error('Error loading course progress:', error);
     }
-  }, [supabase]);
+  }, [supabase, userId]);
 
   // Update video progress
   const updateProgress = useCallback(async (
@@ -142,55 +194,62 @@ export const useVideoProgress = () => {
     percent: number, 
     completed: boolean = false
   ) => {
+    if (!userId) {
+      console.error('No authenticated user found');
+      return false;
+    }
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
+      console.log('updateProgress called with:', { videoId, lastSecond, percent, completed });
+      
       const progressData = {
-        user_id: user.id,
+        user_id: userId,
         video_id: videoId,
-        last_second: lastSecond,
+        last_second: Math.round(lastSecond),
         percent: Math.min(percent, 100),
         completed_at: completed ? new Date().toISOString() : null,
         updated_at: new Date().toISOString()
       };
 
-      // Check if progress exists
-      const existingProgress = progress.get(videoId);
+      // Use upsert to handle both insert and update cases
+      // The unique constraint is on (user_id, video_id)
+      const { data, error } = await supabase
+        .from('video_progress')
+        .upsert(progressData, { 
+          onConflict: 'user_id,video_id'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error upserting progress:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
+        });
+        throw error;
+      }
       
-      if (existingProgress) {
-        // Update existing progress
-        const { data, error } = await supabase
-          .from('video_progress')
-          .update(progressData)
-          .eq('id', existingProgress.id)
-          .select()
-          .single();
-
-        if (error) throw error;
-        if (data) {
-          setProgress(prev => new Map(prev).set(videoId, data));
-        }
-      } else {
-        // Create new progress
-        const { data, error } = await supabase
-          .from('video_progress')
-          .insert(progressData)
-          .select()
-          .single();
-
-        if (error) throw error;
-        if (data) {
-          setProgress(prev => new Map(prev).set(videoId, data));
-        }
+      if (data) {
+        setProgress(prev => new Map(prev).set(videoId, data));
+        // Reload course progress to update dashboard
+        await loadCourseProgress();
       }
 
-      // Reload course progress after update
-      await loadCourseProgress();
-    } catch (error) {
-      console.error('Error updating progress:', error);
+      return true; // Indicate success
+    } catch (error: any) {
+      console.error('Error updating progress:', {
+        message: error?.message || 'Unknown error',
+        details: error?.details,
+        hint: error?.hint,
+        code: error?.code,
+        stack: error?.stack,
+        fullError: error ? JSON.stringify(error, Object.getOwnPropertyNames(error)) : 'No error object'
+      });
+      return false; // Indicate failure
     }
-  }, [supabase, progress, loadCourseProgress]);
+  }, [supabase, userId, loadCourseProgress]);
 
   // Get progress for a specific video
   const getVideoProgress = useCallback((videoId: string): VideoProgress | null => {
@@ -227,9 +286,11 @@ export const useVideoProgress = () => {
   }, [courseProgress]);
 
   useEffect(() => {
-    loadProgress();
-    loadCourseProgress();
-  }, [loadProgress, loadCourseProgress]);
+    if (userId) {
+      loadProgress();
+      loadCourseProgress();
+    }
+  }, [userId, loadProgress, loadCourseProgress]);
 
   return {
     progress,

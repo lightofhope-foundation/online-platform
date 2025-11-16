@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import LightRays from "@/components/LightRays";
 import { MobileNav } from "@/components/MobileNav";
@@ -22,17 +22,24 @@ import {
 import { LogoutButton } from "@/components/LogoutButton";
 
 export default function Home() {
-  const { courseProgress, loading, getOverallProgress } = useVideoProgress();
+  const { courseProgress, loading, getOverallProgress, progress } = useVideoProgress();
   const overallProgress = getOverallProgress();
 
   // Find the course with the most recent video progress
   let continueWatching: CourseProgress | null = null;
   if (courseProgress.size > 0) {
-    let highestProgress = 0;
+    let mostRecentTime = 0;
     courseProgress.forEach(course => {
-      if (course.lastVideoId && course.lastVideoProgress !== null && course.lastVideoProgress > highestProgress) {
-        highestProgress = course.lastVideoProgress;
-        continueWatching = course;
+      if (course.lastVideoId && course.lastVideoProgress !== null) {
+        // Find the actual video progress to get the updated_at timestamp
+        const videoProgress = progress.get(course.lastVideoId);
+        if (videoProgress && videoProgress.updated_at) {
+          const updatedTime = new Date(videoProgress.updated_at).getTime();
+          if (updatedTime > mostRecentTime) {
+            mostRecentTime = updatedTime;
+            continueWatching = course;
+          }
+        }
       }
     });
   }
@@ -99,20 +106,36 @@ export default function Home() {
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-white/70">Videos</span>
                         <span className="text-white font-medium">
-                          {overallProgress.completedVideos} / {overallProgress.totalVideos}
+                          {overallProgress.videoProgress}%
                         </span>
                       </div>
-                      <ProgressBar progress={overallProgress.videoProgress} size="lg" />
+                      <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
+                        <div 
+                          className="bg-gradient-to-r from-[#63eca9] to-[#53e0b6] h-3 rounded-full transition-all duration-300"
+                          style={{ width: `${overallProgress.videoProgress}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between mt-2 text-xs text-white/50">
+                        <span>{overallProgress.completedVideos} von {overallProgress.totalVideos} Videos abgeschlossen</span>
+                      </div>
                     </div>
                     {overallProgress.totalWorkbooks > 0 && (
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-white/70">Workbooks</span>
                           <span className="text-white font-medium">
-                            {overallProgress.completedWorkbooks} / {overallProgress.totalWorkbooks}
+                            {overallProgress.workbookProgress}%
                           </span>
                         </div>
-                        <ProgressBar progress={overallProgress.workbookProgress} size="lg" />
+                        <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
+                          <div 
+                            className="bg-gradient-to-r from-[#63eca9] to-[#53e0b6] h-3 rounded-full transition-all duration-300"
+                            style={{ width: `${overallProgress.workbookProgress}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between mt-2 text-xs text-white/50">
+                          <span>{overallProgress.completedWorkbooks} von {overallProgress.totalWorkbooks} Workbooks abgeschlossen</span>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -130,11 +153,15 @@ export default function Home() {
                     <div className="flex-1">
                       <h3 className="font-medium text-white mb-1">{(continueWatching as CourseProgress).lastVideoTitle}</h3>
                       <p className="text-white/60 text-sm mb-2">Fortsetzen wo du aufgehört hast</p>
-                      <ProgressBar 
-                        progress={(continueWatching as CourseProgress).lastVideoProgress || 0} 
-                        size="sm" 
-                        showPercentage 
-                      />
+                      <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+                        <div 
+                          className="bg-gradient-to-r from-[#63eca9] to-[#53e0b6] h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${(continueWatching as CourseProgress).lastVideoProgress || 0}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between mt-1 text-xs text-white/50">
+                        <span>{(continueWatching as CourseProgress).lastVideoProgress || 0}% abgeschlossen</span>
+                      </div>
                     </div>
                     <Link
                       href={`/video/${(continueWatching as CourseProgress).lastVideoId}`}
