@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState, use, useCallback } from "react";
+import React, { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
@@ -25,7 +25,7 @@ export default function CourseDetailPage({ params }: PageProps) {
   const supabase = getSupabaseBrowserClient();
   const [videos, setVideos] = useState<VideoRow[]>([]);
   const [completedVideoIds, setCompletedVideoIds] = useState<Set<string>>(new Set());
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [isAdmin] = useState<boolean>(false);
   const [course, setCourse] = useState<{ id: string; title: string; slug: string } | null>(null);
   const { getVideoProgress, refreshProgress } = useVideoProgress();
 
@@ -80,6 +80,7 @@ export default function CourseDetailPage({ params }: PageProps) {
 
   useEffect(() => {
     loadCourseData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase, slug, getVideoProgress]);
 
   // Refresh when component mounts (user navigates back)
@@ -91,6 +92,7 @@ export default function CourseDetailPage({ params }: PageProps) {
       }, 100);
     };
     refreshData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Refresh when page becomes visible (user navigates back from video)
@@ -105,6 +107,7 @@ export default function CourseDetailPage({ params }: PageProps) {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshProgress]);
 
   // Calculate which videos are unlocked

@@ -24,7 +24,7 @@ export async function middleware(req: NextRequest) {
         url.search = "";
         return NextResponse.redirect(url);
       }
-    } catch (err) {
+    } catch {
       // If auth check fails, allow login page access but block other pages
       if (!isPublic) {
         const url = req.nextUrl.clone();

@@ -4,6 +4,29 @@ import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
+type Course = {
+  id: string;
+  title: string;
+};
+
+type Chapter = {
+  id: string;
+  title: string;
+  position: number;
+  course_id: string;
+};
+
+type Video = {
+  id: string;
+  title: string;
+  chapter_id: string;
+  position: number;
+  deleted_at: string | null;
+  bunny_video_id: string | null;
+  requires_workbook: boolean;
+  updated_at: string;
+};
+
 async function softDeleteVideo(id: string) {
   "use server";
   const supabase = getSupabaseServerClient();
@@ -39,16 +62,16 @@ export default async function AdminVideos({ searchParams }: { searchParams: { co
     .select("id,title,chapter_id,position,deleted_at,bunny_video_id,requires_workbook,updated_at")
     .order("position");
 
-  const filteredChapters = (chapters ?? []).filter((c: any) => !courseId || c.course_id === courseId);
+  const filteredChapters = (chapters ?? []).filter((c: Chapter) => !courseId || c.course_id === courseId);
 
-  const chaptersByCourse = new Map<string, any[]>();
+  const chaptersByCourse = new Map<string, Chapter[]>();
   for (const c of filteredChapters) {
     if (!chaptersByCourse.has(c.course_id)) chaptersByCourse.set(c.course_id, []);
     chaptersByCourse.get(c.course_id)!.push(c);
   }
 
-  const videosByChapter = new Map<string, any[]>();
-  for (const v of videos ?? []) {
+  const videosByChapter = new Map<string, Video[]>();
+  for (const v of (videos ?? []) as Video[]) {
     if (!videosByChapter.has(v.chapter_id)) videosByChapter.set(v.chapter_id, []);
     videosByChapter.get(v.chapter_id)!.push(v);
   }
@@ -75,7 +98,7 @@ export default async function AdminVideos({ searchParams }: { searchParams: { co
           className="bg-transparent border border-white/20 rounded px-2 py-1"
         >
           <option value="">All</option>
-          {(courses ?? []).map((c: any) => (
+          {(courses ?? []).map((c: Course) => (
             <option key={c.id} value={c.id}>
               {c.title}
             </option>
@@ -87,12 +110,12 @@ export default async function AdminVideos({ searchParams }: { searchParams: { co
       </form>
 
       {(courses ?? [])
-        .filter((c: any) => !courseId || c.id === courseId)
-        .map((course: any) => (
+        .filter((c: Course) => !courseId || c.id === courseId)
+        .map((course: Course) => (
           <div key={course.id} className="mb-8">
             <h2 className="text-lg font-medium mb-3">{course.title}</h2>
             <div className="space-y-2">
-              {(chaptersByCourse.get(course.id) ?? []).map((ch: any) => (
+              {(chaptersByCourse.get(course.id) ?? []).map((ch: Chapter) => (
                 <div key={ch.id} className="rounded-lg border border-white/10">
                   <div className="flex items-center justify-between px-3 py-2 bg-white/5">
                     <div className="font-medium">
@@ -100,7 +123,7 @@ export default async function AdminVideos({ searchParams }: { searchParams: { co
                     </div>
                   </div>
                   <div className="divide-y divide-white/10">
-                    {(videosByChapter.get(ch.id) ?? []).map((v: any) => (
+                    {(videosByChapter.get(ch.id) ?? []).map((v: Video) => (
                       <form key={v.id} action={async () => { "use server"; await softDeleteVideo(v.id); }}>
                         <div className="flex items-center justify-between px-3 py-2">
                           <div>

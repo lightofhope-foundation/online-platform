@@ -87,9 +87,10 @@ export default function LoginPage() {
         setError("Login fehlgeschlagen. Bitte erneut versuchen.");
         setLoading(false);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Login error:', err);
-      if (err.status === 429 || err.message?.includes('rate limit')) {
+      const error = err as { status?: number; message?: string };
+      if (error.status === 429 || error.message?.includes('rate limit')) {
         const retryDelay = 60;
         setRetryAfter(Date.now() + (retryDelay * 1000));
         setError(`Zu viele Anmeldeversuche. Bitte warten Sie ${retryDelay} Sekunden.`);

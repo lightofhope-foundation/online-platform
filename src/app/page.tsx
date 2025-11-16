@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React from "react";
 import Link from "next/link";
 import LightRays from "@/components/LightRays";
 import { MobileNav } from "@/components/MobileNav";
 import { FabSettings } from "@/components/FabSettings";
 import { useVideoProgress } from "@/hooks/useVideoProgress";
-import { ProgressBar } from "@/components/ProgressBar";
 import type { CourseProgress } from "@/hooks/useVideoProgress";
 import {
   HomeIcon,

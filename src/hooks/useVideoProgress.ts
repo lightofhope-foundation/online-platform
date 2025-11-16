@@ -238,13 +238,14 @@ export const useVideoProgress = () => {
       }
 
       return true; // Indicate success
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { message?: string; details?: string; hint?: string; code?: string; stack?: string };
       console.error('Error updating progress:', {
-        message: error?.message || 'Unknown error',
-        details: error?.details,
-        hint: error?.hint,
-        code: error?.code,
-        stack: error?.stack,
+        message: err?.message || 'Unknown error',
+        details: err?.details,
+        hint: err?.hint,
+        code: err?.code,
+        stack: err?.stack,
         fullError: error ? JSON.stringify(error, Object.getOwnPropertyNames(error)) : 'No error object'
       });
       return false; // Indicate failure
