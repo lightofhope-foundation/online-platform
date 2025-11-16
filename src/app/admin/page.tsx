@@ -4,6 +4,13 @@ import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
+type Course = {
+  id: string;
+  title: string;
+  slug: string;
+  updated_at: string;
+};
+
 export default async function AdminHome() {
   const supabase = getSupabaseServerClient();
   const admin = getSupabaseAdminClient();
@@ -13,6 +20,8 @@ export default async function AdminHome() {
     .select("id,title,slug,updated_at")
     .order("updated_at", { ascending: false })
     .limit(8);
+
+  const typedCourses = (courses ?? []) as Course[];
 
   const { count: progressCount } = await admin
     .from("video_progress")
@@ -37,7 +46,7 @@ export default async function AdminHome() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard label="Courses" value={courses?.length ?? 0} />
+        <StatCard label="Courses" value={typedCourses.length} />
         <StatCard label="Users" value={userCount ?? 0} />
         <StatCard label="Progress Rows" value={progressCount ?? 0} />
       </div>
@@ -45,7 +54,7 @@ export default async function AdminHome() {
       <div className="space-y-2">
         <h2 className="text-lg font-medium">Recent Courses</h2>
         <div className="rounded-lg border border-white/10 divide-y divide-white/10">
-          {(courses ?? []).map((c) => (
+          {typedCourses.map((c) => (
             <div key={c.id} className="flex items-center justify-between px-4 py-3">
               <div>
                 <div className="font-medium">{c.title}</div>
@@ -56,7 +65,7 @@ export default async function AdminHome() {
               </Link>
             </div>
           ))}
-          {(!courses || courses.length === 0) && (
+          {typedCourses.length === 0 && (
             <div className="px-4 py-6 text-sm text-white/60">No courses yet.</div>
           )}
         </div>
