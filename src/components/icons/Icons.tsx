@@ -125,3 +125,57 @@ export const FeedbackIcon = withIcon(
   "M12.3334 0.333496H1.66671C0.933374 0.333496 0.340041 0.933496 0.340041 1.66683L0.333374 13.6668L3.00004 11.0002H12.3334C13.0667 11.0002 13.6667 10.4002 13.6667 9.66683V1.66683C13.6667 0.933496 13.0667 0.333496 12.3334 0.333496ZM12.3334 9.66683H2.44671L2.05337 10.0602L1.66671 10.4468V1.66683H12.3334V9.66683ZM6.33337 7.00016H7.66671V8.3335H6.33337V7.00016ZM6.33337 3.00016H7.66671V5.66683H6.33337V3.00016Z",
   "0 0 14 14"
 );
+
+// Admin menu icons - minimalistic black & white (stroke-based)
+export function OverviewIcon({ className, size = 24 }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width={size}
+      height={size}
+      viewBox="0 0 14 14"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+    >
+      <rect x="1" y="1" width="5" height="5" stroke="currentColor" strokeWidth="1.2" />
+      <rect x="8" y="1" width="5" height="5" stroke="currentColor" strokeWidth="1.2" />
+      <rect x="1" y="8" width="5" height="5" stroke="currentColor" strokeWidth="1.2" />
+      <rect x="8" y="8" width="5" height="5" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+export function CoursesManageIcon({ className, size = 24 }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width={size}
+      height={(size * 12) / 14}
+      viewBox="0 0 14 12"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+    >
+      <rect x="0.5" y="1.5" width="13" height="10" stroke="currentColor" strokeWidth="1.2" rx="0.5" />
+      <line x1="1" y1="4" x2="13" y2="4" stroke="currentColor" strokeWidth="1.2" />
+      <line x1="2" y1="6" x2="12" y2="6" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+export function UsersIcon({ className, size = 24 }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width={size}
+      height={(size * 13) / 14}
+      viewBox="0 0 14 13"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+    >
+      <circle cx="7" cy="3" r="2.5" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M3 11C3 8.79 4.79 7 7 7C9.21 7 11 8.79 11 11" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <circle cx="12" cy="3" r="1.5" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M12 5.5V6.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+}

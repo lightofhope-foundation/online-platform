@@ -44,9 +44,10 @@ async function softDeleteVideo(id: string) {
   revalidatePath("/admin/videos");
 }
 
-export default async function AdminVideos({ searchParams }: { searchParams: { course?: string } }) {
+export default async function AdminVideos({ searchParams }: { searchParams: Promise<{ course?: string }> }) {
   const supabase = getSupabaseServerClient();
-  const courseId = searchParams?.course ?? "";
+  const params = await searchParams;
+  const courseId = params?.course ?? "";
 
   const { data: courses } = await supabase
     .from("courses")
