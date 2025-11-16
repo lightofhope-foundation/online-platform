@@ -4,30 +4,34 @@ import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
-type Course = {
-  id: string;
-  title: string;
-  slug: string;
-  updated_at: string;
-};
-
 export default async function AdminHome() {
   const supabase = getSupabaseServerClient();
-  const admin = getSupabaseAdminClient();
+  
+  let admin;
+  let progressCount: number | null = null;
+  let userCount: number | null = null;
+  
+  try {
+    admin = getSupabaseAdminClient();
+    const progressResult = await admin
+      .from("video_progress")
+      .select("*", { count: "exact", head: true });
+    progressCount = progressResult.count;
+
+    const userResult = await admin
+      .from("profiles")
+      .select("*", { count: "exact", head: true });
+    userCount = userResult.count;
+  } catch (error) {
+    console.error("Error initializing admin client:", error);
+    // Continue without admin stats if service role key is missing
+  }
 
   const { data: courses } = await supabase
     .from("courses")
     .select("id,title,slug,updated_at")
     .order("updated_at", { ascending: false })
     .limit(8);
-
-  const { count: progressCount } = await admin
-    .from("video_progress")
-    .select("*", { count: "exact", head: true });
-
-  const { count: userCount } = await admin
-    .from("profiles")
-    .select("*", { count: "exact", head: true });
 
   return (
     <div className="space-y-8">

@@ -21,12 +21,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     .eq("user_id", user.id)
     .maybeSingle();
 
-  type Profile = { role: string } | null;
-  const typedProfile = profile as Profile;
-
   const email = (user?.email ?? "").toLowerCase();
   const emailWhitelisted = ["info@oag-media.com"].includes(email);
-  const isAdmin = (typedProfile?.role === "admin") || emailWhitelisted;
+  const isAdmin = (profile?.role === "admin") || emailWhitelisted;
 
   if (!isAdmin) {
     redirect("/");
