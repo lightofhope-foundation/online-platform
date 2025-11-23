@@ -1,12 +1,11 @@
 import Link from "next/link";
-import { getSupabaseServerClient } from "@/lib/supabaseServer";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminHome() {
-  const supabase = getSupabaseServerClient();
-  
+  const supabase = getSupabaseAdminClient();
+
   let admin;
   let progressCount: number | null = null;
   let userCount: number | null = null;

@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Light of Hope — Online Platform",
   description: "Therapy platform MVP",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
