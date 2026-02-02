@@ -7,8 +7,31 @@ type Profile = {
   user_id: string;
   role: string;
   created_at: string;
-  updated_at: string;
+  first_name: string | null;
+  last_name: string | null;
 };
+
+// Helper function to generate user slug: firstname-lastname-lastthreedigitsofuserID
+function generateUserSlug(firstName: string | null, lastName: string | null, userId: string): string {
+  const first = (firstName ?? "").toLowerCase().trim();
+  const last = (lastName ?? "").toLowerCase().trim();
+  const lastThree = userId.slice(-3).toLowerCase();
+  
+  const parts = [];
+  if (first) parts.push(first);
+  if (last) parts.push(last);
+  if (lastThree) parts.push(lastThree);
+  
+  return parts.join("-") || userId.slice(-3).toLowerCase();
+}
+
+// Helper function to format full name
+function formatFullName(firstName: string | null, lastName: string | null): string {
+  const first = firstName?.trim() ?? "";
+  const last = lastName?.trim() ?? "";
+  if (!first && !last) return "—";
+  return `${first} ${last}`.trim();
+}
 
 export default async function AdminUsers() {
   // Use the Service Role client so admin can see all users, bypassing RLS.
@@ -19,11 +42,35 @@ export default async function AdminUsers() {
   try {
     admin = getSupabaseAdminClient();
 
-    const profilesResult = await admin
+    // Try to select first_name and last_name, but fall back if columns don't exist yet
+    let profilesResult = await admin
       .from("profiles")
-      .select("user_id, role, created_at, updated_at")
+      .select("user_id, role, created_at, first_name, last_name")
       .order("created_at", { ascending: false });
-    profiles = profilesResult.data;
+    
+    // If the query failed due to missing columns, try without them
+    if (profilesResult.error) {
+      console.log("Columns might not exist, trying without first_name/last_name:", profilesResult.error.message);
+      profilesResult = await admin
+        .from("profiles")
+        .select("user_id, role, created_at")
+        .order("created_at", { ascending: false });
+    }
+    
+    // Check if we still have an error after fallback
+    if (profilesResult.error) {
+      console.error("Error fetching profiles:", profilesResult.error);
+      profiles = [];
+    } else {
+      // Map results to ensure first_name and last_name are always present (null if not selected)
+      profiles = (profilesResult.data ?? []).map((p: any) => ({
+        user_id: p.user_id,
+        role: p.role,
+        created_at: p.created_at,
+        first_name: p.first_name ?? null,
+        last_name: p.last_name ?? null,
+      }));
+    }
 
     // Fetch auth users via Admin API to augment emails and last sign in times
     // We'll load up to 1k and map by id. Adjust as needed later with filters/pagination.
@@ -62,32 +109,49 @@ export default async function AdminUsers() {
           <thead className="bg-white/5 text-left">
             <tr>
               <th className="px-3 py-2">Email</th>
-              <th className="px-3 py-2">User ID</th>
-              <th className="px-3 py-2">Role</th>
-              <th className="px-3 py-2">Last Sign-In</th>
-              <th className="px-3 py-2">Created</th>
-              <th className="px-3 py-2">Updated</th>
+              <th className="px-3 py-2">Name</th>
+              <th className="px-3 py-2">Rolle</th>
+              <th className="px-3 py-2">Erstellt</th>
+              <th className="px-3 py-2">Letzter Login</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/10">
             {(profiles ?? []).map((p) => {
               const au = authById.get(p.user_id);
+              const slug = generateUserSlug(p.first_name, p.last_name, p.user_id);
               return (
                 <tr key={p.user_id}>
-                  <td className="px-3 py-2">{au?.email ?? "—"}</td>
-                  <td className="px-3 py-2">{p.user_id}</td>
-                  <td className="px-3 py-2">{p.role}</td>
                   <td className="px-3 py-2">
-                    {au?.last_sign_in_at ? new Date(au.last_sign_in_at).toLocaleString() : "—"}
+                    <Link href={`/admin/users/${slug}`} className="block hover:text-[#63eca9] transition-colors">
+                      {au?.email ?? "—"}
+                    </Link>
                   </td>
-                  <td className="px-3 py-2">{new Date(p.created_at).toLocaleString()}</td>
-                  <td className="px-3 py-2">{new Date(p.updated_at).toLocaleString()}</td>
+                  <td className="px-3 py-2">
+                    <Link href={`/admin/users/${slug}`} className="block hover:text-[#63eca9] transition-colors">
+                      {formatFullName(p.first_name, p.last_name)}
+                    </Link>
+                  </td>
+                  <td className="px-3 py-2">
+                    <Link href={`/admin/users/${slug}`} className="block hover:text-[#63eca9] transition-colors">
+                      {p.role}
+                    </Link>
+                  </td>
+                  <td className="px-3 py-2">
+                    <Link href={`/admin/users/${slug}`} className="block hover:text-[#63eca9] transition-colors">
+                      {new Date(p.created_at).toLocaleString()}
+                    </Link>
+                  </td>
+                  <td className="px-3 py-2">
+                    <Link href={`/admin/users/${slug}`} className="block hover:text-[#63eca9] transition-colors">
+                      {au?.last_sign_in_at ? new Date(au.last_sign_in_at).toLocaleString() : "—"}
+                    </Link>
+                  </td>
                 </tr>
               );
             })}
             {(!profiles || profiles.length === 0) && (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-white/60">
+                <td colSpan={5} className="px-3 py-6 text-center text-white/60">
                   No users found.
                 </td>
               </tr>

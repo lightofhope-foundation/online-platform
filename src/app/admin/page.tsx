@@ -29,6 +29,7 @@ export default async function AdminHome() {
   const { data: courses } = await supabase
     .from("courses")
     .select("id,title,slug,updated_at")
+    .is("deleted_at", null)
     .order("updated_at", { ascending: false })
     .limit(8);
 

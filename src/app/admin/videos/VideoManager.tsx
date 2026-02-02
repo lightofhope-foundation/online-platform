@@ -101,6 +101,11 @@ export default function VideoManager({
     id: string;
     name: string;
   } | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -377,6 +382,21 @@ export default function VideoManager({
       setUploadState(null);
     }
   };
+
+  // Defer DnD tree to client-only to avoid hydration mismatch (DndDescribedBy-0 vs DndDescribedBy-N)
+  if (!mounted) {
+    return (
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-semibold">Videos &amp; Kurse verwalten</h1>
+          <a href="/admin" className="text-sm text-[#63eca9] hover:underline">
+            Zurück zum Dashboard
+          </a>
+        </div>
+        <div className="text-white/60 animate-pulse">Laden…</div>
+      </div>
+    );
+  }
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

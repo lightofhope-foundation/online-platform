@@ -4,6 +4,9 @@ import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import LightRays from "@/components/LightRays";
 
+// Track failed login attempts per email (client-side only, resets on page refresh)
+const failedAttempts = new Map<string, { count: number; lastAttempt: number }>();
+
 export default function LoginPage() {
   const router = useRouter();
   const supabase = getSupabaseBrowserClient();
@@ -46,6 +49,24 @@ export default function LoginPage() {
       setError(`Bitte warten Sie ${secondsLeft} Sekunden, bevor Sie es erneut versuchen.`);
       return;
     }
+    
+    // Check client-side rate limiting (only after 5 failed attempts within 2 minutes)
+    const emailKey = email.toLowerCase();
+    const attempts = failedAttempts.get(emailKey);
+    if (attempts) {
+      const timeSinceLastAttempt = Date.now() - attempts.lastAttempt;
+      // Reset counter if it's been more than 2 minutes since last attempt
+      if (timeSinceLastAttempt > 120000) {
+        failedAttempts.delete(emailKey);
+      } else if (attempts.count >= 5) {
+        // Block after 5 failed attempts within 2 minutes
+        const retryDelay = 30; // 30 seconds cooldown
+        setRetryAfter(Date.now() + (retryDelay * 1000));
+        setError(`Zu viele fehlgeschlagene Anmeldeversuche. Bitte warten Sie ${retryDelay} Sekunden.`);
+        return;
+      }
+    }
+    
     setError(null);
     setLoading(true);
     
@@ -53,11 +74,35 @@ export default function LoginPage() {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
-        // Handle rate limit errors specifically
-        if (error.status === 429 || error.message?.includes('rate limit') || error.message?.includes('Too Many Requests')) {
-          const retryDelay = 60; // 60 seconds cooldown
-          setRetryAfter(Date.now() + (retryDelay * 1000));
-          setError(`Zu viele Anmeldeversuche. Bitte warten Sie ${retryDelay} Sekunden, bevor Sie es erneut versuchen.`);
+        // Track failed attempt (but not for rate limit errors from Supabase)
+        const isRateLimitError = error.status === 429 || error.message?.includes('rate limit') || error.message?.includes('Too Many Requests');
+        
+        if (!isRateLimitError) {
+          const current = failedAttempts.get(emailKey) || { count: 0, lastAttempt: 0 };
+          const newCount = current.count + 1;
+          failedAttempts.set(emailKey, {
+            count: newCount,
+            lastAttempt: Date.now()
+          });
+          
+          // Show attempt counter to user
+          console.log(`Failed login attempt ${newCount}/5 for ${emailKey}`);
+        }
+        
+        // Handle different error types with clear messages
+        if (isRateLimitError) {
+          // Supabase's own rate limiting - just show a gentle message, don't block locally
+          setError(`Bitte warten Sie einen Moment und versuchen Sie es erneut.`);
+        } else if (error.message?.includes('Invalid login credentials')) {
+          const current = failedAttempts.get(emailKey);
+          const attemptsLeft = current ? Math.max(0, 5 - current.count) : 5;
+          if (attemptsLeft > 0) {
+            setError(`Ungültige E-Mail oder Passwort. Noch ${attemptsLeft} Versuche übrig.`);
+          } else {
+            setError(`Ungültige E-Mail oder Passwort.`);
+          }
+        } else if (error.message?.includes('Email not confirmed')) {
+          setError("E-Mail-Adresse noch nicht bestätigt. Bitte prüfen Sie Ihr Postfach.");
         } else {
           setError(error.message || "Anmeldung fehlgeschlagen. Bitte erneut versuchen.");
         }
@@ -65,11 +110,14 @@ export default function LoginPage() {
         return;
       }
       
+      // Successful login - clear failed attempts for this email
+      failedAttempts.delete(emailKey);
+      
       if (data.session) {
         // Check role to route admins to /admin
         const { data: u } = await supabase.auth.getUser();
-        const email = (u?.user?.email ?? "").toLowerCase();
-        if (email === "info@oag-media.com") {
+        const userEmail = (u?.user?.email ?? "").toLowerCase();
+        if (userEmail === "info@oag-media.com") {
           router.replace("/admin");
           return;
         }
@@ -91,7 +139,7 @@ export default function LoginPage() {
       console.error('Login error:', err);
       const error = err as { status?: number; message?: string };
       if (error.status === 429 || error.message?.includes('rate limit')) {
-        const retryDelay = 60;
+        const retryDelay = 30; // Reduced from 60 to 30 seconds
         setRetryAfter(Date.now() + (retryDelay * 1000));
         setError(`Zu viele Anmeldeversuche. Bitte warten Sie ${retryDelay} Sekunden.`);
       } else {

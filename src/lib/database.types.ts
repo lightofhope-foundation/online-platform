@@ -119,6 +119,8 @@ export type Database = {
         Row: {
           can_soft_delete: boolean
           created_at: string
+          first_name: string | null
+          last_name: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
           user_id: string
@@ -126,6 +128,8 @@ export type Database = {
         Insert: {
           can_soft_delete?: boolean
           created_at?: string
+          first_name?: string | null
+          last_name?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           user_id: string
@@ -133,6 +137,8 @@ export type Database = {
         Update: {
           can_soft_delete?: boolean
           created_at?: string
+          first_name?: string | null
+          last_name?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           user_id?: string
