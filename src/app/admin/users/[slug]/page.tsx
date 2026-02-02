@@ -17,8 +17,8 @@ function extractUserIdFromSlug(slug: string): string | null {
   return lastThree;
 }
 
-export default async function UserDetailPage({ params }: { params: { slug: string } }) {
-  const { slug } = params;
+export default async function UserDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   const userIdSuffix = extractUserIdFromSlug(slug);
   
   if (!userIdSuffix) {

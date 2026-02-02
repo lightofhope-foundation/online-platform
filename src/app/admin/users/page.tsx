@@ -11,6 +11,14 @@ type Profile = {
   last_name: string | null;
 };
 
+type ProfileRow = {
+  user_id: string;
+  role: string;
+  created_at: string;
+  first_name?: string | null;
+  last_name?: string | null;
+};
+
 // Helper function to generate user slug: firstname-lastname-lastthreedigitsofuserID
 function generateUserSlug(firstName: string | null, lastName: string | null, userId: string): string {
   const first = (firstName ?? "").toLowerCase().trim();
@@ -35,35 +43,39 @@ function formatFullName(firstName: string | null, lastName: string | null): stri
 
 export default async function AdminUsers() {
   // Use the Service Role client so admin can see all users, bypassing RLS.
-  let admin;
-  let profiles: Profile[] | null = null;
-  let authById = new Map();
-  
+  let admin: ReturnType<typeof getSupabaseAdminClient> | undefined;
+  let profiles: Profile[] = [];
+  let authById = new Map<string, { email?: string; last_sign_in_at?: string }>();
+
   try {
     admin = getSupabaseAdminClient();
 
     // Try to select first_name and last_name, but fall back if columns don't exist yet
-    let profilesResult = await admin
+    const profilesResult = await admin
       .from("profiles")
       .select("user_id, role, created_at, first_name, last_name")
       .order("created_at", { ascending: false });
-    
-    // If the query failed due to missing columns, try without them
+
     if (profilesResult.error) {
       console.log("Columns might not exist, trying without first_name/last_name:", profilesResult.error.message);
-      profilesResult = await admin
+      const fallbackResult = await admin
         .from("profiles")
         .select("user_id, role, created_at")
         .order("created_at", { ascending: false });
-    }
-    
-    // Check if we still have an error after fallback
-    if (profilesResult.error) {
-      console.error("Error fetching profiles:", profilesResult.error);
-      profiles = [];
+      if (fallbackResult.error) {
+        console.error("Error fetching profiles:", fallbackResult.error);
+        profiles = [];
+      } else {
+        profiles = (fallbackResult.data ?? []).map((p: ProfileRow) => ({
+          user_id: p.user_id,
+          role: p.role,
+          created_at: p.created_at,
+          first_name: p.first_name ?? null,
+          last_name: p.last_name ?? null,
+        }));
+      }
     } else {
-      // Map results to ensure first_name and last_name are always present (null if not selected)
-      profiles = (profilesResult.data ?? []).map((p: any) => ({
+      profiles = (profilesResult.data ?? []).map((p: ProfileRow) => ({
         user_id: p.user_id,
         role: p.role,
         created_at: p.created_at,
@@ -116,7 +128,7 @@ export default async function AdminUsers() {
             </tr>
           </thead>
           <tbody className="divide-y divide-white/10">
-            {(profiles ?? []).map((p) => {
+            {profiles.map((p) => {
               const au = authById.get(p.user_id);
               const slug = generateUserSlug(p.first_name, p.last_name, p.user_id);
               return (
@@ -149,7 +161,7 @@ export default async function AdminUsers() {
                 </tr>
               );
             })}
-            {(!profiles || profiles.length === 0) && (
+            {profiles.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-3 py-6 text-center text-white/60">
                   No users found.
