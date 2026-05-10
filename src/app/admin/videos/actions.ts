@@ -285,14 +285,17 @@ export async function updateVideoPositions(updates: { id: string; position: numb
 export async function getVideoStatus(bunnyVideoId: string) {
   await checkAdminAccess();
   
-  const BUNNY_LIBRARY_ID = "423953";
-  const BUNNY_API_KEY = "70f9abb8-4960-4c9b-95364af7f0e6-25b4-419d";
+  const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID;
+  const apiKey = process.env.BUNNY_STREAM_API_KEY;
+  if (!libraryId?.trim() || !apiKey?.trim()) {
+    throw new Error("Bunny Stream env vars are not configured");
+  }
   const BUNNY_API_BASE = "https://video.bunnycdn.com";
-  
-  const response = await fetch(`${BUNNY_API_BASE}/library/${BUNNY_LIBRARY_ID}/videos/${bunnyVideoId}`, {
+
+  const response = await fetch(`${BUNNY_API_BASE}/library/${libraryId}/videos/${bunnyVideoId}`, {
     method: "GET",
     headers: {
-      AccessKey: BUNNY_API_KEY,
+      AccessKey: apiKey,
     },
   });
 

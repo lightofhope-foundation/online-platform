@@ -1,7 +1,16 @@
 // Bunny CDN Stream API integration
-const BUNNY_LIBRARY_ID = "423953";
-const BUNNY_API_KEY = "70f9abb8-4960-4c9b-95364af7f0e6-25b4-419d";
 const BUNNY_API_BASE = "https://video.bunnycdn.com";
+
+function getBunnyConfig() {
+  const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID;
+  const apiKey = process.env.BUNNY_STREAM_API_KEY;
+  if (!libraryId?.trim() || !apiKey?.trim()) {
+    throw new Error(
+      "BUNNY_STREAM_LIBRARY_ID and BUNNY_STREAM_API_KEY must be set in the environment"
+    );
+  }
+  return { libraryId, apiKey };
+}
 
 export interface BunnyVideo {
   videoLibraryId: number;
@@ -74,10 +83,11 @@ export function isStatusReady(status: number): boolean {
  * Create a new video in Bunny CDN
  */
 export async function createBunnyVideo(title: string): Promise<BunnyVideo> {
-  const response = await fetch(`${BUNNY_API_BASE}/library/${BUNNY_LIBRARY_ID}/videos`, {
+  const { libraryId, apiKey } = getBunnyConfig();
+  const response = await fetch(`${BUNNY_API_BASE}/library/${libraryId}/videos`, {
     method: "POST",
     headers: {
-      AccessKey: BUNNY_API_KEY,
+      AccessKey: apiKey,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ title }),
@@ -108,6 +118,9 @@ export async function uploadBunnyVideo(
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
+    const formData = new FormData();
+    formData.append("videoId", videoId);
+    formData.append("file", file);
 
     xhr.upload.addEventListener("progress", (e) => {
       if (e.lengthComputable && onProgress) {
@@ -133,11 +146,9 @@ export async function uploadBunnyVideo(
       reject(new Error("Upload failed: Aborted"));
     });
 
-    xhr.open("PUT", `${BUNNY_API_BASE}/library/${BUNNY_LIBRARY_ID}/videos/${videoId}`);
-    xhr.setRequestHeader("AccessKey", BUNNY_API_KEY);
-    // Don't set Content-Type - let the browser set it automatically for binary data
-    // Send the file directly as binary data
-    xhr.send(file);
+    // Upload through our backend route (prevents browser->Bunny auth/CORS issues).
+    xhr.open("POST", "/api/admin/videos/upload");
+    xhr.send(formData);
   });
 }
 
@@ -145,10 +156,11 @@ export async function uploadBunnyVideo(
  * Get video status from Bunny CDN
  */
 export async function getBunnyVideoStatus(videoId: string): Promise<BunnyVideoStatus> {
-  const response = await fetch(`${BUNNY_API_BASE}/library/${BUNNY_LIBRARY_ID}/videos/${videoId}`, {
+  const { libraryId, apiKey } = getBunnyConfig();
+  const response = await fetch(`${BUNNY_API_BASE}/library/${libraryId}/videos/${videoId}`, {
     method: "GET",
     headers: {
-      AccessKey: BUNNY_API_KEY,
+      AccessKey: apiKey,
     },
   });
 
@@ -204,10 +216,11 @@ export async function pollBunnyVideoStatus(
  * Delete video from Bunny CDN
  */
 export async function deleteBunnyVideo(videoId: string): Promise<void> {
-  const response = await fetch(`${BUNNY_API_BASE}/library/${BUNNY_LIBRARY_ID}/videos/${videoId}`, {
+  const { libraryId, apiKey } = getBunnyConfig();
+  const response = await fetch(`${BUNNY_API_BASE}/library/${libraryId}/videos/${videoId}`, {
     method: "DELETE",
     headers: {
-      AccessKey: BUNNY_API_KEY,
+      AccessKey: apiKey,
     },
   });
 

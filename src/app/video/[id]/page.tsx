@@ -123,7 +123,9 @@ export default function VideoPage({ params }: PageProps) {
 
       const player = videojs(el, {
         controls: true,
-        fluid: true,
+        // We already wrap player in an aspect-ratio container.
+        // Keep player non-fluid to avoid double-ratio layout glitches on non-16:9 videos.
+        fluid: false,
         preload: 'metadata',
         playbackRates: [0.5, 1, 1.25, 1.5, 2],
         html5: {

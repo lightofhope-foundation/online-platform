@@ -46,9 +46,53 @@ export default async function AdminUsers() {
   let admin: ReturnType<typeof getSupabaseAdminClient> | undefined;
   let profiles: Profile[] = [];
   let authById = new Map<string, { email?: string; last_sign_in_at?: string }>();
+  const videoProgressByUser = new Map<string, number>(); // user_id -> overall video progress %
 
   try {
     admin = getSupabaseAdminClient();
+
+    // Total videos (published courses, non-deleted chapters/videos)
+    const { data: publishedCourses } = await admin
+      .from("courses")
+      .select("id")
+      .eq("published", true)
+      .is("deleted_at", null);
+    const courseIds = (publishedCourses ?? []).map((c) => c.id);
+    if (courseIds.length > 0) {
+      const { data: chapters } = await admin
+        .from("chapters")
+        .select("id")
+        .in("course_id", courseIds)
+        .is("deleted_at", null);
+      const chapterIds = (chapters ?? []).map((c) => c.id);
+      if (chapterIds.length > 0) {
+        const { data: videos } = await admin
+          .from("videos")
+          .select("id")
+          .in("chapter_id", chapterIds)
+          .is("deleted_at", null);
+        const totalVideoIds = new Set((videos ?? []).map((v) => v.id));
+        const totalVideos = totalVideoIds.size;
+
+        if (totalVideos > 0) {
+          const { data: progressRows } = await admin
+            .from("video_progress")
+            .select("user_id, video_id, completed_at")
+            .not("completed_at", "is", null);
+
+          const completedByUser = new Map<string, Set<string>>(); // user_id -> set of video_ids completed
+          (progressRows ?? []).forEach((row: { user_id: string; video_id: string }) => {
+            if (!totalVideoIds.has(row.video_id)) return;
+            if (!completedByUser.has(row.user_id)) completedByUser.set(row.user_id, new Set());
+            completedByUser.get(row.user_id)!.add(row.video_id);
+          });
+          completedByUser.forEach((videoIds, userId) => {
+            const completed = videoIds.size;
+            videoProgressByUser.set(userId, Math.round((completed / totalVideos) * 100));
+          });
+        }
+      }
+    }
 
     // Try to select first_name and last_name, but fall back if columns don't exist yet
     const profilesResult = await admin
@@ -123,6 +167,7 @@ export default async function AdminUsers() {
               <th className="px-3 py-2">Email</th>
               <th className="px-3 py-2">Name</th>
               <th className="px-3 py-2">Rolle</th>
+              <th className="px-3 py-2">Video-Fortschritt</th>
               <th className="px-3 py-2">Erstellt</th>
               <th className="px-3 py-2">Letzter Login</th>
             </tr>
@@ -150,6 +195,13 @@ export default async function AdminUsers() {
                   </td>
                   <td className="px-3 py-2">
                     <Link href={`/admin/users/${slug}`} className="block hover:text-[#63eca9] transition-colors">
+                      {p.role === "client"
+                        ? `${videoProgressByUser.get(p.user_id) ?? 0}%`
+                        : "—"}
+                    </Link>
+                  </td>
+                  <td className="px-3 py-2">
+                    <Link href={`/admin/users/${slug}`} className="block hover:text-[#63eca9] transition-colors">
                       {new Date(p.created_at).toLocaleString()}
                     </Link>
                   </td>
@@ -163,7 +215,7 @@ export default async function AdminUsers() {
             })}
             {profiles.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-white/60">
+                <td colSpan={6} className="px-3 py-6 text-center text-white/60">
                   No users found.
                 </td>
               </tr>

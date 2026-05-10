@@ -108,7 +108,10 @@ export default function VideoManager({
   }, []);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      // Avoid drag sensor stealing clicks on "+ Video" / edit buttons next to the handle
+      activationConstraint: { distance: 8 },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -383,6 +386,53 @@ export default function VideoManager({
     }
   };
 
+  const extractBunnyVideoId = (value: string): string | null => {
+    const trimmed = value.trim();
+    // Accept raw GUID
+    const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (guidRegex.test(trimmed)) return trimmed;
+
+    // Accept Bunny player/playlist links and extract GUID segment
+    const match = trimmed.match(/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i);
+    return match ? match[0] : null;
+  };
+
+  const handleLinkVideo = async (linkOrGuid: string, chapterId: string, title: string) => {
+    try {
+      const bunnyVideoId = extractBunnyVideoId(linkOrGuid);
+      if (!bunnyVideoId) {
+        alert("Ungültiger Bunny-Link. Bitte Bunny Video GUID oder Bunny-URL einfügen.");
+        return;
+      }
+
+      // Validate video exists and get status for immediate feedback
+      const status = await getVideoStatus(bunnyVideoId);
+      if (status.status === BUNNY_STATUS.ERROR) {
+        alert("Das verknüpfte Bunny-Video hat den Status 'Fehler'.");
+        return;
+      }
+
+      await createVideoRecord(chapterId, title, bunnyVideoId);
+      setUploadState({
+        bunnyVideoId,
+        progress: 100,
+        status: status.status,
+        encodeProgress: status.encodeProgress,
+        statusText: status.statusText,
+        isReady: status.isReady,
+        chapterId,
+        title,
+      });
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 800);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unbekannter Fehler";
+      alert(`Fehler beim Verknüpfen des Videos: ${errorMessage}`);
+    }
+  };
+
   // Defer DnD tree to client-only to avoid hydration mismatch (DndDescribedBy-0 vs DndDescribedBy-N)
   if (!mounted) {
     return (
@@ -509,6 +559,7 @@ export default function VideoManager({
             onAddVideo={(chapterId) => setShowAddVideo(chapterId)}
             onAddVideoCancel={() => setShowAddVideo(null)}
             onFileUpload={handleFileUpload}
+            onLinkVideo={handleLinkVideo}
             onDeleteChapter={(chapterId, chapterTitle) =>
               setDeleteConfirm({
                 type: "chapter",
@@ -578,6 +629,7 @@ function SortableChapter({
   showAddVideo,
   onAddVideoCancel,
   onFileUpload,
+  onLinkVideo,
   onDeleteVideo,
   editingItem,
   editValues,
@@ -595,7 +647,8 @@ function SortableChapter({
   onAddVideo: () => void;
   showAddVideo: boolean;
   onAddVideoCancel: () => void;
-  onFileUpload: (file: File, chapterId: string, title: string) => void;
+  onFileUpload: (file: File, chapterId: string, title: string) => Promise<void>;
+  onLinkVideo: (linkOrGuid: string, chapterId: string, title: string) => Promise<void>;
   onDeleteVideo: (videoId: string, videoTitle: string) => void;
   editingItem: { type: string; id: string; field: string } | null;
   editValues: Record<string, string>;
@@ -648,15 +701,27 @@ function SortableChapter({
         {!isEditing && (
           <div className="flex items-center gap-2">
             <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={() => onEdit("title", chapter.title)}
               className="p-1 hover:bg-white/10 rounded"
             >
               <PencilIcon size={16} />
             </button>
-            <button onClick={onAddVideo} className="text-sm text-[#63eca9] hover:underline">
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={onAddVideo}
+              className="text-sm text-[#63eca9] hover:underline"
+            >
               + Video
             </button>
-            <button onClick={onDelete} className="text-sm text-red-400 hover:underline">
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={onDelete}
+              className="text-sm text-red-400 hover:underline"
+            >
               Löschen
             </button>
           </div>
@@ -708,6 +773,7 @@ function SortableChapter({
         <AddVideoModal
           chapterId={chapter.id}
           onUpload={onFileUpload}
+          onLinkVideo={onLinkVideo}
           onCancel={onAddVideoCancel}
         />
       )}
@@ -798,13 +864,20 @@ function SortableVideo({
       {!isEditing && (
         <div className="flex items-center gap-2">
           <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={() => onEdit("title", video.title)}
             className="p-1 hover:bg-white/10 rounded"
           >
             <PencilIcon size={16} />
           </button>
           {!video.deleted_at && (
-            <button onClick={onDelete} className="text-sm text-red-400 hover:underline">
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={onDelete}
+              className="text-sm text-red-400 hover:underline"
+            >
               Löschen
             </button>
           )}
@@ -834,6 +907,7 @@ function CourseSection({
   onAddVideo,
   onAddVideoCancel,
   onFileUpload,
+  onLinkVideo,
   onDeleteChapter,
   onDeleteVideo,
   setEditingItem,
@@ -856,7 +930,8 @@ function CourseSection({
   showAddVideo: string | null;
   onAddVideo: (chapterId: string) => void;
   onAddVideoCancel: () => void;
-  onFileUpload: (file: File, chapterId: string, title: string) => void;
+  onFileUpload: (file: File, chapterId: string, title: string) => Promise<void>;
+  onLinkVideo: (linkOrGuid: string, chapterId: string, title: string) => Promise<void>;
   onDeleteChapter: (chapterId: string, chapterTitle: string) => void;
   onDeleteVideo: (videoId: string, videoTitle: string) => void;
   setEditingItem: React.Dispatch<React.SetStateAction<{ type: "course" | "chapter" | "video"; id: string; field: string } | null>>;
@@ -952,6 +1027,7 @@ function CourseSection({
               showAddVideo={showAddVideo === chapter.id}
               onAddVideoCancel={onAddVideoCancel}
               onFileUpload={onFileUpload}
+              onLinkVideo={onLinkVideo}
               onDeleteVideo={onDeleteVideo}
               editingItem={editingItem}
               editValues={editValues}
@@ -1062,17 +1138,31 @@ function AddChapterModal({ onSave, onCancel }: { onSave: (title: string) => void
 function AddVideoModal({
   chapterId,
   onUpload,
+  onLinkVideo,
   onCancel,
 }: {
   chapterId: string;
-  onUpload: (file: File, chapterId: string, title: string) => void;
+  onUpload: (file: File, chapterId: string, title: string) => Promise<void>;
+  onLinkVideo: (linkOrGuid: string, chapterId: string, title: string) => Promise<void>;
   onCancel: () => void;
 }) {
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [link, setLink] = useState("");
+  const [mode, setMode] = useState<"upload" | "link">("upload");
 
   return (
-    <div className="bg-white/5 border border-white/20 rounded-lg p-4 mt-2">
+    <div
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4"
+      role="dialog"
+      aria-modal="true"
+      onClick={onCancel}
+    >
+      <div
+        className="bg-[#1a1a1a] border border-white/20 rounded-lg p-6 w-full max-w-md shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+      <h3 className="text-lg font-semibold mb-4">Video hinzufügen</h3>
       <input
         type="text"
         value={title}
@@ -1080,23 +1170,80 @@ function AddVideoModal({
         placeholder="Video-Titel"
         className="w-full bg-transparent border border-white/20 rounded px-3 py-2 mb-2"
       />
-      <input
-        type="file"
-        onChange={(e) => setFile(e.target.files?.[0] || null)}
-        accept=".4mv,.amv,.avi,.flv,.m4p,.m4v,.mov,.mp3,.mp4,.mpeg,.mpg,.mxf,.ogg,.ts,.vod,.wav,.webm,.wmv"
-        className="w-full bg-transparent border border-white/20 rounded px-3 py-2 mb-2"
-      />
-      <div className="flex gap-2">
+      <div className="flex gap-2 mb-2">
         <button
-          onClick={() => file && onUpload(file, chapterId, title)}
-          disabled={!file || !title}
-          className="text-sm text-[#63eca9] hover:underline disabled:text-white/40"
+          type="button"
+          onClick={() => {
+            setMode("upload");
+            setLink("");
+          }}
+          className={`text-sm px-3 py-1 rounded border ${
+            mode === "upload"
+              ? "border-[#63eca9] text-[#63eca9] bg-[#63eca9]/10"
+              : "border-white/20 text-white/70"
+          }`}
         >
-          Hochladen
+          Datei hochladen
         </button>
-        <button onClick={onCancel} className="text-sm text-white/60 hover:underline">
+        <button
+          type="button"
+          onClick={() => {
+            setMode("link");
+            setFile(null);
+          }}
+          className={`text-sm px-3 py-1 rounded border ${
+            mode === "link"
+              ? "border-[#63eca9] text-[#63eca9] bg-[#63eca9]/10"
+              : "border-white/20 text-white/70"
+          }`}
+        >
+          Oder Video Link einfügen
+        </button>
+      </div>
+      {mode === "upload" ? (
+        <input
+          type="file"
+          onChange={(e) => setFile(e.target.files?.[0] || null)}
+          accept=".4mv,.amv,.avi,.flv,.m4p,.m4v,.mov,.mp3,.mp4,.mpeg,.mpg,.mxf,.ogg,.ts,.vod,.wav,.webm,.wmv"
+          className="w-full bg-transparent border border-white/20 rounded px-3 py-2 mb-2"
+        />
+      ) : (
+        <input
+          type="text"
+          value={link}
+          onChange={(e) => setLink(e.target.value)}
+          placeholder="Bunny Video-Link oder GUID einfügen"
+          className="w-full bg-transparent border border-white/20 rounded px-3 py-2 mb-2"
+        />
+      )}
+      <div className="flex gap-2 justify-end">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 rounded border border-white/20 hover:bg-white/10 text-sm"
+        >
           Abbrechen
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (mode === "upload") {
+              if (file) {
+                // Close immediately so user sees upload status behind modal right away.
+                onCancel();
+                void onUpload(file, chapterId, title);
+              }
+            } else if (link.trim()) {
+              onCancel();
+              void onLinkVideo(link, chapterId, title);
+            }
+          }}
+          disabled={(mode === "upload" ? !file : !link.trim()) || !title.trim()}
+          className="px-4 py-2 rounded bg-[#63eca9] text-black text-sm font-medium hover:bg-[#63eca9]/90 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {mode === "upload" ? "Hochladen" : "Link übernehmen"}
+        </button>
+      </div>
       </div>
     </div>
   );
