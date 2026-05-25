@@ -17,6 +17,7 @@ import {
 import videojs from "video.js";
 import "video.js/dist/video-js.css";
 import Hls from "hls.js";
+import { getBunnyHlsPlaylistUrl } from "@/lib/bunnyCDN";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -131,7 +132,7 @@ export default function VideoPage({ params }: PageProps) {
         return;
       }
 
-      const hlsUrl = `https://vz-f7a686f2-d74.b-cdn.net/${bunnyId}/playlist.m3u8`;
+      const hlsUrl = getBunnyHlsPlaylistUrl(bunnyId);
       console.log('Initializing player with HLS URL:', hlsUrl);
 
       const player = videojs(el, {

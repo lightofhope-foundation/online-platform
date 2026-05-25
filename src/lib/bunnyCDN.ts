@@ -79,6 +79,44 @@ export function isStatusReady(status: number): boolean {
   return status === BUNNY_STATUS.FINISHED;
 }
 
+/** Pull zone hostname for Stream playback and thumbnails (public, safe for client). */
+export function getBunnyStreamCdnHost(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_BUNNY_STREAM_CDN_HOST?.trim();
+  if (fromEnv) return fromEnv.replace(/^https?:\/\//, "").replace(/\/$/, "");
+  return "vz-f7a686f2-d74.b-cdn.net";
+}
+
+/**
+ * Bunny poster / preview URLs (public CDN). Order: active thumbnail, then
+ * auto-generated stills from the encode (incl. early timeline), then preview.
+ * @see https://docs.bunny.net/docs/stream-video-thumbnail
+ */
+export function getBunnyThumbnailCandidates(
+  bunnyVideoId: string,
+  width = 320
+): string[] {
+  const host = getBunnyStreamCdnHost();
+  const base = `https://${host}/${bunnyVideoId}`;
+  const q = `width=${width}`;
+  return [
+    `${base}/thumbnail.jpg?${q}`,
+    `${base}/thumbnail_1.jpg?${q}`,
+    `${base}/thumbnail_2.jpg?${q}`,
+    `${base}/preview.webp?${q}`,
+  ];
+}
+
+export function getBunnyThumbnailUrl(
+  bunnyVideoId: string,
+  options?: { width?: number }
+): string {
+  return getBunnyThumbnailCandidates(bunnyVideoId, options?.width ?? 320)[0];
+}
+
+export function getBunnyHlsPlaylistUrl(bunnyVideoId: string): string {
+  return `https://${getBunnyStreamCdnHost()}/${bunnyVideoId}/playlist.m3u8`;
+}
+
 /**
  * Create a new video in Bunny CDN
  */

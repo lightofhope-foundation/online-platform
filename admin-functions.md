@@ -451,7 +451,22 @@ Split **`/admin/einstellungen`** into **card/tile overview** (same pattern as us
 
 ---
 
-## 10. Explicit non-goals (this roadmap)
+## 10. Vercel / production environment variables (LOH)
+
+| Variable | Where | Purpose |
+|----------|--------|---------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Client + server | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client + server | Auth + RLS client |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server only | Admin, settings save, unlock editor |
+| `BUNNY_STREAM_LIBRARY_ID` | Server only | Admin video upload |
+| `BUNNY_STREAM_API_KEY` | Server only | Admin video upload / Bunny API |
+| `NEXT_PUBLIC_BUNNY_STREAM_CDN_HOST` | Client | **Pull-zone hostname only** (e.g. `vz-f7a686f2-d74.b-cdn.net`) — playback + thumbnails |
+
+After adding/changing env vars on Vercel: **redeploy** production (and preview if used). Local: copy same keys to `web/.env.local`.
+
+---
+
+## 11. Explicit non-goals (this roadmap)
 
 - Changing fa-gretzinger project or shared MCP credentials
 - Replacing sequential unlock with schedule-only (schedule **adds** to sequential)
@@ -460,7 +475,7 @@ Split **`/admin/einstellungen`** into **card/tile overview** (same pattern as us
 
 ---
 
-## 11. Decisions (confirmed 2026-05-24)
+## 12. Decisions (confirmed 2026-05-24)
 
 | # | Topic | Decision |
 |---|--------|----------|
@@ -473,16 +488,65 @@ Split **`/admin/einstellungen`** into **card/tile overview** (same pattern as us
 
 ---
 
-## 12. Idea backlog
+## 13. Idea backlog
 
 - **Admin Einstellungen tiles:** Videokurseinstellungen + Nutzereinstellungen (see Phase 3) — confirmed 2026-05-25
 - **Tiered unlock defaults:** Global + Stufe 0–5 + per-user (§3.7) — confirmed 2026-05-25, implement Phase 3
 - **Dynamic video rules:** When admin adds chapters/videos, default unlock rules should stay in sync (e.g. first video per chapter free, or recompute gated positions) — design in Phase 3+
 - **Registration fields config:** Admin chooses required profile fields at signup — Phase 3 Nutzereinstellungen
 
+### 13.1 Client dashboard — customizable quick tiles (future)
+
+**Status:** Phase 2c+ dashboard rework ships **3 fixed tiles** (Video-Section, Sitzungsaufnahmen, Selbstcheck). Links resolve from DB (`fetchPrimaryPublishedCourse`) so course **renames/slug changes** do not break navigation.
+
+**Future UX (patient home):**
+
+| Feature | Detail |
+|---------|--------|
+| Add tile | `+` control — pick from available shortcuts (courses, recordings, selbstcheck, …) |
+| Remove tile | `-` on each tile when in edit mode |
+| Reorder | Pencil → drag-and-drop or move up/down |
+| Persist | `profiles.dashboard_tiles` jsonb or `user_dashboard_tiles` table |
+| Defaults | New users get Video-Section + placeholders until they customize |
+| Max per row | **4** quick tiles — full width aligned with sections above |
+
+**Linking rule (permanent):** Never hardcode course slugs in UI. Always resolve `courses.id` / current `slug` from Supabase at render time; fallback `/courses` list if no published course.
+
+**Optional hardening:** Course detail route redirects to `/courses` when slug unknown (avoid blank/404 after admin slug change).
+
+### 13.3 Admin upload — Bunny thumbnail selection (future)
+
+**Status:** Client dashboard **Weiter schauen** uses Bunny’s current library thumbnail (`thumbnail.jpg` on the Stream CDN hostname). No extra API key on the client.
+
+**Future (admin `/admin/videos` upload flow):**
+
+| Feature | Detail |
+|---------|--------|
+| Pick thumbnail | Choose from generated stills / timeline frame (as in Bunny dashboard) |
+| Custom image | Upload image file as thumbnail |
+| Bunny sync | Call Bunny API `POST /library/{id}/videos/{videoId}/thumbnail` so CDN thumbnail matches admin choice |
+| DB optional | Store `thumbnail_time_sec` or `bunny_thumbnail_index` on `videos` if needed for re-fetch |
+
+**Env:** `NEXT_PUBLIC_BUNNY_STREAM_CDN_HOST` = **library pull-zone hostname only** (e.g. `vz-f7a686f2-d74.b-cdn.net`), **not** a video ID. Thumbnails: `https://{host}/{bunny_video_id}/thumbnail.jpg` (fallback `thumbnail_1.jpg`, `preview.webp`).
+
 ---
 
-## 13. Changelog
+### 13.2 Mobile / responsive UX (whole platform)
+
+**Status:** Desktop-first. Client home dashboard and several admin tables need a dedicated **smartphone pass** before public launch.
+
+| Area | Target |
+|------|--------|
+| Client home | Stack 30/70 progress grid on small screens; quick tiles 1–2 columns; sidebar → existing `MobileNav` |
+| Course / video | Player full-width; unlock list readable without horizontal scroll |
+| Admin | User tables → cards or horizontal scroll; datetime pickers touch-friendly |
+| Breakpoints | Align with Tailwind `sm` / `md` / `lg`; test iPhone + Android viewports |
+
+**Phase:** Polish (Phase 4) or parallel track before marketing the app to patients.
+
+---
+
+## 14. Changelog
 
 | Date | Change |
 |------|--------|
@@ -492,3 +556,5 @@ Split **`/admin/einstellungen`** into **card/tile overview** (same pattern as us
 | 2026-05-25 | Client course list wired to schedule locks; 10:00 Uhr Berlin; admin Einstellungen tile concept added |
 | 2026-05-25 | Phase 2b live: admin per-user unlock editor, calendar picker, Freigeschalten seit |
 | 2026-05-25 | Phase 2c: client `/settings`; tiered defaults (global / Stufe 0–5 / user) spec for Phase 3 |
+| 2026-05-25 | Client dashboard: Hallo Vorname, 3 quick tiles, neon-green hover, DB-resolved course links |
+| 2026-05-25 | Dashboard layout: compact Gesamtfortschritt 30/70 grid; full-width quick tiles; mobile responsive backlog |

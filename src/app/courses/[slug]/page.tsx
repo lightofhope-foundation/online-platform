@@ -57,9 +57,14 @@ export default function CourseDetailPage({ params }: PageProps) {
       .from("courses")
       .select("id,title,slug")
       .eq("slug", slug)
+      .eq("published", true)
       .is("deleted_at", null)
-      .single();
-    if (!courseData) return;
+      .maybeSingle();
+
+    if (!courseData) {
+      router.replace("/courses");
+      return;
+    }
     setCourse(courseData);
 
     const { data: chapterRows } = await supabase

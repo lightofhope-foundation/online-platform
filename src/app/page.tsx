@@ -1,12 +1,21 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import LightRays from "@/components/LightRays";
 import { MobileNav } from "@/components/MobileNav";
 import { FabSettings } from "@/components/FabSettings";
+import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
+import { DashboardOverallProgress } from "@/components/dashboard/DashboardOverallProgress";
+import { DashboardQuickTile } from "@/components/dashboard/DashboardQuickTile";
+import { VideoThumbnailPreview } from "@/components/dashboard/VideoThumbnailPreview";
 import { useVideoProgress } from "@/hooks/useVideoProgress";
 import type { CourseProgress } from "@/hooks/useVideoProgress";
+import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
+import {
+  courseDetailPath,
+  fetchPrimaryPublishedCourse,
+} from "@/lib/primaryCourse";
 import {
   HomeIcon,
   VideosIcon,
@@ -16,23 +25,85 @@ import {
   TherapyIcon,
   SettingsIcon,
   LogoutIcon,
-  PlayIcon,
 } from "@/components/icons/Icons";
 import { LogoutButton } from "@/components/LogoutButton";
+import {
+  formatPlaybackTimestamp,
+  getRemainingSeconds,
+} from "@/lib/formatPlaybackTime";
 
 export default function Home() {
+  const supabase = getSupabaseBrowserClient();
   const { courseProgress, loading, getOverallProgress, progress } = useVideoProgress();
   const overallProgress = getOverallProgress();
+  const [firstName, setFirstName] = useState<string | null>(null);
+  const [videoSectionHref, setVideoSectionHref] = useState("/courses");
+  const [continueBunnyId, setContinueBunnyId] = useState<string | null>(null);
+  const [continueDurationSeconds, setContinueDurationSeconds] = useState<
+    number | null
+  >(null);
 
-  // Find the course with the most recent video progress
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("first_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!cancelled && profile?.first_name) {
+        setFirstName(profile.first_name);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase]);
+
+  useEffect(() => {
+    if (loading) return;
+    let cancelled = false;
+    (async () => {
+      let preferredCourseId: string | null = null;
+      let mostRecent = 0;
+      courseProgress.forEach((course) => {
+        if (!course.lastVideoId) return;
+        const videoProgress = progress.get(course.lastVideoId);
+        if (videoProgress?.updated_at) {
+          const t = new Date(videoProgress.updated_at).getTime();
+          if (t > mostRecent) {
+            mostRecent = t;
+            preferredCourseId = course.courseId;
+          }
+        }
+      });
+
+      const primary = await fetchPrimaryPublishedCourse(
+        supabase,
+        preferredCourseId
+      );
+      if (!cancelled && primary?.slug) {
+        setVideoSectionHref(courseDetailPath(primary.slug));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, supabase, courseProgress, progress]);
+
   let continueWatching: CourseProgress | null = null;
   if (courseProgress.size > 0) {
     let mostRecentTime = 0;
-    courseProgress.forEach(course => {
+    courseProgress.forEach((course) => {
       if (course.lastVideoId && course.lastVideoProgress !== null) {
-        // Find the actual video progress to get the updated_at timestamp
         const videoProgress = progress.get(course.lastVideoId);
-        if (videoProgress && videoProgress.updated_at) {
+        if (videoProgress?.updated_at) {
           const updatedTime = new Date(videoProgress.updated_at).getTime();
           if (updatedTime > mostRecentTime) {
             mostRecentTime = updatedTime;
@@ -42,6 +113,50 @@ export default function Home() {
       }
     });
   }
+
+  const continueVideoId = continueWatching?.lastVideoId ?? null;
+  const continueVideoProgress = continueVideoId
+    ? progress.get(continueVideoId)
+    : null;
+  const continueLastSecond = continueVideoProgress?.last_second ?? 0;
+  const continuePercent =
+    (continueWatching as CourseProgress | null)?.lastVideoProgress ?? 0;
+  const continuePositionLabel =
+    continueLastSecond > 0
+      ? formatPlaybackTimestamp(continueLastSecond)
+      : null;
+  const continueRemainingSeconds = getRemainingSeconds(
+    continueLastSecond,
+    continuePercent,
+    continueDurationSeconds
+  );
+  const continueRemainingLabel =
+    continueRemainingSeconds != null
+      ? formatPlaybackTimestamp(continueRemainingSeconds)
+      : null;
+
+  useEffect(() => {
+    if (!continueVideoId) {
+      setContinueBunnyId(null);
+      setContinueDurationSeconds(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("videos")
+        .select("bunny_video_id, duration_seconds")
+        .eq("id", continueVideoId)
+        .maybeSingle();
+      if (!cancelled) {
+        setContinueBunnyId(data?.bunny_video_id ?? null);
+        setContinueDurationSeconds(data?.duration_seconds ?? null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [continueVideoId, supabase]);
 
   return (
     <>
@@ -89,56 +204,17 @@ export default function Home() {
 
             {/* Page Content */}
             <section className="rounded-[24px] border border-white/10 bg-white/[0.02] p-8 backdrop-blur-sm">
-              {/* Page Title */}
-              <div className="mb-8 text-center">
-                <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-[#63eca9]">
-                  Startseite
-                </h1>
-              </div>
+              <DashboardGreeting firstName={firstName} />
 
-              {/* Overall Progress */}
               {!loading && (
-                <div className="mb-8 p-6 rounded-2xl border border-white/10 bg-white/[0.02]">
-                  <h2 className="text-xl font-semibold mb-4 text-white">Gesamtfortschritt</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-white/70">Videos</span>
-                        <span className="text-white font-medium">
-                          {overallProgress.videoProgress}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
-                        <div 
-                          className="bg-gradient-to-r from-[#63eca9] to-[#53e0b6] h-3 rounded-full transition-all duration-300"
-                          style={{ width: `${overallProgress.videoProgress}%` }}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between mt-2 text-xs text-white/50">
-                        <span>{overallProgress.completedVideos} von {overallProgress.totalVideos} Videos abgeschlossen</span>
-                      </div>
-                    </div>
-                    {overallProgress.totalWorkbooks > 0 && (
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-white/70">Workbooks</span>
-                          <span className="text-white font-medium">
-                            {overallProgress.workbookProgress}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
-                          <div 
-                            className="bg-gradient-to-r from-[#63eca9] to-[#53e0b6] h-3 rounded-full transition-all duration-300"
-                            style={{ width: `${overallProgress.workbookProgress}%` }}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between mt-2 text-xs text-white/50">
-                          <span>{overallProgress.completedWorkbooks} von {overallProgress.totalWorkbooks} Workbooks abgeschlossen</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <DashboardOverallProgress
+                  videoProgress={overallProgress.videoProgress}
+                  completedVideos={overallProgress.completedVideos}
+                  totalVideos={overallProgress.totalVideos}
+                  workbookProgress={overallProgress.workbookProgress}
+                  completedWorkbooks={overallProgress.completedWorkbooks}
+                  totalWorkbooks={overallProgress.totalWorkbooks}
+                />
               )}
 
               {/* Continue Watching */}
@@ -146,12 +222,23 @@ export default function Home() {
                 <div className="mb-8 p-6 rounded-2xl border border-white/10 bg-white/[0.02]">
                   <h2 className="text-xl font-semibold mb-4 text-white">Weiter schauen</h2>
                   <div className="flex items-center gap-4 p-4 rounded-xl border border-white/10 bg-white/[0.02]">
-                    <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-[#63eca9] to-[#53e0b6] flex items-center justify-center">
-                      <PlayIcon size={24} />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium text-white mb-1">{(continueWatching as CourseProgress).lastVideoTitle}</h3>
-                      <p className="text-white/60 text-sm mb-2">Fortsetzen wo du aufgehört hast</p>
+                    <VideoThumbnailPreview
+                      bunnyVideoId={continueBunnyId}
+                      title={(continueWatching as CourseProgress).lastVideoTitle ?? "Video"}
+                      href={continueVideoId ? `/video/${continueVideoId}` : null}
+                      className="h-20 w-36 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <Link
+                        href={`/video/${continueVideoId}`}
+                        className="font-medium text-white mb-1 block hover:text-[#63eca9] transition-colors"
+                      >
+                        {(continueWatching as CourseProgress).lastVideoTitle}
+                      </Link>
+                      <p className="text-white/60 text-sm mb-2">
+                        Fortsetzen wo du aufgehört hast
+                        {continuePositionLabel ? ` bei ${continuePositionLabel}` : ""}
+                      </p>
                       <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
                         <div 
                           className="bg-gradient-to-r from-[#63eca9] to-[#53e0b6] h-2 rounded-full transition-all duration-300"
@@ -159,7 +246,14 @@ export default function Home() {
                         />
                       </div>
                       <div className="flex items-center justify-between mt-1 text-xs text-white/50">
-                        <span>{(continueWatching as CourseProgress).lastVideoProgress || 0}% abgeschlossen</span>
+                        <span>
+                          {(continueWatching as CourseProgress).lastVideoProgress || 0}%
+                          {" "}
+                          abgeschlossen
+                          {continueRemainingLabel
+                            ? ` · ${continueRemainingLabel} verbleibend`
+                            : ""}
+                        </span>
                       </div>
                     </div>
                     <Link
@@ -172,26 +266,23 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Dashboard Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {[
-                  { title: "Insights", subtitle: "Analytics", icon: "📊", color: "from-blue-500 to-cyan-500" },
-                  { title: "Overview", subtitle: "Dashboard", icon: "🎯", color: "from-purple-500 to-pink-500" },
-                  { title: "Teamwork", subtitle: "Collaboration", icon: "🤝", color: "from-green-500 to-emerald-500" },
-                  { title: "Efficiency", subtitle: "Automation", icon: "⚡", color: "from-yellow-500 to-orange-500" },
-                  { title: "Connectivity", subtitle: "Integration", icon: "🔗", color: "from-indigo-500 to-purple-500" },
-                  { title: "Protection", subtitle: "Security", icon: "🛡️", color: "from-red-500 to-pink-500" },
-                ].map((card, i) => (
-                  <div key={i} className="group relative rounded-[20px] border border-white/10 bg-black/60 p-6 min-h-48 transition-all hover:scale-105 hover:border-purple-400/50 hover:shadow-[0_0_30px_rgba(164,69,255,0.3)]">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="text-2xl">{card.icon}</div>
-                      <div className="h-2 w-8 rounded-full bg-gradient-to-r from-purple-400 to-purple-600 opacity-60"></div>
-                    </div>
-                    <h3 className="text-xl font-semibold mb-2">{card.title}</h3>
-                    <p className="text-white/60 text-sm">{card.subtitle}</p>
-                    <div className="absolute inset-0 rounded-[20px] bg-gradient-to-br opacity-0 group-hover:opacity-10 transition-opacity duration-300 ${card.color}"></div>
-                  </div>
-                ))}
+              <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3 lg:max-w-none">
+                <DashboardQuickTile
+                  title="Video-Section"
+                  subtitle="Zum Kurs"
+                  href={videoSectionHref}
+                  icon={<VideosIcon size={20} />}
+                />
+                <DashboardQuickTile
+                  title="Sitzungsaufnahmen"
+                  subtitle="Demnächst"
+                  icon={<RecordingsIcon size={20} />}
+                />
+                <DashboardQuickTile
+                  title="Selbstcheck"
+                  subtitle="Demnächst"
+                  icon={<SelbstcheckIcon size={20} />}
+                />
               </div>
             </section>
           </div>
