@@ -541,18 +541,34 @@ Split **`/admin/einstellungen`** into **card/tile overview** (same pattern as us
 
 #### Phase 3.7 — Klienten-Stufen, user Stufe, Informationen tile
 
-**Build**
+**Stufen model (confirmed):** Table `platform_access_levels` — admin can **rename**, **add**, and **soft-delete** levels (not fixed 0–5 only). `profiles.access_level` references `access_level` int. Dropdowns on user detail + bulk edit read from this table.
 
-- [ ] `/admin/einstellungen/levels` — short description per Stufe 0–5 (optional admin notes; numeric titles)
-- [ ] User detail `/admin/users/[slug]`: dropdown **Zugangsstufe** 0–5, save profile
-- [ ] Enable tile **Informationen** → `/admin/users/[slug]/info` (read-only: name, DOB, address, Nutzer-ID, last login, registration fields with values when present)
-- [ ] Users list: optional column **Stufe** (nice-to-have)
+**Users list prep (shipped early)** ✅
 
-**How to test**
+- [x] `/admin/users` — page width **90%** of viewport (table not compressed)
+- [x] Search bar (Nutzer-ID, E-Mail, Name, Stufe, Rolle)
+- [x] Table grid lines (`border-white/10` / `white/[0.08]`)
+- [x] Column **Stufe** (label from `platform_access_levels`)
+- [x] **Mehrfache Bearbeitung** → checkboxes → bulk assign Stufe (clients only)
+- [x] User detail: **Zugangsstufe** dropdown + save (`/admin/users/[slug]`)
 
-1. Set user to Stufe 3 → save → reload user detail → shows Stufe 3.
-2. Open **Informationen** → see profile + last login; matches `/settings` data for test client.
-3. Re-seed user after Stufe change → unlock dates follow `platform_unlock_defaults_by_level` for level 3.
+**Build (remaining for 3.7)**
+
+- [ ] `/admin/einstellungen/levels` — CRUD: rename labels, **+** add level, edit/delete (soft-delete if users assigned)
+- [ ] Enable tile **Informationen** → `/admin/users/[slug]/info` (read-only profile + registration values)
+- [ ] Warn when deleting a Stufe that still has clients assigned
+
+**How to test (users list — now)**
+
+1. `/admin/users` — table uses ~90% width; search filters rows.
+2. **Mehrfache Bearbeitung** → select clients → assign Stufe → list updates.
+3. Open a client → change **Zugangsstufe** → save → reload.
+
+**How to test (full 3.7)**
+
+1. Einstellungen → Klienten-Stufen: rename „Stufe 1“ → dropdowns show new label.
+2. Add Stufe 6 → assign to user → re-seed uses `platform_unlock_defaults_by_level` for 6 if configured.
+3. **Informationen** tile shows profile data.
 
 ---
 
@@ -702,6 +718,7 @@ After adding/changing env vars on Vercel: **redeploy** production (and preview i
 | 2026-05-25 | Phase 2c: client `/settings`; tiered defaults (global / Stufe 0–5 / user) spec for Phase 3 |
 | 2026-05-25 | Client dashboard: Hallo Vorname, 3 quick tiles, neon-green hover, DB-resolved course links |
 | 2026-05-25 | Dashboard layout: compact Gesamtfortschritt 30/70 grid; full-width quick tiles; mobile responsive backlog |
+| 2026-05-24 | Admin users: 90% width, search, Stufe column, bulk Stufe edit, user detail dropdown; `platform_access_levels` |
 | 2026-05-24 | Phase 3.2: admin Einstellungen tile hub + stub sub-routes |
 | 2026-05-24 | Phase 3.1 live: access_level, level defaults table, registration field definitions, seed RPC level fallback |
 | 2026-05-24 | Phase 3 split into 3.1–3.7 with per-step test plan; registration fields via definitions + values tables |

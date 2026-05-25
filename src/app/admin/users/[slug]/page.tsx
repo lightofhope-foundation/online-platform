@@ -2,6 +2,8 @@ import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminUserTiles } from "@/components/admin/AdminUserTiles";
+import { UserAccessLevelSelect } from "@/components/admin/UserAccessLevelSelect";
+import { fetchAccessLevelOptions } from "@/lib/accessLevels";
 import { formatGermanDateTime, isValidClientIdFormat, normalizeClientIdForUrl } from "@/lib/clientId";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +31,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ slu
     first_name: string | null;
     last_name: string | null;
     client_id: string;
+    access_level: number;
   } | null = null;
   let authUser: { email?: string; last_sign_in_at?: string } | null = null;
 
@@ -37,7 +40,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ slu
 
     const { data, error } = await admin
       .from("profiles")
-      .select("user_id, role, created_at, first_name, last_name, client_id")
+      .select("user_id, role, created_at, first_name, last_name, client_id, access_level")
       .eq("client_id", clientId)
       .maybeSingle();
 
@@ -52,6 +55,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ slu
       first_name: data.first_name,
       last_name: data.last_name,
       client_id: data.client_id,
+      access_level: data.access_level ?? 0,
     };
 
     const { data: authUserRes } = await admin.auth.admin.getUserById(profile.user_id);
@@ -64,6 +68,8 @@ export default async function UserDetailPage({ params }: { params: Promise<{ slu
   if (!profile || !authUser) {
     notFound();
   }
+
+  const accessLevels = await fetchAccessLevelOptions();
 
   return (
     <div className="space-y-8">
@@ -84,6 +90,18 @@ export default async function UserDetailPage({ params }: { params: Promise<{ slu
       </div>
 
       <AdminUserTiles clientId={profile.client_id} />
+
+      {profile.role === "client" && (
+        <div className="rounded-[20px] border border-white/10 bg-white/[0.02] p-6">
+          <h2 className="mb-4 text-sm font-medium text-white/70">Zugangsstufe</h2>
+          <UserAccessLevelSelect
+            userId={profile.user_id}
+            clientId={profile.client_id}
+            currentLevel={profile.access_level}
+            accessLevels={accessLevels}
+          />
+        </div>
+      )}
 
       <div className="rounded-[20px] border border-white/10 bg-white/[0.02] p-6">
         <h2 className="mb-4 text-sm font-medium text-white/70">Kurzübersicht</h2>

@@ -175,6 +175,39 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_access_levels: {
+        Row: {
+          access_level: number
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          label: string
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          access_level: number
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          label: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          access_level?: number
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          label?: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       platform_unlock_defaults_by_level: {
         Row: {
           access_level: number

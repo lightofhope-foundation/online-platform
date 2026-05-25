@@ -1,6 +1,7 @@
-import type { ReactNode } from "react";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import Link from "next/link";
+import { AdminUsersTable, type AdminUserRow } from "@/components/admin/AdminUsersTable";
+import { fetchAccessLevelOptions } from "@/lib/accessLevels";
 import { formatGermanDateTime } from "@/lib/clientId";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ type Profile = {
   first_name: string | null;
   last_name: string | null;
   client_id: string | null;
+  access_level: number;
 };
 
 function formatFullName(firstName: string | null, lastName: string | null): string {
@@ -21,31 +23,14 @@ function formatFullName(firstName: string | null, lastName: string | null): stri
   return `${first} ${last}`.trim();
 }
 
-function UserRowLink({
-  href,
-  children,
-}: {
-  href: string | null;
-  children: ReactNode;
-}) {
-  if (!href) {
-    return <span className="block text-white/80">{children}</span>;
-  }
-  return (
-    <Link href={href} className="block transition-colors hover:text-[#63eca9]">
-      {children}
-    </Link>
-  );
-}
-
 export default async function AdminUsers() {
-  let admin: ReturnType<typeof getSupabaseAdminClient> | undefined;
   let profiles: Profile[] = [];
   let authById = new Map<string, { email?: string; last_sign_in_at?: string }>();
   const videoProgressByUser = new Map<string, number>();
+  const accessLevels = await fetchAccessLevelOptions();
 
   try {
-    admin = getSupabaseAdminClient();
+    const admin = getSupabaseAdminClient();
 
     const { data: publishedCourses } = await admin
       .from("courses")
@@ -93,13 +78,10 @@ export default async function AdminUsers() {
 
     const profilesResult = await admin
       .from("profiles")
-      .select("user_id, role, created_at, first_name, last_name, client_id")
+      .select("user_id, role, created_at, first_name, last_name, client_id, access_level")
       .order("created_at", { ascending: false });
 
-    if (profilesResult.error) {
-      console.error("Error fetching profiles:", profilesResult.error);
-      profiles = [];
-    } else {
+    if (!profilesResult.error) {
       profiles = profilesResult.data ?? [];
     }
 
@@ -108,7 +90,7 @@ export default async function AdminUsers() {
   } catch (error) {
     console.error("Error initializing admin client:", error);
     return (
-      <div className="space-y-8">
+      <div className="mx-auto w-[90%] max-w-[90vw] space-y-8">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Nutzer & Fortschritt</h1>
           <Link href="/admin" className="text-sm text-[#63eca9] hover:underline">
@@ -122,8 +104,25 @@ export default async function AdminUsers() {
     );
   }
 
+  const rows: AdminUserRow[] = profiles.map((p) => {
+    const au = authById.get(p.user_id);
+    const detailHref = p.client_id ? `/admin/users/${p.client_id.toLowerCase()}` : null;
+    return {
+      user_id: p.user_id,
+      client_id: p.client_id,
+      email: au?.email ?? "—",
+      name: formatFullName(p.first_name, p.last_name),
+      role: p.role,
+      access_level: p.access_level ?? 0,
+      video_progress: p.role === "client" ? videoProgressByUser.get(p.user_id) ?? 0 : null,
+      created_at: formatGermanDateTime(p.created_at),
+      last_login: formatGermanDateTime(au?.last_sign_in_at),
+      detail_href: detailHref,
+    };
+  });
+
   return (
-    <div className="space-y-8">
+    <div className="mx-auto w-[90%] max-w-[90vw] space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Nutzer & Fortschritt</h1>
         <Link href="/admin" className="text-sm text-[#63eca9] hover:underline">
@@ -131,69 +130,7 @@ export default async function AdminUsers() {
         </Link>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-white/10">
-        <table className="w-full text-sm">
-          <thead className="bg-white/5 text-left">
-            <tr>
-              <th className="px-3 py-2">Nutzer-ID</th>
-              <th className="px-3 py-2">E-Mail</th>
-              <th className="px-3 py-2">Name</th>
-              <th className="px-3 py-2">Rolle</th>
-              <th className="px-3 py-2">Video-Fortschritt</th>
-              <th className="px-3 py-2">Erstellt</th>
-              <th className="px-3 py-2">Letzter Login</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/10">
-            {profiles.map((p) => {
-              const au = authById.get(p.user_id);
-              const detailHref = p.client_id ? `/admin/users/${p.client_id.toLowerCase()}` : null;
-              return (
-                <tr key={p.user_id}>
-                  <td className="px-3 py-2 font-mono text-xs">
-                    <UserRowLink href={detailHref}>{p.client_id ?? "—"}</UserRowLink>
-                  </td>
-                  <td className="px-3 py-2">
-                    <UserRowLink href={detailHref}>{au?.email ?? "—"}</UserRowLink>
-                  </td>
-                  <td className="px-3 py-2">
-                    <UserRowLink href={detailHref}>
-                      {formatFullName(p.first_name, p.last_name)}
-                    </UserRowLink>
-                  </td>
-                  <td className="px-3 py-2">
-                    <UserRowLink href={detailHref}>{p.role}</UserRowLink>
-                  </td>
-                  <td className="px-3 py-2">
-                    <UserRowLink href={detailHref}>
-                      {p.role === "client"
-                        ? `${videoProgressByUser.get(p.user_id) ?? 0}%`
-                        : "—"}
-                    </UserRowLink>
-                  </td>
-                  <td className="px-3 py-2">
-                    <UserRowLink href={detailHref}>
-                      {formatGermanDateTime(p.created_at)}
-                    </UserRowLink>
-                  </td>
-                  <td className="px-3 py-2">
-                    <UserRowLink href={detailHref}>
-                      {formatGermanDateTime(au?.last_sign_in_at)}
-                    </UserRowLink>
-                  </td>
-                </tr>
-              );
-            })}
-            {profiles.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-white/60">
-                  Keine Nutzer gefunden.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <AdminUsersTable rows={rows} accessLevels={accessLevels} />
     </div>
   );
 }
