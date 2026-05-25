@@ -98,20 +98,16 @@ export default function Home() {
   }, [loading, supabase, courseProgress, progress]);
 
   let continueWatching: CourseProgress | null = null;
-  if (courseProgress.size > 0) {
-    let mostRecentTime = 0;
-    courseProgress.forEach((course) => {
-      if (course.lastVideoId && course.lastVideoProgress !== null) {
-        const videoProgress = progress.get(course.lastVideoId);
-        if (videoProgress?.updated_at) {
-          const updatedTime = new Date(videoProgress.updated_at).getTime();
-          if (updatedTime > mostRecentTime) {
-            mostRecentTime = updatedTime;
-            continueWatching = course;
-          }
-        }
-      }
-    });
+  let mostRecentContinueTime = 0;
+  for (const course of courseProgress.values()) {
+    if (!course.lastVideoId || course.lastVideoProgress === null) continue;
+    const videoProgress = progress.get(course.lastVideoId);
+    if (!videoProgress?.updated_at) continue;
+    const updatedTime = new Date(videoProgress.updated_at).getTime();
+    if (updatedTime > mostRecentContinueTime) {
+      mostRecentContinueTime = updatedTime;
+      continueWatching = course;
+    }
   }
 
   const continueVideoId = continueWatching?.lastVideoId ?? null;
@@ -119,8 +115,7 @@ export default function Home() {
     ? progress.get(continueVideoId)
     : null;
   const continueLastSecond = continueVideoProgress?.last_second ?? 0;
-  const continuePercent =
-    (continueWatching as CourseProgress | null)?.lastVideoProgress ?? 0;
+  const continuePercent = continueWatching?.lastVideoProgress ?? 0;
   const continuePositionLabel =
     continueLastSecond > 0
       ? formatPlaybackTimestamp(continueLastSecond)
@@ -218,13 +213,13 @@ export default function Home() {
               )}
 
               {/* Continue Watching */}
-              {continueWatching && (continueWatching as CourseProgress).lastVideoId && (
+              {continueWatching?.lastVideoId && (
                 <div className="mb-8 p-6 rounded-2xl border border-white/10 bg-white/[0.02]">
                   <h2 className="text-xl font-semibold mb-4 text-white">Weiter schauen</h2>
                   <div className="flex items-center gap-4 p-4 rounded-xl border border-white/10 bg-white/[0.02]">
                     <VideoThumbnailPreview
                       bunnyVideoId={continueBunnyId}
-                      title={(continueWatching as CourseProgress).lastVideoTitle ?? "Video"}
+                      title={continueWatching.lastVideoTitle ?? "Video"}
                       href={continueVideoId ? `/video/${continueVideoId}` : null}
                       className="h-20 w-36 shrink-0"
                     />
@@ -233,7 +228,7 @@ export default function Home() {
                         href={`/video/${continueVideoId}`}
                         className="font-medium text-white mb-1 block hover:text-[#63eca9] transition-colors"
                       >
-                        {(continueWatching as CourseProgress).lastVideoTitle}
+                        {continueWatching.lastVideoTitle}
                       </Link>
                       <p className="text-white/60 text-sm mb-2">
                         Fortsetzen wo du aufgehört hast
@@ -242,12 +237,12 @@ export default function Home() {
                       <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
                         <div 
                           className="bg-gradient-to-r from-[#63eca9] to-[#53e0b6] h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${(continueWatching as CourseProgress).lastVideoProgress || 0}%` }}
+                          style={{ width: `${continueWatching.lastVideoProgress || 0}%` }}
                         />
                       </div>
                       <div className="flex items-center justify-between mt-1 text-xs text-white/50">
                         <span>
-                          {(continueWatching as CourseProgress).lastVideoProgress || 0}%
+                          {continueWatching.lastVideoProgress || 0}%
                           {" "}
                           abgeschlossen
                           {continueRemainingLabel
@@ -257,7 +252,7 @@ export default function Home() {
                       </div>
                     </div>
                     <Link
-                      href={`/video/${(continueWatching as CourseProgress).lastVideoId}`}
+                      href={`/video/${continueWatching.lastVideoId}`}
                       className="px-4 py-2 rounded-full bg-[#63eca9] text-black font-medium hover:bg-[#53e0b6] transition-colors"
                     >
                       Fortsetzen
