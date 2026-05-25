@@ -208,6 +208,30 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_registration_invite: {
+        Row: {
+          current_code: string
+          id: number
+          last_rotated_at: string | null
+          rotated_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          current_code: string
+          id?: number
+          last_rotated_at?: string | null
+          rotated_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          current_code?: string
+          id?: number
+          last_rotated_at?: string | null
+          rotated_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platform_unlock_defaults_by_level: {
         Row: {
           access_level: number
@@ -580,6 +604,12 @@ export type Database = {
     Functions: {
       allocate_next_client_id: {
         Args: { p_first_name: string; p_last_name: string }
+        Returns: string
+      }
+      ensure_registration_invite_row: { Args: Record<string, never>; Returns: string }
+      generate_registration_invite_code: { Args: Record<string, never>; Returns: string }
+      rotate_registration_invite_code: {
+        Args: { p_actor_id?: string | null }
         Returns: string
       }
       ensure_catalog_soft_delete_guards: { Args: never; Returns: undefined }

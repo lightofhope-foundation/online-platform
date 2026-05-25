@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import LightRays from "@/components/LightRays";
 import { MobileNav } from "@/components/MobileNav";
@@ -166,6 +167,16 @@ export default function Home() {
       {/* Main content */}
       <main className="relative z-10 min-h-screen text-white">
         <div className="mx-auto max-w-7xl px-6 py-10">
+          <div className="mb-8 flex justify-center pt-2">
+            <Image
+              src="/light-of-hope-logo.png"
+              alt="Light of Hope Foundation"
+              width={320}
+              height={140}
+              className="h-auto w-[min(320px,72vw)] object-contain"
+              priority
+            />
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8">
             {/* Sidebar */}
             <aside className="sticky top-6 self-start rounded-[24px] border border-white/10 bg-white/[0.02] p-6 backdrop-blur-sm hidden lg:block">

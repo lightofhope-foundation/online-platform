@@ -520,22 +520,28 @@ Split **`/admin/einstellungen`** into **card/tile overview** (same pattern as us
 
 ---
 
-#### Phase 3.6 — Nutzereinstellungen (registration field definitions)
+#### Phase 3.6 — Nutzereinstellungen + geschlossene Registrierung ✅
 
 **Build**
 
-- [ ] `/admin/einstellungen/registrierung` — list required/optional fields
-- [ ] Built-in rows (name, DOB, address, …) + **+** add custom field (label + key)
-- [ ] **Edit** label, toggle required, **delete** (soft-delete if values exist — confirm)
-- [ ] Persist to `registration_field_definitions` (instant; no deploy for new labels)
+- [x] `/admin/einstellungen/registrierung` — list required/optional fields
+- [x] Built-in rows (name, DOB, address, …) + **+** add custom field (label + key)
+- [x] **Edit** label, toggle required, **delete** (soft-delete; system fields protected)
+- [x] Persist to `registration_field_definitions` (instant; no deploy for new labels)
+- [x] `platform_registration_invite` singleton + rotate RPC (migration `phase3_6_registration_invite`)
+- [x] Admin hub `/admin/einstellungen` — **Registrierungscode** panel below tiles (copy + regenerate)
+- [x] Public `/registrierung` — Zugangscode gate (2h cookie) + dynamic form + server signup
+- [x] Code rotates **after successful signup** (option B); `seed_user_video_unlocks` via profile trigger
+- [x] Login link „Registrieren“ + success banner with Nutzer-ID
 
 **How to test**
 
-1. Add field „Telefon“ → appears in list immediately; row in Supabase `registration_field_definitions`.
-2. Rename to „Mobilnummer“ → label updates in UI + DB.
-3. Delete → removed from admin list (soft-delete); signup form integration = later phase.
+1. Admin → Einstellungen → copy Registrierungscode.
+2. Incognito → `/registrierung` → enter code → fill form → submit → redirect to login with Nutzer-ID.
+3. Admin → Einstellungen → code changed; old code rejected.
+4. Admin → Nutzereinstellungen → add/rename/delete custom field → appears on `/registrierung`.
 
-*Client `/settings` and signup reading these definitions = follow-up after 3.6.*
+*Client `/settings` reading dynamic definitions = optional follow-up.*
 
 ---
 

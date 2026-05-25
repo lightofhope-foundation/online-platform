@@ -3,7 +3,13 @@ import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs";
 
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
-  const isPublic = pathname.startsWith("/login") || pathname.startsWith("/_next") || pathname.startsWith("/favicon") || pathname.startsWith("/api") || pathname.startsWith("/reset-admin-pw");
+  const isPublic =
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/registrierung") ||
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/favicon") ||
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/reset-admin-pw");
 
   try {
     const res = NextResponse.next();
@@ -25,8 +31,8 @@ export async function middleware(req: NextRequest) {
       }
     }
 
-    // Redirect logged-in users away from login page
-    if (pathname.startsWith("/login")) {
+    // Redirect logged-in users away from login / registrierung
+    if (pathname.startsWith("/login") || pathname.startsWith("/registrierung")) {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         const url = req.nextUrl.clone();

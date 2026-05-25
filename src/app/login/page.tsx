@@ -1,14 +1,18 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import LightRays from "@/components/LightRays";
 
 // Track failed login attempts per email (client-side only, resets on page refresh)
 const failedAttempts = new Map<string, { count: number; lastAttempt: number }>();
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const registered = searchParams.get("registered") === "1";
+  const registeredId = searchParams.get("id");
   const supabase = getSupabaseBrowserClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -156,6 +160,16 @@ export default function LoginPage() {
       </div>
       <div className="relative z-10 w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.06] p-6 backdrop-blur">
         <h1 className="text-2xl font-semibold mb-4">Login</h1>
+        {registered && (
+          <div className="mb-4 rounded-lg border border-[#63eca9]/30 bg-[#63eca9]/10 px-3 py-2 text-sm text-[#63eca9]">
+            Registrierung erfolgreich. Sie können sich jetzt anmelden.
+            {registeredId && (
+              <span className="mt-1 block font-mono text-white/80">
+                Nutzer-ID: {registeredId}
+              </span>
+            )}
+          </div>
+        )}
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
             <label className="mb-1 block text-sm opacity-80">Email (Benutzername)</label>
@@ -195,7 +209,21 @@ export default function LoginPage() {
             {loading ? "Bitte warten…" : countdown !== null && countdown > 0 ? `Warten (${countdown}s)` : "Einloggen"}
           </button>
         </form>
+        <p className="mt-6 text-center text-sm text-white/50">
+          Neues Konto mit Kurszugang?{" "}
+          <Link href="/registrierung" className="text-[#63eca9] hover:underline">
+            Registrieren
+          </Link>
+        </p>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

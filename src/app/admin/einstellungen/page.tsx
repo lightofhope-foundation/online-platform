@@ -1,8 +1,22 @@
 import { AdminSettingsTiles } from "@/components/admin/AdminSettingsTiles";
+import { RegistrationInvitePanel } from "@/components/admin/RegistrationInvitePanel";
+import { checkAdminAccess } from "@/lib/checkAdminAccess";
 
 export const dynamic = "force-dynamic";
 
-export default function AdminEinstellungenPage() {
+export default async function AdminEinstellungenPage() {
+  const { supabase } = await checkAdminAccess();
+  await supabase.rpc("ensure_registration_invite_row");
+
+  const { data: row } = await supabase
+    .from("platform_registration_invite")
+    .select("current_code, updated_at")
+    .eq("id", 1)
+    .maybeSingle();
+
+  const code = row?.current_code ?? "—";
+  const updatedAt = row?.updated_at ?? null;
+
   return (
     <div className="space-y-8">
       <div>
@@ -12,6 +26,7 @@ export default function AdminEinstellungenPage() {
         </p>
       </div>
       <AdminSettingsTiles />
+      <RegistrationInvitePanel initialCode={code} initialUpdatedAt={updatedAt} />
     </div>
   );
 }
