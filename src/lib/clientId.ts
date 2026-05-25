@@ -56,3 +56,9 @@ export function formatGermanDateTime(iso: string | Date | null | undefined): str
   });
   return `${d} - ${t}`;
 }
+
+/** Unlock schedule label, e.g. 01.06.2026 - 10:00 Uhr */
+export function formatGermanUnlockAt(iso: string | Date | null | undefined): string {
+  const formatted = formatGermanDateTime(iso);
+  return formatted === "—" ? formatted : `${formatted} Uhr`;
+}

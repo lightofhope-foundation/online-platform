@@ -145,6 +145,7 @@ DECLARE
   rec record;
   v_unlock timestamptz;
   v_extra_days int;
+  v_reg_date date;
 BEGIN
   SELECT created_at INTO v_reg FROM public.profiles WHERE user_id = p_user_id;
   IF v_reg IS NULL THEN
@@ -156,6 +157,8 @@ BEGIN
     RAISE EXCEPTION 'platform_unlock_defaults not configured';
   END IF;
 
+  v_reg_date := (v_reg AT TIME ZONE 'Europe/Berlin')::date;
+
   DELETE FROM public.user_video_unlocks
   WHERE user_id = p_user_id AND source = 'default';
 
@@ -163,8 +166,8 @@ BEGIN
     IF rec.global_position >= v_defaults.first_gated_video_position THEN
       v_extra_days := (rec.global_position - v_defaults.first_gated_video_position)
         * v_defaults.subsequent_unlock_interval_days;
-      v_unlock := v_reg
-        + make_interval(days => v_defaults.first_unlock_offset_days + v_extra_days);
+      v_unlock := ((v_reg_date + (v_defaults.first_unlock_offset_days + v_extra_days))::timestamp + time '10:00')
+        AT TIME ZONE 'Europe/Berlin';
 
       INSERT INTO public.user_video_unlocks (
         user_id, video_id, global_position, unlock_at, source

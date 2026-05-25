@@ -5,6 +5,15 @@ import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { useVideoProgress } from "@/hooks/useVideoProgress";
 import AppShell from "@/components/AppShell";
 import Link from "next/link";
+import { fetchPublishedVideosOrdered } from "@/lib/fetchPublishedVideos";
+import { PreviousVideoStatusBadge } from "@/components/PreviousVideoStatusBadge";
+import {
+  canWatchVideo,
+  getPreviousVideoStatus,
+  getVideoAccessState,
+  type VideoProgressRow,
+  type VideoUnlockRow,
+} from "@/lib/videoUnlock";
 import videojs from "video.js";
 import "video.js/dist/video-js.css";
 import Hls from "hls.js";
@@ -27,6 +36,10 @@ export default function VideoPage({ params }: PageProps) {
   const [nextVideoId, setNextVideoId] = useState<string | null>(null);
   const [savedProgress, setSavedProgress] = useState<{ last_second: number; percent: number } | null>(null);
   const [hasAttemptedResume, setHasAttemptedResume] = useState(false);
+  const [prevVideoStatus, setPrevVideoStatus] = useState<{
+    previousTitle: string;
+    completed: boolean;
+  } | null>(null);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<ReturnType<typeof videojs> | null>(null);
@@ -295,34 +308,40 @@ export default function VideoPage({ params }: PageProps) {
     }
   }, [savedProgress, hasAttemptedResume]);
 
-  // Reset progress for testing
+  // Reset progress for testing (no full page reload — avoids Next dev overlay crash)
   const resetProgress = async () => {
     try {
       await updateProgress(id, 0, 0, false);
-      console.log('Progress reset for testing');
+      savedProgressRef.current = null;
+      setSavedProgress(null);
+      setIsCompleted(false);
+      setHasAttemptedResume(false);
+      hasAttemptedResumeRef.current = false;
+      if (playerRef.current) {
+        playerRef.current.currentTime(0);
+      }
       refreshProgress();
-      // Reload page to reset video position
-      window.location.reload();
     } catch (error) {
-      console.error('Error resetting progress:', error);
+      console.error("Error resetting progress:", error);
     }
   };
 
-  // Mark video as completed
+  // Mark video as completed — stored as if never started (position 0, 100%)
   const markAsCompleted = async () => {
-    if (playerRef.current) {
-      const duration = playerRef.current.duration();
-      if (typeof duration === 'number' && duration > 0) {
-        console.log('Marking video as completed:', id);
-        try {
-          const result = await updateProgress(id, duration, 100, true);
-          console.log('Update progress result:', result);
-          setIsCompleted(true);
-          refreshProgress();
-        } catch (error) {
-          console.error('Error updating progress:', error);
-        }
+    console.log("Marking video as completed (fresh):", id);
+    try {
+      await updateProgress(id, 0, 100, true);
+      const freshProgress = { last_second: 0, percent: 100 };
+      savedProgressRef.current = freshProgress;
+      setSavedProgress(freshProgress);
+      setIsCompleted(true);
+      setHasAttemptedResume(true);
+      if (playerRef.current) {
+        playerRef.current.currentTime(0);
       }
+      refreshProgress();
+    } catch (error) {
+      console.error("Error updating progress:", error);
     }
   };
 
@@ -361,6 +380,77 @@ export default function VideoPage({ params }: PageProps) {
         
         if (!cancelled && v) {
           console.log("Video data:", v);
+
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          if (user) {
+            const ordered = await fetchPublishedVideosOrdered(supabase);
+            const videoIndex = ordered.findIndex((ov) => ov.id === id);
+            if (videoIndex >= 0) {
+              const orderedIds = ordered.map((ov) => ov.id);
+              const { data: titleRows } = await supabase
+                .from("videos")
+                .select("id, title")
+                .in("id", orderedIds);
+              const titleByVideoId = new Map(
+                (titleRows ?? []).map((row) => [row.id, row.title ?? "Video"])
+              );
+
+              const { data: unlockRows } = await supabase
+                .from("user_video_unlocks")
+                .select("video_id, global_position, unlock_at, source")
+                .eq("user_id", user.id);
+              const unlockByVideoId = new Map<string, VideoUnlockRow>();
+              (unlockRows ?? []).forEach((row) => {
+                unlockByVideoId.set(row.video_id, row);
+              });
+
+              const { data: progressRows } = await supabase
+                .from("video_progress")
+                .select("video_id, percent, completed_at")
+                .eq("user_id", user.id);
+              const progressByVideoId = new Map<string, VideoProgressRow>();
+              (progressRows ?? []).forEach((row) => {
+                progressByVideoId.set(row.video_id, row);
+              });
+
+              setPrevVideoStatus(
+                getPreviousVideoStatus(
+                  videoIndex,
+                  ordered,
+                  progressByVideoId,
+                  titleByVideoId
+                )
+              );
+
+              const allowed = canWatchVideo(
+                videoIndex,
+                id,
+                ordered,
+                progressByVideoId,
+                unlockByVideoId
+              );
+              if (!allowed) {
+                const state = getVideoAccessState(
+                  videoIndex,
+                  id,
+                  ordered,
+                  progressByVideoId,
+                  unlockByVideoId
+                );
+                if (state.status === "locked_schedule") {
+                  setError(state.message);
+                } else if (state.status === "locked_sequence") {
+                  setError(state.message);
+                } else {
+                  setError("Dieses Video ist noch nicht freigeschaltet.");
+                }
+                return;
+              }
+            }
+          }
+
           const idOrNull = v.bunny_video_id || null;
           setBunnyId(idOrNull);
           setRequiresWorkbook(!!v.requires_workbook);
@@ -533,6 +623,13 @@ export default function VideoPage({ params }: PageProps) {
                 >
                   🔄 Progress zurücksetzen (Test)
                 </button>
+
+                {prevVideoStatus && (
+                  <PreviousVideoStatusBadge
+                    previousTitle={prevVideoStatus.previousTitle}
+                    completed={prevVideoStatus.completed}
+                  />
+                )}
                 
                 {isCompleted && nextVideoId && (
                   <Link 

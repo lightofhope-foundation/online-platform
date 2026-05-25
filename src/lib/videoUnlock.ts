@@ -1,4 +1,4 @@
-import { formatGermanDateTime } from "@/lib/clientId";
+import { formatGermanUnlockAt } from "@/lib/clientId";
 
 export type UnlockScheduleSource = "default" | "manual" | "override";
 
@@ -84,7 +84,7 @@ export function getVideoAccessState(
     return {
       status: "locked_schedule",
       unlockAt: schedule.unlockAt,
-      message: `Freigeschaltet ab ${formatGermanDateTime(schedule.unlockAt)}`,
+      message: `Freigeschaltet ab ${formatGermanUnlockAt(schedule.unlockAt)}`,
     };
   }
 
@@ -115,6 +115,19 @@ export function canWatchVideo(
 }
 
 /** Build legacy boolean unlock map for course list (Phase 2 will use full state). */
+export function getPreviousVideoStatus(
+  videoIndex: number,
+  orderedVideos: OrderedVideo[],
+  progressByVideoId: Map<string, VideoProgressRow>,
+  titleByVideoId?: Map<string, string>
+): { previousTitle: string; completed: boolean } | null {
+  if (videoIndex <= 0) return null;
+  const prev = orderedVideos[videoIndex - 1];
+  const completed = isVideoCompleted(progressByVideoId.get(prev.id));
+  const previousTitle = titleByVideoId?.get(prev.id) ?? `Video ${videoIndex}`;
+  return { previousTitle, completed };
+}
+
 export function buildUnlockMap(
   orderedVideos: OrderedVideo[],
   progressByVideoId: Map<string, VideoProgressRow>,

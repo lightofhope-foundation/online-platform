@@ -325,26 +325,51 @@ type VideoAccessState =
 
 ---
 
-### Phase 2 — Video progress & unlocking (admin)
+### Phase 2a — Client unlock UI (partial — in progress)
+
+- [x] Wire `videoUnlock` into `/courses/[slug]` (schedule + sequential)
+- [x] Block direct access on `/video/[id]` when locked
+- [x] Unlock times at **10:00 Uhr** Europe/Berlin in DB seed
+- [x] Display: `Freigeschaltet ab DD.MM.YYYY - HH:mm Uhr`
+
+**Exit:** `test@web.de` sees video 4 locked with date; videos 5+ show schedule text.
+
+---
+
+### Phase 2b — Admin per-user video management
 
 - [ ] Page `/admin/users/[clientId]/videos`
 - [ ] Table: video title, chapter, watch %, unlock_at (datetime picker), status badge
 - [ ] Save → update `user_video_unlocks` + audit log
-- [ ] Show immediate preview text: `Freigeschaltet ab DD.MM.YYYY - HH:mm`
-- [ ] Client `/settings` + profile save
-- [ ] Wire `videoUnlock` resolver into course list + video page
-
-**Exit:** Admin sets video 6 unlock 2 weeks out; client sees lock message; after date + prev complete → can play.
 
 ---
 
-### Phase 3 — Platform default settings (admin)
+### Phase 2c — Client `/settings` (profile only)
 
-- [ ] `/admin/einstellungen` — edit `platform_unlock_defaults`
-- [ ] Document effect: “Applies to **new** registrations only” (unless admin runs backfill)
-- [ ] Optional: “Re-apply defaults to user” button (backlog)
+- [ ] `/settings` — name, DOB, address; read-only Nutzer-ID
+- [ ] Not: password/email here (later / separate flow)
 
-**Exit:** Admin changes 7-day / 3-day policy without code change.
+**Exit:** Admin edits unlocks; client edits profile.
+
+---
+
+### Phase 3 — Admin Einstellungen (tile dashboard, not one page)
+
+Split **`/admin/einstellungen`** into **card/tile overview** (same pattern as user detail), **not** the same as client settings.
+
+| Tile | Route (example) | Purpose |
+|------|-----------------|--------|
+| **Videokurseinstellungen** | `/admin/einstellungen/videos` | Default unlock rules after registration; which video index starts schedule locks; offsets (+7d, +3d). **Future:** auto-sync when chapters/videos added — e.g. “first video per chapter unlocked”, or dynamic rules when structure grows (5 chapters, etc.). |
+| **Nutzereinstellungen** | `/admin/einstellungen/registrierung` | Registration form: required fields, optional fields, validation. **Later:** full signup flow. |
+
+**Client settings (separate):** `/settings` = private data only (name, DOB, address, read-only Nutzer-ID, later email/password change). **Do not** mix with admin platform settings.
+
+- [ ] Tile overview at `/admin/einstellungen`
+- [ ] Videokurseinstellungen: edit `platform_unlock_defaults`
+- [ ] Nutzereinstellungen: placeholder until registration flow exists
+- [ ] Document: default changes apply to **new** registrations unless backfill
+
+**Exit:** Admin changes default policy via UI; structure ready for multi-chapter rules later.
 
 ---
 
@@ -361,7 +386,7 @@ type VideoAccessState =
 
 | Key | Text |
 |-----|------|
-| Schedule lock | `Freigeschaltet ab {date} - {time}` |
+| Schedule lock | `Freigeschaltet ab {date} - {time} Uhr` |
 | Sequence lock | `Wird freigeschaltet, sobald das vorherige Video abgeschlossen ist.` |
 | Admin column | `Freischaltung` |
 | Tile: videos | `Video-Fortschritt & Freischaltung` |
@@ -392,11 +417,11 @@ type VideoAccessState =
 
 ---
 
-## 12. Idea backlog (add below as they come up)
+## 12. Idea backlog
 
-<!-- Append new bullets here; agent will reorganize into phases when needed -->
-
-- _(empty — add your next ideas here)_
+- **Admin Einstellungen tiles:** Videokurseinstellungen + Nutzereinstellungen (see Phase 3) — confirmed 2026-05-25
+- **Dynamic video rules:** When admin adds chapters/videos, default unlock rules should stay in sync (e.g. first video per chapter free, or recompute gated positions) — design in Phase 3+
+- **Registration fields config:** Admin chooses required profile fields at signup — Phase 3 Nutzereinstellungen
 
 ---
 
@@ -407,3 +432,4 @@ type VideoAccessState =
 | 2026-05-24 | Initial plan: unlock scheduling, user dashboard tiles, settings, defaults |
 | 2026-05-24 | Confirmed: videos 1–3 sequential-only + optional admin dates; Europe/Berlin; Nutzer-ID spec `01angr001`; Phase 0 started (Supabase + admin routes) |
 | 2026-05-24 | Phase 1 complete: unlock tables, RPCs, triggers, RLS, gretzinger backfill, `videoUnlock.ts` |
+| 2026-05-25 | Client course list wired to schedule locks; 10:00 Uhr Berlin; admin Einstellungen tile concept added |
