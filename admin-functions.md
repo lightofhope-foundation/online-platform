@@ -312,16 +312,16 @@ type VideoAccessState =
 
 ---
 
-### Phase 1 — Unlock scheduling (database)
+### Phase 1 — Unlock scheduling (database) ✅
 
-- [ ] Migration: `platform_unlock_defaults`, `user_video_unlocks`, profile `date_of_birth`, address fields
-- [ ] RPC `allocate_next_client_id(first_name, last_name)` for new registrations
-- [ ] RLS policies
-- [ ] RPC `seed_user_video_unlocks(user_id)`
-- [ ] Trigger or hook: run seed on new profile/client insert
-- [ ] Backfill script for existing users (apply defaults from their `created_at`)
+- [x] Migration: `platform_unlock_defaults`, `user_video_unlocks`, profile `date_of_birth`, `street`, `house_number`
+- [x] RPC `allocate_next_client_id(first_name, last_name)` + BEFORE INSERT trigger on `profiles`
+- [x] RLS: clients SELECT own `user_video_unlocks`; authenticated SELECT defaults
+- [x] RPC `seed_user_video_unlocks(user_id)` + AFTER INSERT trigger for `role = client`
+- [x] Backfill: gretzinger → 6 rows (videos 4–9), unlocks from `profiles.created_at`
+- [x] `src/lib/videoUnlock.ts` resolver (wired in Phase 2 UI)
 
-**Exit:** DB has rows for test user; no UI yet.
+**Exit:** DB has schedule rows for test user; no admin/course UI changes yet.
 
 ---
 
@@ -406,3 +406,4 @@ type VideoAccessState =
 |------|--------|
 | 2026-05-24 | Initial plan: unlock scheduling, user dashboard tiles, settings, defaults |
 | 2026-05-24 | Confirmed: videos 1–3 sequential-only + optional admin dates; Europe/Berlin; Nutzer-ID spec `01angr001`; Phase 0 started (Supabase + admin routes) |
+| 2026-05-24 | Phase 1 complete: unlock tables, RPCs, triggers, RLS, gretzinger backfill, `videoUnlock.ts` |

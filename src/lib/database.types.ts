@@ -115,14 +115,44 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_unlock_defaults: {
+        Row: {
+          first_gated_video_position: number
+          first_unlock_offset_days: number
+          id: string
+          subsequent_unlock_interval_days: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          first_gated_video_position?: number
+          first_unlock_offset_days?: number
+          id?: string
+          subsequent_unlock_interval_days?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          first_gated_video_position?: number
+          first_unlock_offset_days?: number
+          id?: string
+          subsequent_unlock_interval_days?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           can_soft_delete: boolean
           client_id: string | null
           created_at: string
+          date_of_birth: string | null
           first_name: string | null
+          house_number: string | null
           last_name: string | null
           role: Database["public"]["Enums"]["user_role"]
+          street: string | null
           updated_at: string
           user_id: string
         }
@@ -130,9 +160,12 @@ export type Database = {
           can_soft_delete?: boolean
           client_id?: string | null
           created_at?: string
+          date_of_birth?: string | null
           first_name?: string | null
+          house_number?: string | null
           last_name?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          street?: string | null
           updated_at?: string
           user_id: string
         }
@@ -140,13 +173,61 @@ export type Database = {
           can_soft_delete?: boolean
           client_id?: string | null
           created_at?: string
+          date_of_birth?: string | null
           first_name?: string | null
+          house_number?: string | null
           last_name?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          street?: string | null
           updated_at?: string
           user_id?: string
         }
         Relationships: []
+      }
+      user_video_unlocks: {
+        Row: {
+          created_at: string
+          global_position: number
+          source: Database["public"]["Enums"]["unlock_schedule_source"]
+          unlock_at: string
+          updated_at: string
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          created_at?: string
+          global_position: number
+          source?: Database["public"]["Enums"]["unlock_schedule_source"]
+          unlock_at: string
+          updated_at?: string
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          created_at?: string
+          global_position?: number
+          source?: Database["public"]["Enums"]["unlock_schedule_source"]
+          unlock_at?: string
+          updated_at?: string
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_video_unlocks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_video_unlocks_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       video_progress: {
         Row: {
@@ -334,6 +415,7 @@ export type Database = {
       is_therapist: { Args: never; Returns: boolean }
     }
     Enums: {
+      unlock_schedule_source: "default" | "manual" | "override"
       user_role: "admin" | "therapist" | "patient" | "client"
     }
     CompositeTypes: {
@@ -462,6 +544,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      unlock_schedule_source: ["default", "manual", "override"],
       user_role: ["admin", "therapist", "patient", "client"],
     },
   },
