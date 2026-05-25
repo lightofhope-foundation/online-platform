@@ -67,7 +67,7 @@ export default function Home() {
                   { name: "Selbstcheck", href: "#", icon: <SelbstcheckIcon size={18} /> },
                   { name: "Feedback", href: "#", icon: <FeedbackIcon size={18} /> },
                   { name: "1:1 Therapie", href: "#", icon: <TherapyIcon size={18} /> },
-                  { name: "Einstellungen", href: "#", icon: <SettingsIcon size={18} /> },
+                  { name: "Einstellungen", href: "/settings", icon: <SettingsIcon size={18} /> },
                 ].map((item, idx) => (
                   <Link
                     key={idx}

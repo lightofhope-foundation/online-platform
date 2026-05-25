@@ -109,7 +109,7 @@ On **Video Progress & Unlocking** (per user):
 
 | Tile | Icon (vector) | Route / action | Status |
 |------|---------------|----------------|--------|
-| **Video-Fortschritt & Freischaltung** | Video / play | `/admin/users/[slug]/videos` (new) | Planned |
+| **Video-Fortschritt & Freischaltung** | Video / play | `/admin/users/[slug]/videos` | Done (2b) |
 | **Informationen** | Info + person | `/admin/users/[slug]/info` or inline modal | Planned |
 | **Chat / Nachrichten** | Two speech bubbles | Placeholder — disabled or “Coming soon” | Placeholder |
 
@@ -134,7 +134,48 @@ On **Video Progress & Unlocking** (per user):
 | Auth | Logged-in client only; RLS: update own `profiles` row |
 | Later | Move into proper registration onboarding |
 
-### 3.6 Backlog tiles (not in first build)
+### 3.6 Tiered unlock defaults (global → category → user)
+
+**Goal:** Admin controls the **default unlock sequence** not only for all new users, but per **client category (Stufe 0–5)** and still per **individual Nutzer-ID** (Phase 2b).
+
+**Client levels**
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `profiles.access_level` | int 0–5 | Default `0`; admin assigns on user detail or bulk later |
+| Label in UI | „Stufe“ / „Zugangsstufe“ | e.g. Stufe 0 = Standard, Stufe 1 = Intensiv, … (admin-defined labels later) |
+
+**Category defaults table (proposed — Phase 3 migration)**
+
+`platform_unlock_defaults_by_level`:
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `access_level` | int 0–5 | PK (or PK with version id) |
+| `first_gated_video_position` | int | Same semantics as global |
+| `first_unlock_offset_days` | int | |
+| `subsequent_unlock_interval_days` | int | |
+| `updated_at` / `updated_by` | timestamptz / uuid | |
+
+**Resolution when seeding** (`seed_user_video_unlocks(user_id)`):
+
+1. Load `profiles.access_level` for user.
+2. If row exists in `platform_unlock_defaults_by_level` for that level → use it.
+3. Else → use singleton `platform_unlock_defaults` (global).
+4. Insert/replace `user_video_unlocks` rows with `source = 'default'`.
+5. **Never** delete rows with `source = 'manual'` (admin per-video edits from 2b).
+
+**Admin UI (Phase 3)**
+
+- **Videokurseinstellungen:** tabs „Alle Klienten“ | „Stufe 0“ … „Stufe 5“ — same fields as today’s global defaults.
+- **User detail:** dropdown Stufe 0–5; optional „Kategorie-Zeitplan anwenden“ (re-seed from level defaults, keep manual rows).
+- **Per-user videos (2b):** unchanged; highest priority for explicit `unlock_at`.
+
+**Not in Phase 2c:** DB column `access_level` and level table — document only; implement in Phase 3.
+
+---
+
+### 3.7 Backlog tiles (not in first build)
 
 - Chat / messages (real implementation)
 - Workbooks, sessions, therapist assignment (see `instructions.md` MVP)
@@ -345,12 +386,14 @@ type VideoAccessState =
 
 ---
 
-### Phase 2c — Client `/settings` (profile only)
+### Phase 2c — Client `/settings` (profile only) ✅
 
-- [ ] `/settings` — name, DOB, address; read-only Nutzer-ID
+- [x] `/settings` — name, DOB, address; read-only Nutzer-ID
+- [x] Linked from `AppShell`, `FabSettings`, home sidebar
+- [x] Server action `updateClientProfile` (clients only) + optional `audit_logs`
 - [ ] Not: password/email here (later / separate flow)
 
-**Exit:** Admin edits unlocks; client edits profile.
+**Exit:** Client edits profile; admin **Informationen** tile can show populated fields (Phase 3).
 
 ---
 
@@ -360,17 +403,29 @@ Split **`/admin/einstellungen`** into **card/tile overview** (same pattern as us
 
 | Tile | Route (example) | Purpose |
 |------|-----------------|--------|
-| **Videokurseinstellungen** | `/admin/einstellungen/videos` | Default unlock rules after registration; which video index starts schedule locks; offsets (+7d, +3d). **Future:** auto-sync when chapters/videos added — e.g. “first video per chapter unlocked”, or dynamic rules when structure grows (5 chapters, etc.). |
+| **Videokurseinstellungen** | `/admin/einstellungen/videos` | **Global** default unlock rules (`platform_unlock_defaults`). **Level 0–5** category defaults (see §3.7). Re-seed / preview. |
 | **Nutzereinstellungen** | `/admin/einstellungen/registrierung` | Registration form: required fields, optional fields, validation. **Later:** full signup flow. |
+| **Klienten-Stufen** (new) | `/admin/einstellungen/levels` | Define what levels 0–5 mean; assign default unlock policy per level. |
 
 **Client settings (separate):** `/settings` = private data only (name, DOB, address, read-only Nutzer-ID, later email/password change). **Do not** mix with admin platform settings.
 
-- [ ] Tile overview at `/admin/einstellungen`
-- [ ] Videokurseinstellungen: edit `platform_unlock_defaults`
-- [ ] Nutzereinstellungen: placeholder until registration flow exists
-- [ ] Document: default changes apply to **new** registrations unless backfill
+**Unlock defaults — three admin layers (see §3.7):**
 
-**Exit:** Admin changes default policy via UI; structure ready for multi-chapter rules later.
+| Layer | Where admin edits | Applies to |
+|-------|-------------------|------------|
+| **Global** | Videokurseinstellungen → „Alle Klienten“ | New registrations (unless overridden) |
+| **Category (Stufe 0–5)** | Videokurseinstellungen → tab per level | Clients with `profiles.access_level = N` when (re)seeding |
+| **Individual** | `/admin/users/[clientId]/videos` (done in 2b) | One Nutzer-ID; manual rows + „Standard-Zeitplan neu anwenden“ |
+
+- [ ] Tile overview at `/admin/einstellungen`
+- [ ] Videokurseinstellungen: edit global `platform_unlock_defaults`
+- [ ] Videokurseinstellungen: edit per-level defaults (new table)
+- [ ] User detail / users list: assign `access_level` 0–5
+- [ ] `seed_user_video_unlocks`: resolve defaults global → level → existing manual rows
+- [ ] Nutzereinstellungen: placeholder until registration flow exists
+- [ ] Document: default changes apply to **new** registrations unless admin runs re-seed / per-user apply
+
+**Exit:** Admin changes default policy at global, category, and individual level.
 
 ---
 
@@ -421,6 +476,7 @@ Split **`/admin/einstellungen`** into **card/tile overview** (same pattern as us
 ## 12. Idea backlog
 
 - **Admin Einstellungen tiles:** Videokurseinstellungen + Nutzereinstellungen (see Phase 3) — confirmed 2026-05-25
+- **Tiered unlock defaults:** Global + Stufe 0–5 + per-user (§3.7) — confirmed 2026-05-25, implement Phase 3
 - **Dynamic video rules:** When admin adds chapters/videos, default unlock rules should stay in sync (e.g. first video per chapter free, or recompute gated positions) — design in Phase 3+
 - **Registration fields config:** Admin chooses required profile fields at signup — Phase 3 Nutzereinstellungen
 
@@ -434,3 +490,5 @@ Split **`/admin/einstellungen`** into **card/tile overview** (same pattern as us
 | 2026-05-24 | Confirmed: videos 1–3 sequential-only + optional admin dates; Europe/Berlin; Nutzer-ID spec `01angr001`; Phase 0 started (Supabase + admin routes) |
 | 2026-05-24 | Phase 1 complete: unlock tables, RPCs, triggers, RLS, gretzinger backfill, `videoUnlock.ts` |
 | 2026-05-25 | Client course list wired to schedule locks; 10:00 Uhr Berlin; admin Einstellungen tile concept added |
+| 2026-05-25 | Phase 2b live: admin per-user unlock editor, calendar picker, Freigeschalten seit |
+| 2026-05-25 | Phase 2c: client `/settings`; tiered defaults (global / Stufe 0–5 / user) spec for Phase 3 |

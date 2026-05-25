@@ -36,7 +36,7 @@ export default function AppShell({ children }: AppShellProps) {
     { name: "Selbstcheck", icon: <SelbstcheckIcon size={18} />, href: "#" },
     { name: "Feedback", icon: <FeedbackIcon size={18} />, href: "#" },
     { name: "1:1 Therapie", icon: <TherapyIcon size={18} />, href: "#" },
-    { name: "Einstellungen", icon: <SettingsIcon size={18} />, href: "#" },
+    { name: "Einstellungen", icon: <SettingsIcon size={18} />, href: "/settings" },
   ];
 
   const adminNavItems = [
@@ -74,8 +74,10 @@ export default function AppShell({ children }: AppShellProps) {
                       (item.href === "/admin/users" && pathname.startsWith("/admin/users")) ||
                       (item.href === "/admin/userfeedback" && pathname.startsWith("/admin/userfeedback")) ||
                       (item.href === "/admin/einstellungen" && pathname.startsWith("/admin/einstellungen"))
-                    : pathname === item.href || 
-                      (item.href === "/courses" && (pathname.startsWith("/courses") || pathname.startsWith("/video"))) || 
+                    : pathname === item.href ||
+                      (item.href === "/courses" &&
+                        (pathname.startsWith("/courses") || pathname.startsWith("/video"))) ||
+                      (item.href === "/settings" && pathname.startsWith("/settings")) ||
                       (item.href === "/" && pathname === "/");
                   
                   return (
