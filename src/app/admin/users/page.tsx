@@ -1,5 +1,7 @@
+import type { ReactNode } from "react";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import Link from "next/link";
+import { formatGermanDateTime } from "@/lib/clientId";
 
 export const dynamic = "force-dynamic";
 
@@ -9,31 +11,9 @@ type Profile = {
   created_at: string;
   first_name: string | null;
   last_name: string | null;
+  client_id: string | null;
 };
 
-type ProfileRow = {
-  user_id: string;
-  role: string;
-  created_at: string;
-  first_name?: string | null;
-  last_name?: string | null;
-};
-
-// Helper function to generate user slug: firstname-lastname-lastthreedigitsofuserID
-function generateUserSlug(firstName: string | null, lastName: string | null, userId: string): string {
-  const first = (firstName ?? "").toLowerCase().trim();
-  const last = (lastName ?? "").toLowerCase().trim();
-  const lastThree = userId.slice(-3).toLowerCase();
-  
-  const parts = [];
-  if (first) parts.push(first);
-  if (last) parts.push(last);
-  if (lastThree) parts.push(lastThree);
-  
-  return parts.join("-") || userId.slice(-3).toLowerCase();
-}
-
-// Helper function to format full name
 function formatFullName(firstName: string | null, lastName: string | null): string {
   const first = firstName?.trim() ?? "";
   const last = lastName?.trim() ?? "";
@@ -41,17 +21,32 @@ function formatFullName(firstName: string | null, lastName: string | null): stri
   return `${first} ${last}`.trim();
 }
 
+function UserRowLink({
+  href,
+  children,
+}: {
+  href: string | null;
+  children: ReactNode;
+}) {
+  if (!href) {
+    return <span className="block text-white/80">{children}</span>;
+  }
+  return (
+    <Link href={href} className="block transition-colors hover:text-[#63eca9]">
+      {children}
+    </Link>
+  );
+}
+
 export default async function AdminUsers() {
-  // Use the Service Role client so admin can see all users, bypassing RLS.
   let admin: ReturnType<typeof getSupabaseAdminClient> | undefined;
   let profiles: Profile[] = [];
   let authById = new Map<string, { email?: string; last_sign_in_at?: string }>();
-  const videoProgressByUser = new Map<string, number>(); // user_id -> overall video progress %
+  const videoProgressByUser = new Map<string, number>();
 
   try {
     admin = getSupabaseAdminClient();
 
-    // Total videos (published courses, non-deleted chapters/videos)
     const { data: publishedCourses } = await admin
       .from("courses")
       .select("id")
@@ -80,72 +75,48 @@ export default async function AdminUsers() {
             .select("user_id, video_id, completed_at")
             .not("completed_at", "is", null);
 
-          const completedByUser = new Map<string, Set<string>>(); // user_id -> set of video_ids completed
+          const completedByUser = new Map<string, Set<string>>();
           (progressRows ?? []).forEach((row: { user_id: string; video_id: string }) => {
             if (!totalVideoIds.has(row.video_id)) return;
             if (!completedByUser.has(row.user_id)) completedByUser.set(row.user_id, new Set());
             completedByUser.get(row.user_id)!.add(row.video_id);
           });
           completedByUser.forEach((videoIds, userId) => {
-            const completed = videoIds.size;
-            videoProgressByUser.set(userId, Math.round((completed / totalVideos) * 100));
+            videoProgressByUser.set(
+              userId,
+              Math.round((videoIds.size / totalVideos) * 100)
+            );
           });
         }
       }
     }
 
-    // Try to select first_name and last_name, but fall back if columns don't exist yet
     const profilesResult = await admin
       .from("profiles")
-      .select("user_id, role, created_at, first_name, last_name")
+      .select("user_id, role, created_at, first_name, last_name, client_id")
       .order("created_at", { ascending: false });
 
     if (profilesResult.error) {
-      console.log("Columns might not exist, trying without first_name/last_name:", profilesResult.error.message);
-      const fallbackResult = await admin
-        .from("profiles")
-        .select("user_id, role, created_at")
-        .order("created_at", { ascending: false });
-      if (fallbackResult.error) {
-        console.error("Error fetching profiles:", fallbackResult.error);
-        profiles = [];
-      } else {
-        profiles = (fallbackResult.data ?? []).map((p: ProfileRow) => ({
-          user_id: p.user_id,
-          role: p.role,
-          created_at: p.created_at,
-          first_name: p.first_name ?? null,
-          last_name: p.last_name ?? null,
-        }));
-      }
+      console.error("Error fetching profiles:", profilesResult.error);
+      profiles = [];
     } else {
-      profiles = (profilesResult.data ?? []).map((p: ProfileRow) => ({
-        user_id: p.user_id,
-        role: p.role,
-        created_at: p.created_at,
-        first_name: p.first_name ?? null,
-        last_name: p.last_name ?? null,
-      }));
+      profiles = profilesResult.data ?? [];
     }
 
-    // Fetch auth users via Admin API to augment emails and last sign in times
-    // We'll load up to 1k and map by id. Adjust as needed later with filters/pagination.
     const { data: authUsersRes } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    const authUsers = authUsersRes?.users ?? [];
-    authById = new Map(authUsers.map((u) => [u.id, u]));
+    authById = new Map((authUsersRes?.users ?? []).map((u) => [u.id, u]));
   } catch (error) {
     console.error("Error initializing admin client:", error);
     return (
       <div className="space-y-8">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">Users & Progress</h1>
+          <h1 className="text-xl font-semibold">Nutzer & Fortschritt</h1>
           <Link href="/admin" className="text-sm text-[#63eca9] hover:underline">
-            Back to Dashboard
+            Zurück zum Dashboard
           </Link>
         </div>
         <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-red-400">
-          <p className="font-semibold">Error: Missing SUPABASE_SERVICE_ROLE_KEY</p>
-          <p className="text-sm mt-2">Please add the SUPABASE_SERVICE_ROLE_KEY environment variable to Vercel.</p>
+          <p className="font-semibold">Fehler: SUPABASE_SERVICE_ROLE_KEY fehlt</p>
         </div>
       </div>
     );
@@ -154,17 +125,18 @@ export default async function AdminUsers() {
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Users & Progress</h1>
+        <h1 className="text-xl font-semibold">Nutzer & Fortschritt</h1>
         <Link href="/admin" className="text-sm text-[#63eca9] hover:underline">
-          Back to Dashboard
+          Zurück zum Dashboard
         </Link>
       </div>
 
-      <div className="rounded-lg border border-white/10 overflow-hidden">
+      <div className="overflow-hidden rounded-lg border border-white/10">
         <table className="w-full text-sm">
           <thead className="bg-white/5 text-left">
             <tr>
-              <th className="px-3 py-2">Email</th>
+              <th className="px-3 py-2">Nutzer-ID</th>
+              <th className="px-3 py-2">E-Mail</th>
               <th className="px-3 py-2">Name</th>
               <th className="px-3 py-2">Rolle</th>
               <th className="px-3 py-2">Video-Fortschritt</th>
@@ -175,48 +147,47 @@ export default async function AdminUsers() {
           <tbody className="divide-y divide-white/10">
             {profiles.map((p) => {
               const au = authById.get(p.user_id);
-              const slug = generateUserSlug(p.first_name, p.last_name, p.user_id);
+              const detailHref = p.client_id ? `/admin/users/${p.client_id.toLowerCase()}` : null;
               return (
                 <tr key={p.user_id}>
-                  <td className="px-3 py-2">
-                    <Link href={`/admin/users/${slug}`} className="block hover:text-[#63eca9] transition-colors">
-                      {au?.email ?? "—"}
-                    </Link>
+                  <td className="px-3 py-2 font-mono text-xs">
+                    <UserRowLink href={detailHref}>{p.client_id ?? "—"}</UserRowLink>
                   </td>
                   <td className="px-3 py-2">
-                    <Link href={`/admin/users/${slug}`} className="block hover:text-[#63eca9] transition-colors">
+                    <UserRowLink href={detailHref}>{au?.email ?? "—"}</UserRowLink>
+                  </td>
+                  <td className="px-3 py-2">
+                    <UserRowLink href={detailHref}>
                       {formatFullName(p.first_name, p.last_name)}
-                    </Link>
+                    </UserRowLink>
                   </td>
                   <td className="px-3 py-2">
-                    <Link href={`/admin/users/${slug}`} className="block hover:text-[#63eca9] transition-colors">
-                      {p.role}
-                    </Link>
+                    <UserRowLink href={detailHref}>{p.role}</UserRowLink>
                   </td>
                   <td className="px-3 py-2">
-                    <Link href={`/admin/users/${slug}`} className="block hover:text-[#63eca9] transition-colors">
+                    <UserRowLink href={detailHref}>
                       {p.role === "client"
                         ? `${videoProgressByUser.get(p.user_id) ?? 0}%`
                         : "—"}
-                    </Link>
+                    </UserRowLink>
                   </td>
                   <td className="px-3 py-2">
-                    <Link href={`/admin/users/${slug}`} className="block hover:text-[#63eca9] transition-colors">
-                      {new Date(p.created_at).toLocaleString()}
-                    </Link>
+                    <UserRowLink href={detailHref}>
+                      {formatGermanDateTime(p.created_at)}
+                    </UserRowLink>
                   </td>
                   <td className="px-3 py-2">
-                    <Link href={`/admin/users/${slug}`} className="block hover:text-[#63eca9] transition-colors">
-                      {au?.last_sign_in_at ? new Date(au.last_sign_in_at).toLocaleString() : "—"}
-                    </Link>
+                    <UserRowLink href={detailHref}>
+                      {formatGermanDateTime(au?.last_sign_in_at)}
+                    </UserRowLink>
                   </td>
                 </tr>
               );
             })}
             {profiles.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-white/60">
-                  No users found.
+                <td colSpan={7} className="px-3 py-6 text-center text-white/60">
+                  Keine Nutzer gefunden.
                 </td>
               </tr>
             )}
@@ -226,5 +197,3 @@ export default async function AdminUsers() {
     </div>
   );
 }
-
-

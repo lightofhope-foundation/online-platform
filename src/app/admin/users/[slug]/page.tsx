@@ -1,51 +1,52 @@
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AdminUserTiles } from "@/components/admin/AdminUserTiles";
+import { formatGermanDateTime, isValidClientIdFormat, normalizeClientIdForUrl } from "@/lib/clientId";
 
 export const dynamic = "force-dynamic";
 
-// Helper to extract user ID from slug (last 3 characters)
-function extractUserIdFromSlug(slug: string): string | null {
-  // Slug format: firstname-lastname-abc (last 3 chars are user ID suffix)
-  // We need to find the user by matching the last 3 chars
-  const parts = slug.split("-");
-  if (parts.length < 1) return null;
-  const lastThree = parts[parts.length - 1];
-  if (lastThree.length !== 3) return null;
-  
-  // We'll search for users whose ID ends with these 3 chars
-  return lastThree;
+function formatFullName(firstName: string | null, lastName: string | null): string {
+  const first = firstName?.trim() ?? "";
+  const last = lastName?.trim() ?? "";
+  if (!first && !last) return "—";
+  return `${first} ${last}`.trim();
 }
 
 export default async function UserDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const userIdSuffix = extractUserIdFromSlug(slug);
-  
-  if (!userIdSuffix) {
+  const clientId = normalizeClientIdForUrl(slug);
+
+  if (!isValidClientIdFormat(clientId)) {
     notFound();
   }
 
   let admin;
-  let profile = null;
-  let authUser = null;
-  
+  let profile: {
+    user_id: string;
+    role: string;
+    created_at: string;
+    first_name: string | null;
+    last_name: string | null;
+    client_id: string;
+  } | null = null;
+  let authUser: { email?: string; last_sign_in_at?: string } | null = null;
+
   try {
     admin = getSupabaseAdminClient();
 
-    // Find profile by matching user_id suffix
-    const { data: profiles } = await admin
+    const { data, error } = await admin
       .from("profiles")
-      .select("user_id, role, created_at, first_name, last_name")
-      .ilike("user_id", `%${userIdSuffix}`);
-    
-    if (!profiles || profiles.length === 0) {
+      .select("user_id, role, created_at, first_name, last_name, client_id")
+      .eq("client_id", clientId)
+      .maybeSingle();
+
+    if (error || !data?.client_id) {
       notFound();
     }
-    
-    // If multiple matches, prefer exact match or first one
-    profile = profiles.find(p => p.user_id.endsWith(userIdSuffix)) || profiles[0];
-    
-    // Get auth user details
+
+    profile = data;
+
     const { data: authUserRes } = await admin.auth.admin.getUserById(profile.user_id);
     authUser = authUserRes?.user ?? null;
   } catch (error) {
@@ -59,58 +60,45 @@ export default async function UserDetailPage({ params }: { params: Promise<{ slu
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <Link href="/admin/users" className="text-sm text-[#63eca9] hover:underline mb-2 inline-block">
+          <Link href="/admin/users" className="text-sm text-[#63eca9] hover:underline">
             ← Zurück zu Nutzern
           </Link>
-          <h1 className="text-2xl font-semibold mt-2">
-            {profile.first_name || profile.last_name 
-              ? `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim()
-              : authUser.email}
+          <h1 className="mt-2 text-2xl font-semibold">
+            {formatFullName(profile.first_name, profile.last_name) !== "—"
+              ? formatFullName(profile.first_name, profile.last_name)
+              : (authUser.email ?? "Nutzer")}
           </h1>
+          <p className="mt-1 text-sm text-white/60">
+            Nutzer-ID: <span className="font-mono text-white/80">{profile.client_id}</span>
+          </p>
         </div>
       </div>
 
-      <div className="rounded-lg border border-white/10 p-6 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <AdminUserTiles clientId={profile.client_id} />
+
+      <div className="rounded-[20px] border border-white/10 bg-white/[0.02] p-6">
+        <h2 className="mb-4 text-sm font-medium text-white/70">Kurzübersicht</h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <h3 className="text-sm text-white/60 mb-1">Email</h3>
+            <p className="text-xs text-white/50">E-Mail</p>
             <p className="text-white">{authUser.email ?? "—"}</p>
           </div>
           <div>
-            <h3 className="text-sm text-white/60 mb-1">Rolle</h3>
+            <p className="text-xs text-white/50">Rolle</p>
             <p className="text-white">{profile.role}</p>
           </div>
           <div>
-            <h3 className="text-sm text-white/60 mb-1">Vorname</h3>
-            <p className="text-white">{profile.first_name ?? "—"}</p>
+            <p className="text-xs text-white/50">Registriert</p>
+            <p className="text-white">{formatGermanDateTime(profile.created_at)}</p>
           </div>
           <div>
-            <h3 className="text-sm text-white/60 mb-1">Nachname</h3>
-            <p className="text-white">{profile.last_name ?? "—"}</p>
-          </div>
-          <div>
-            <h3 className="text-sm text-white/60 mb-1">Erstellt</h3>
-            <p className="text-white">{new Date(profile.created_at).toLocaleString()}</p>
-          </div>
-          <div>
-            <h3 className="text-sm text-white/60 mb-1">Letzter Login</h3>
-            <p className="text-white">
-              {authUser.last_sign_in_at ? new Date(authUser.last_sign_in_at).toLocaleString() : "—"}
-            </p>
+            <p className="text-xs text-white/50">Letzter Login</p>
+            <p className="text-white">{formatGermanDateTime(authUser.last_sign_in_at)}</p>
           </div>
         </div>
       </div>
-
-      {/* TODO: Add user progress, video completions, etc. here */}
     </div>
   );
 }
-
-
-
-
-
-
-

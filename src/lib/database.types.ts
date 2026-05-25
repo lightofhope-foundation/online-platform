@@ -118,6 +118,7 @@ export type Database = {
       profiles: {
         Row: {
           can_soft_delete: boolean
+          client_id: string | null
           created_at: string
           first_name: string | null
           last_name: string | null
@@ -127,6 +128,7 @@ export type Database = {
         }
         Insert: {
           can_soft_delete?: boolean
+          client_id?: string | null
           created_at?: string
           first_name?: string | null
           last_name?: string | null
@@ -136,6 +138,7 @@ export type Database = {
         }
         Update: {
           can_soft_delete?: boolean
+          client_id?: string | null
           created_at?: string
           first_name?: string | null
           last_name?: string | null
