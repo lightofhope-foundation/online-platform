@@ -25,9 +25,9 @@ type AdminUsersTableProps = {
 };
 
 const thClass =
-  "border-b border-r border-white/10 px-3 py-2.5 font-medium text-white/70 last:border-r-0";
+  "whitespace-nowrap border-b border-r border-white/10 px-3 py-2.5 font-medium text-white/70 last:border-r-0";
 const tdClass =
-  "border-b border-r border-white/[0.08] px-3 py-2.5 last:border-r-0 align-middle";
+  "whitespace-nowrap border-b border-r border-white/[0.08] px-3 py-2.5 last:border-r-0 align-middle";
 
 export function AdminUsersTable({ rows, accessLevels }: AdminUsersTableProps) {
   const [search, setSearch] = useState("");
@@ -167,8 +167,12 @@ export function AdminUsersTable({ rows, accessLevels }: AdminUsersTableProps) {
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-lg border border-white/10 bg-white/[0.02]">
-        <table className="w-full min-w-[960px] border-collapse text-sm">
+      <div className="admin-table-scroll overflow-x-auto rounded-lg border border-white/10 bg-white/[0.02]">
+        <table
+          className={`w-full border-collapse text-sm ${
+            bulkMode ? "min-w-[1120px]" : "min-w-[1040px]"
+          }`}
+        >
           <thead className="bg-white/[0.04] text-left">
             <tr>
               {bulkMode && (
@@ -186,7 +190,7 @@ export function AdminUsersTable({ rows, accessLevels }: AdminUsersTableProps) {
           </thead>
           <tbody>
             {filtered.map((r) => (
-              <tr key={r.user_id} className="hover:bg-white/[0.03]">
+              <tr key={r.user_id} className="h-11 hover:bg-white/[0.03]">
                 {bulkMode && (
                   <td className={tdClass}>
                     {r.role === "client" ? (
@@ -257,10 +261,13 @@ function CellLink({
   children: ReactNode;
 }) {
   if (!href) {
-    return <span className="block text-white/80">{children}</span>;
+    return <span className="inline-block whitespace-nowrap text-white/80">{children}</span>;
   }
   return (
-    <Link href={href} className="block transition-colors hover:text-[#63eca9]">
+    <Link
+      href={href}
+      className="inline-block whitespace-nowrap transition-colors hover:text-[#63eca9]"
+    >
       {children}
     </Link>
   );

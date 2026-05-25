@@ -44,6 +44,36 @@ html, body {
   visibility: visible !important;
 }
 
+/* Admin tables — dark, thin scrollbars (horizontal + vertical) */
+.admin-table-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 236, 169, 0.38) rgba(255, 255, 255, 0.05);
+}
+
+.admin-table-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.admin-table-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+}
+
+.admin-table-scroll::-webkit-scrollbar-thumb {
+  background: rgba(99, 236, 169, 0.32);
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+}
+
+.admin-table-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 236, 169, 0.5);
+}
+
+.admin-table-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* Ensure player is clickable above any decorative overlays */
 .video-js {
   pointer-events: auto !important;
