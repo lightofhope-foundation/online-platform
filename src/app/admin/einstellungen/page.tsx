@@ -1,18 +1,17 @@
+import { AdminSettingsTiles } from "@/components/admin/AdminSettingsTiles";
+
 export const dynamic = "force-dynamic";
 
-export default function AdminEinstellungen() {
+export default function AdminEinstellungenPage() {
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Einstellungen</h1>
+      <div>
+        <h1 className="text-2xl font-semibold text-white">Einstellungen</h1>
+        <p className="mt-1 text-sm text-white/60">
+          Plattform-Richtlinien für Videos, Registrierung und Klienten-Stufen.
+        </p>
       </div>
-
-      <div className="rounded-lg border border-white/10 p-8 text-center">
-        <p className="text-white/60">Einstellungen - Coming Soon</p>
-        <p className="text-sm text-white/40 mt-2">Hier werden später die Plattform-Einstellungen verwaltet.</p>
-      </div>
+      <AdminSettingsTiles />
     </div>
   );
 }
-
-

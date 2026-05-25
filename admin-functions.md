@@ -8,6 +8,8 @@
 - `instructions.md` — long-term therapy-platform MVP (broader vision)
 - `SETUP-STATUS.md` — Git, SSH, Vercel, MCP handoff
 
+**Dev workflow (local):** After `git push`, restart dev on port 3000 (`npm run dev:clean:win` from `web/`) — do not leave `next dev` running during `npm run build` (corrupts `.next` → localhost 500).
+
 ---
 
 ## 1. Design principles
@@ -415,17 +417,159 @@ Split **`/admin/einstellungen`** into **card/tile overview** (same pattern as us
 |-------|-------------------|------------|
 | **Global** | Videokurseinstellungen → „Alle Klienten“ | New registrations (unless overridden) |
 | **Category (Stufe 0–5)** | Videokurseinstellungen → tab per level | Clients with `profiles.access_level = N` when (re)seeding |
-| **Individual** | `/admin/users/[clientId]/videos` (done in 2b) | One Nutzer-ID; manual rows + „Standard-Zeitplan neu anwenden“ |
+| **Individual** | Videokurseinstellungen → tab **Einzelner Klient** (search) → `/admin/users/[clientId]/videos` (2b) | One Nutzer-ID; manual rows + „Standard-Zeitplan neu anwenden“ |
 
-- [ ] Tile overview at `/admin/einstellungen`
-- [ ] Videokurseinstellungen: edit global `platform_unlock_defaults`
-- [ ] Videokurseinstellungen: edit per-level defaults (new table)
-- [ ] User detail / users list: assign `access_level` 0–5
-- [ ] `seed_user_video_unlocks`: resolve defaults global → level → existing manual rows
-- [ ] Nutzereinstellungen: placeholder until registration flow exists
-- [ ] Document: default changes apply to **new** registrations unless admin runs re-seed / per-user apply
+**Decisions (2026-05-24, Phase 3 kickoff):**
 
-**Exit:** Admin changes default policy at global, category, and individual level.
+| Topic | Decision |
+|-------|----------|
+| Individual editor entry | **1.A** — search under Videokurseinstellungen, then open existing per-user videos page |
+| Registration fields | Admin-defined fields in DB (not `ALTER TABLE` per click — see §3.8); **+** add, edit label, delete; changes immediate |
+| Stufe labels | Numeric „Stufe 0“ … „Stufe 5“ |
+| Re-seed | New registrations by default; **bulk** re-seed with explicit confirm; per-user re-seed unchanged (2b) |
+| Scope | Full Phase 3, delivered as **3.1–3.7** (testable steps) |
+
+**Exit (full Phase 3):** Admin changes default policy at global, category, and individual level; configures registration fields; assigns Stufe; views client info tile.
+
+---
+
+#### Phase 3.1 — Database (migrations + seed logic) ✅
+
+**Build**
+
+- [x] `profiles.access_level` int 0–5, default `0`
+- [x] `platform_unlock_defaults_by_level` (PK `access_level`, same columns as global)
+- [x] `registration_field_definitions` + `profile_registration_values` (see §3.8)
+- [x] `resolve_unlock_defaults_for_user` + updated `seed_user_video_unlocks` (level → global; keeps `manual`)
+- [x] `seed_all_clients_video_unlocks` (for Phase 3.4 bulk UI)
+- [x] RLS on new tables; client read own registration values
+- [x] `database.types.ts` patched
+- [x] Migration file: `web/migrations/phase3_1_admin_settings_schema.sql` (applied to LOH Supabase)
+
+**How to test (no new UI yet)**
+
+1. Supabase → **Table Editor**: confirm new tables/columns exist.
+2. SQL (or MCP): `SELECT * FROM platform_unlock_defaults;` and `SELECT * FROM platform_unlock_defaults_by_level;`
+3. Pick test client `01tewe002` → run `SELECT seed_user_video_unlocks('<user_uuid>');` (or use **Standard-Zeitplan neu anwenden** on `/admin/users/01tewe002/videos` after deploy).
+4. Set `profiles.access_level = 1`, insert a row in `platform_unlock_defaults_by_level` for level 1 with different offsets, re-seed → `user_video_unlocks` dates should follow level row, not global.
+5. Confirm rows with `source = manual` are unchanged after re-seed.
+
+---
+
+#### Phase 3.2 — Einstellungen tile hub ✅
+
+**Build**
+
+- [x] `/admin/einstellungen` — tile grid (`AdminSettingsTiles`)
+- [x] Tiles: Videokurseinstellungen, Nutzereinstellungen, Klienten-Stufen (all linked)
+- [x] Stub sub-routes: `/videos`, `/registrierung`, `/levels` with back link
+- [x] Admin nav: **Einstellungen** → `/admin/einstellungen` (unchanged)
+
+**How to test**
+
+1. Log in as admin → `/admin/einstellungen`.
+2. See three tiles; each link opens the correct sub-route (stub until 3.3+).
+3. On each sub-page: **← Zurück zu Einstellungen** returns to the hub.
+
+---
+
+#### Phase 3.3 — Videokurseinstellungen (global + Stufe 0–5)
+
+**Build**
+
+- [ ] `/admin/einstellungen/videos` — tabs: **Alle Klienten** | **Stufe 0** … **Stufe 5**
+- [ ] Fields: `first_gated_video_position`, `first_unlock_offset_days`, `subsequent_unlock_interval_days` (videos before gated position = sequential only, no date lock)
+- [ ] Save global → `platform_unlock_defaults`; save per tab → `platform_unlock_defaults_by_level`
+- [ ] Copy note: „Gilt für neue Registrierungen …“
+
+**How to test**
+
+1. Open **Alle Klienten** → change e.g. first gated video to `5`, save → reload → values persist.
+2. Open **Stufe 2** → set different interval (e.g. `5` days), save → row in `platform_unlock_defaults_by_level` for `access_level = 2`.
+3. Optional: new test user with `access_level = 2` + seed → unlock dates match Stufe 2 row.
+
+---
+
+#### Phase 3.4 — Re-seed actions (bulk + policy copy)
+
+**Build**
+
+- [ ] On Videokurseinstellungen: **„Alle Klienten neu seeden“** — confirm dialog; calls bulk RPC; keeps `manual` rows
+- [ ] Help text: defaults apply to **new** users unless bulk or per-user re-seed
+- [ ] Audit log entries for bulk + default saves (if not already)
+
+**How to test**
+
+1. Edit a test user’s video unlock manually (`source = manual`) on `/admin/users/…/videos`.
+2. Run bulk re-seed → manual row unchanged; `default` rows updated.
+3. New registration (or seed new user) → uses latest global/level rules.
+
+---
+
+#### Phase 3.5 — Videokurseinstellungen → Einzelner Klient (search)
+
+**Build**
+
+- [ ] Tab **Einzelner Klient**: search by Nutzer-ID, name, or email
+- [ ] Result → link to `/admin/users/[clientId]/videos` (existing 2b editor)
+
+**How to test**
+
+1. Search `01tewe002` → land on correct user’s video/unlock table.
+2. Change one `unlock_at`, save → still works as in Phase 2b.
+
+---
+
+#### Phase 3.6 — Nutzereinstellungen (registration field definitions)
+
+**Build**
+
+- [ ] `/admin/einstellungen/registrierung` — list required/optional fields
+- [ ] Built-in rows (name, DOB, address, …) + **+** add custom field (label + key)
+- [ ] **Edit** label, toggle required, **delete** (soft-delete if values exist — confirm)
+- [ ] Persist to `registration_field_definitions` (instant; no deploy for new labels)
+
+**How to test**
+
+1. Add field „Telefon“ → appears in list immediately; row in Supabase `registration_field_definitions`.
+2. Rename to „Mobilnummer“ → label updates in UI + DB.
+3. Delete → removed from admin list (soft-delete); signup form integration = later phase.
+
+*Client `/settings` and signup reading these definitions = follow-up after 3.6.*
+
+---
+
+#### Phase 3.7 — Klienten-Stufen, user Stufe, Informationen tile
+
+**Build**
+
+- [ ] `/admin/einstellungen/levels` — short description per Stufe 0–5 (optional admin notes; numeric titles)
+- [ ] User detail `/admin/users/[slug]`: dropdown **Zugangsstufe** 0–5, save profile
+- [ ] Enable tile **Informationen** → `/admin/users/[slug]/info` (read-only: name, DOB, address, Nutzer-ID, last login, registration fields with values when present)
+- [ ] Users list: optional column **Stufe** (nice-to-have)
+
+**How to test**
+
+1. Set user to Stufe 3 → save → reload user detail → shows Stufe 3.
+2. Open **Informationen** → see profile + last login; matches `/settings` data for test client.
+3. Re-seed user after Stufe change → unlock dates follow `platform_unlock_defaults_by_level` for level 3.
+
+---
+
+### 3.8 Registration fields — data model (confirmed)
+
+**Why not `ALTER TABLE profiles ADD COLUMN` from the admin UI?** PostgreSQL cannot safely add/remove columns on every „+“ click from the browser; migrations would be fragile and break deploys.
+
+**Instead (clean + instant):**
+
+| Table | Purpose |
+|-------|---------|
+| `registration_field_definitions` | Admin-defined fields: `field_key`, `label`, `required`, `sort_order`, `is_system`, `deleted_at` |
+| `profile_registration_values` | Per-user answers: `(user_id, field_id, value)` |
+
+When admin clicks **+** → `INSERT` into definitions (immediate). Edit label → `UPDATE`. Delete → soft-delete definition; optional confirm if values exist.
+
+Built-in profile columns (`first_name`, `last_name`, `date_of_birth`, `street`, `house_number`) stay on `profiles` for Phase 3; custom fields use `profile_registration_values`. Later: signup + `/settings` read definitions dynamically.
 
 ---
 
@@ -558,3 +702,7 @@ After adding/changing env vars on Vercel: **redeploy** production (and preview i
 | 2026-05-25 | Phase 2c: client `/settings`; tiered defaults (global / Stufe 0–5 / user) spec for Phase 3 |
 | 2026-05-25 | Client dashboard: Hallo Vorname, 3 quick tiles, neon-green hover, DB-resolved course links |
 | 2026-05-25 | Dashboard layout: compact Gesamtfortschritt 30/70 grid; full-width quick tiles; mobile responsive backlog |
+| 2026-05-24 | Phase 3.2: admin Einstellungen tile hub + stub sub-routes |
+| 2026-05-24 | Phase 3.1 live: access_level, level defaults table, registration field definitions, seed RPC level fallback |
+| 2026-05-24 | Phase 3 split into 3.1–3.7 with per-step test plan; registration fields via definitions + values tables |
+| 2026-05-24 | Phase 3 decisions: individual search under Videokurseinstellungen; bulk + per-user re-seed policy |

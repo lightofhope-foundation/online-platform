@@ -175,8 +175,72 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_unlock_defaults_by_level: {
+        Row: {
+          access_level: number
+          first_gated_video_position: number
+          first_unlock_offset_days: number
+          subsequent_unlock_interval_days: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          access_level: number
+          first_gated_video_position?: number
+          first_unlock_offset_days?: number
+          subsequent_unlock_interval_days?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          access_level?: number
+          first_gated_video_position?: number
+          first_unlock_offset_days?: number
+          subsequent_unlock_interval_days?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      profile_registration_values: {
+        Row: {
+          field_id: string
+          updated_at: string
+          user_id: string
+          value: string | null
+        }
+        Insert: {
+          field_id: string
+          updated_at?: string
+          user_id: string
+          value?: string | null
+        }
+        Update: {
+          field_id?: string
+          updated_at?: string
+          user_id?: string
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_registration_values_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "registration_field_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_registration_values_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
+          access_level: number
           can_soft_delete: boolean
           client_id: string | null
           created_at: string
@@ -190,6 +254,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          access_level?: number
           can_soft_delete?: boolean
           client_id?: string | null
           created_at?: string
@@ -203,6 +268,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          access_level?: number
           can_soft_delete?: boolean
           client_id?: string | null
           created_at?: string
@@ -214,6 +280,45 @@ export type Database = {
           street?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      registration_field_definitions: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          field_key: string
+          id: string
+          is_system: boolean
+          label: string
+          required: boolean
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          field_key: string
+          id?: string
+          is_system?: boolean
+          label: string
+          required?: boolean
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          field_key?: string
+          id?: string
+          is_system?: boolean
+          label?: string
+          required?: boolean
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -457,6 +562,15 @@ export type Database = {
         | { Args: never; Returns: boolean }
         | { Args: { p_uid: string }; Returns: boolean }
       is_therapist: { Args: never; Returns: boolean }
+      resolve_unlock_defaults_for_user: {
+        Args: { p_user_id: string }
+        Returns: {
+          first_gated_video_position: number
+          first_unlock_offset_days: number
+          subsequent_unlock_interval_days: number
+        }[]
+      }
+      seed_all_clients_video_unlocks: { Args: Record<string, never>; Returns: number }
       seed_user_video_unlocks: {
         Args: { p_user_id: string }
         Returns: number
