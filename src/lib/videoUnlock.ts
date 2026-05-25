@@ -115,6 +115,19 @@ export function canWatchVideo(
 }
 
 /** Build legacy boolean unlock map for course list (Phase 2 will use full state). */
+/** Client label when schedule unlock time has passed (video is time-unlocked). */
+export function getUnlockedSinceMessage(
+  videoId: string,
+  unlockByVideoId: Map<string, VideoUnlockRow>,
+  now: Date = new Date()
+): string | null {
+  const row = unlockByVideoId.get(videoId);
+  if (!row) return null;
+  const unlockAt = new Date(row.unlock_at);
+  if (unlockAt.getTime() > now.getTime()) return null;
+  return `Freigeschalten seit ${formatGermanUnlockAt(row.unlock_at)}`;
+}
+
 export function getPreviousVideoStatus(
   videoIndex: number,
   orderedVideos: OrderedVideo[],

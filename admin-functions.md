@@ -336,11 +336,12 @@ type VideoAccessState =
 
 ---
 
-### Phase 2b — Admin per-user video management
+### Phase 2b — Admin per-user video management ✅
 
-- [ ] Page `/admin/users/[clientId]/videos`
-- [ ] Table: video title, chapter, watch %, unlock_at (datetime picker), status badge
-- [ ] Save → update `user_video_unlocks` + audit log
+- [x] Page `/admin/users/[clientId]/videos`
+- [x] Table: video title, chapter, watch %, unlock_at (datetime picker), status badge
+- [x] Save → update `user_video_unlocks` + `audit_logs`
+- [x] Button: Standard-Zeitplan neu anwenden (`seed_user_video_unlocks`)
 
 ---
 

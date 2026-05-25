@@ -12,6 +12,7 @@ import { PreviousVideoStatusBadge } from "@/components/PreviousVideoStatusBadge"
 import {
   canWatchVideo,
   getPreviousVideoStatus,
+  getUnlockedSinceMessage,
   getVideoAccessState,
   type VideoProgressRow,
 } from "@/lib/videoUnlock";
@@ -198,6 +199,10 @@ export default function CourseDetailPage({ params }: PageProps) {
                   titleByVideoId
                 )
               : null;
+            const unlockedSince =
+              canOpen && !isCompleted
+                ? getUnlockedSinceMessage(v.id, unlockByVideoId)
+                : null;
 
             return (
               <div
@@ -238,7 +243,9 @@ export default function CourseDetailPage({ params }: PageProps) {
                       </div>
                     ) : isCompleted ? (
                       <div className="text-xs text-[#63eca9]">Abgeschlossen</div>
-                    ) : progressRow ? (
+                    ) : unlockedSince ? (
+                      <div className="text-xs text-[#63eca9]">{unlockedSince}</div>
+                    ) : progressRow && progressRow.percent > 0 ? (
                       <div className="text-xs text-white/60">
                         {Math.round(progressRow.percent)}% abgeschlossen
                       </div>

@@ -200,3 +200,33 @@ export function PencilIcon({ className, size = 24 }: IconProps) {
     </svg>
   );
 }
+
+/** Calendar + clock — for unlock datetime pickers in admin */
+export function CalendarIcon({ className, size = 24 }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      aria-hidden
+    >
+      <path
+        d="M5.33333 1.33337V3.33337M10.6667 1.33337V3.33337M2 5.33337H14M3.33333 3.33337H12.6667C13.403 3.33337 14 3.93037 14 4.66671V13.3334C14 14.0697 13.403 14.6667 12.6667 14.6667H3.33333C2.597 14.6667 2 14.0697 2 13.3334V4.66671C2 3.93037 2.597 3.33337 3.33333 3.33337Z"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8 8.66671V11.3334M6.66667 10H9.33333"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

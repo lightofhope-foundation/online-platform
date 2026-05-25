@@ -53,7 +53,6 @@ export function AdminUserTiles({ clientId }: AdminUserTilesProps) {
       description: "Fortschritt, Freischaltzeiten und letzter Login verwalten.",
       href: `${base}/videos`,
       icon: <VideosIcon size={24} />,
-      disabled: true,
     },
     {
       title: "Informationen",

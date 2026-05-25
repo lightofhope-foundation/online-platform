@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          after: Json | null
+          before: Json | null
+          created_at: string
+          entity: string
+          entity_id: string | null
+          id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          entity: string
+          entity_id?: string | null
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          entity?: string
+          entity_id?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       chapters: {
         Row: {
           course_id: string
@@ -407,12 +440,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      allocate_next_client_id: {
+        Args: { p_first_name: string; p_last_name: string }
+        Returns: string
+      }
       ensure_catalog_soft_delete_guards: { Args: never; Returns: undefined }
+      get_published_videos_ordered: {
+        Args: never
+        Returns: {
+          global_position: number
+          video_id: string
+        }[]
+      }
       has_soft_delete: { Args: never; Returns: boolean }
       is_admin:
         | { Args: never; Returns: boolean }
         | { Args: { p_uid: string }; Returns: boolean }
       is_therapist: { Args: never; Returns: boolean }
+      seed_user_video_unlocks: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
     }
     Enums: {
       unlock_schedule_source: "default" | "manual" | "override"
