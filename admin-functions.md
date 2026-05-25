@@ -473,14 +473,14 @@ Split **`/admin/einstellungen`** into **card/tile overview** (same pattern as us
 
 ---
 
-#### Phase 3.3 — Videokurseinstellungen (global + Stufe 0–5)
+#### Phase 3.3 — Videokurseinstellungen (global + Stufe 0–5) ✅
 
 **Build**
 
-- [ ] `/admin/einstellungen/videos` — tabs: **Alle Klienten** | **Stufe 0** … **Stufe 5**
-- [ ] Fields: `first_gated_video_position`, `first_unlock_offset_days`, `subsequent_unlock_interval_days` (videos before gated position = sequential only, no date lock)
-- [ ] Save global → `platform_unlock_defaults`; save per tab → `platform_unlock_defaults_by_level`
-- [ ] Copy note: „Gilt für neue Registrierungen …“
+- [x] `/admin/einstellungen/videos` — tabs: **Alle Klienten** + dynamic Stufen from `platform_access_levels`
+- [x] Fields: `first_gated_video_position`, `first_unlock_offset_days`, `subsequent_unlock_interval_days`
+- [x] Save global → `platform_unlock_defaults`; per Stufe → `platform_unlock_defaults_by_level` (upsert)
+- [x] German help copy + audit log on save
 
 **How to test**
 
@@ -718,6 +718,8 @@ After adding/changing env vars on Vercel: **redeploy** production (and preview i
 | 2026-05-25 | Phase 2c: client `/settings`; tiered defaults (global / Stufe 0–5 / user) spec for Phase 3 |
 | 2026-05-25 | Client dashboard: Hallo Vorname, 3 quick tiles, neon-green hover, DB-resolved course links |
 | 2026-05-25 | Dashboard layout: compact Gesamtfortschritt 30/70 grid; full-width quick tiles; mobile responsive backlog |
+| 2026-05-24 | Phase 3.3: Videokurseinstellungen tabs + save global/level defaults |
+| 2026-05-24 | Admin Überblick page translated to German |
 | 2026-05-24 | Admin users: 90% width, search, Stufe column, bulk Stufe edit, user detail dropdown; `platform_access_levels` |
 | 2026-05-24 | Phase 3.2: admin Einstellungen tile hub + stub sub-routes |
 | 2026-05-24 | Phase 3.1 live: access_level, level defaults table, registration field definitions, seed RPC level fallback |
