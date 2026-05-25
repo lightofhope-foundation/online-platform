@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
+
+const LOH_LOGO_SRC =
+  "https://lightofhope.b-cdn.net/Light%20of%20Hope_Foundation.svg";
 import LightRays from "@/components/LightRays";
 import { MobileNav } from "@/components/MobileNav";
 import { FabSettings } from "@/components/FabSettings";
@@ -168,13 +170,11 @@ export default function Home() {
       <main className="relative z-10 min-h-screen text-white">
         <div className="mx-auto max-w-7xl px-6 py-10">
           <div className="mb-8 flex justify-center pt-2">
-            <Image
-              src="/light-of-hope-logo.png"
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={LOH_LOGO_SRC}
               alt="Light of Hope Foundation"
-              width={320}
-              height={140}
-              className="h-auto w-[min(320px,72vw)] object-contain"
-              priority
+              className="h-auto w-[min(192px,43vw)] max-h-[86px] object-contain"
             />
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8">
