@@ -41,11 +41,18 @@ export default async function UserDetailPage({ params }: { params: Promise<{ slu
       .eq("client_id", clientId)
       .maybeSingle();
 
-    if (error || !data?.client_id) {
+    if (error || !data || !data.client_id) {
       notFound();
     }
 
-    profile = data;
+    profile = {
+      user_id: data.user_id,
+      role: data.role,
+      created_at: data.created_at,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      client_id: data.client_id,
+    };
 
     const { data: authUserRes } = await admin.auth.admin.getUserById(profile.user_id);
     authUser = authUserRes?.user ?? null;
