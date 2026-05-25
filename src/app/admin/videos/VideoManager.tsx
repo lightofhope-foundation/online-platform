@@ -18,7 +18,8 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { PencilIcon } from "@/components/icons/Icons";
+import { EditIcon, TextEditIcon, PlusVideoIcon } from "@/components/icons/Icons";
+import { formatVideoMetaLine } from "@/lib/formatMedia";
 import {
   createCourse,
   createChapter,
@@ -58,6 +59,8 @@ type Video = {
   bunny_video_id: string | null;
   requires_workbook: boolean;
   updated_at: string;
+  duration_seconds: number | null;
+  storage_size_bytes: number | null;
 };
 
 interface VideoManagerProps {
@@ -672,19 +675,24 @@ function SortableChapter({
   const isEditing = editingItem?.type === "chapter" && editingItem.id === chapter.id;
 
   return (
-    <div ref={setNodeRef} style={style} className="rounded-lg border border-white/10">
-      <div className="flex items-center justify-between px-3 py-2 bg-white/5">
-        <div className="flex items-center gap-2 flex-1">
-          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+    <div ref={setNodeRef} style={style} className="overflow-hidden rounded-xl border border-white/10">
+      <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-white/[0.06] px-4 py-3.5">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div
+            {...attributes}
+            {...listeners}
+            className="cursor-grab text-white/35 active:cursor-grabbing"
+            aria-hidden
+          >
             ⋮⋮
           </div>
           {isEditing ? (
-            <div className="flex items-center gap-2 flex-1">
+            <div className="flex flex-1 flex-wrap items-center gap-2">
               <input
                 type="text"
                 value={editValues.title ?? chapter.title}
                 onChange={(e) => onUpdateEditValues({ ...editValues, title: e.target.value })}
-                className="bg-transparent border border-white/20 rounded px-2 py-1 flex-1"
+                className="min-w-0 flex-1 rounded-lg border border-white/20 bg-black/30 px-3 py-2 text-base"
                 autoFocus
               />
               <button onClick={onSaveEdit} className="text-sm text-[#63eca9] hover:underline">
@@ -695,32 +703,33 @@ function SortableChapter({
               </button>
             </div>
           ) : (
-            <span className="font-medium">{chapter.position}. {chapter.title}</span>
+            <span className="text-base font-semibold text-white">
+              {chapter.position}. {chapter.title}
+            </span>
           )}
         </div>
         {!isEditing && (
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onPointerDown={(e) => e.stopPropagation()}
+          <div className="flex shrink-0 items-center gap-2">
+            <IconButton
+              label="Kapitel umbenennen"
               onClick={() => onEdit("title", chapter.title)}
-              className="p-1 hover:bg-white/10 rounded"
             >
-              <PencilIcon size={16} />
-            </button>
+              <EditIcon size={15} />
+            </IconButton>
             <button
               type="button"
               onPointerDown={(e) => e.stopPropagation()}
               onClick={onAddVideo}
-              className="text-sm text-[#63eca9] hover:underline"
+              className="inline-flex items-center gap-2 rounded-full border border-[#63eca9]/45 bg-[#63eca9]/10 px-3.5 py-2 text-sm font-medium text-[#63eca9] transition-colors hover:border-[#63eca9]/70 hover:bg-[#63eca9]/20"
             >
-              + Video
+              <PlusVideoIcon size={16} />
+              Video
             </button>
             <button
               type="button"
               onPointerDown={(e) => e.stopPropagation()}
               onClick={onDelete}
-              className="text-sm text-red-400 hover:underline"
+              className="text-sm text-red-400/90 hover:text-red-300"
             >
               Löschen
             </button>
@@ -728,7 +737,7 @@ function SortableChapter({
         )}
       </div>
         <SortableContext items={videos.map((v) => v.id)} strategy={verticalListSortingStrategy}>
-          <div className="divide-y divide-white/10">
+          <div className="divide-y divide-white/[0.08]">
             {videos.map((video) => (
               <SortableVideo
                 key={video.id}
@@ -815,27 +824,41 @@ function SortableVideo({
 
   const isEditing = editingItem?.type === "video" && editingItem.id === video.id;
 
+  const metaLine = formatVideoMetaLine(
+    video.storage_size_bytes,
+    video.duration_seconds
+  );
+
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center justify-between px-3 py-2">
-      <div className="flex items-center gap-2 flex-1">
-        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center justify-between border-b border-white/[0.06] px-4 py-2.5 last:border-b-0"
+    >
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab text-white/30 active:cursor-grabbing"
+          aria-hidden
+        >
           ⋮⋮
         </div>
         {isEditing ? (
-          <div className="flex items-center gap-2 flex-1">
+          <div className="flex flex-1 flex-wrap items-center gap-2">
             {editingItem.field === "title" ? (
               <input
                 type="text"
                 value={editValues.title ?? video.title}
                 onChange={(e) => onUpdateEditValues({ ...editValues, title: e.target.value })}
-                className="bg-transparent border border-white/20 rounded px-2 py-1 flex-1"
+                className="min-w-0 flex-1 rounded-lg border border-white/20 bg-black/30 px-2 py-1.5"
                 autoFocus
               />
             ) : (
               <select
                 value={editValues.chapterId ?? video.chapter_id}
                 onChange={(e) => onUpdateEditValues({ ...editValues, chapterId: e.target.value })}
-                className="bg-transparent border border-white/20 rounded px-2 py-1"
+                className="rounded-lg border border-white/20 bg-black/30 px-2 py-1.5"
               >
                 {chapters.map((ch) => (
                   <option key={ch.id} value={ch.id}>
@@ -852,25 +875,22 @@ function SortableVideo({
             </button>
           </div>
         ) : (
-          <div>
-            <div className="font-medium">
+          <div className="min-w-0">
+            <div className="font-medium text-white/95">
               {video.position}. {video.title}
-              {video.deleted_at && <span className="ml-2 text-xs text-red-400">(gelöscht)</span>}
+              {video.deleted_at && (
+                <span className="ml-2 text-xs text-red-400">(gelöscht)</span>
+              )}
             </div>
-            <div className="text-xs text-white/60">{video.bunny_video_id || "—"}</div>
+            <div className="mt-0.5 text-xs text-white/50">{metaLine}</div>
           </div>
         )}
       </div>
       {!isEditing && (
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={() => onEdit("title", video.title)}
-            className="p-1 hover:bg-white/10 rounded"
-          >
-            <PencilIcon size={16} />
-          </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <IconButton label="Video umbenennen" onClick={() => onEdit("title", video.title)}>
+            <EditIcon size={15} />
+          </IconButton>
           {!video.deleted_at && (
             <button
               type="button"
@@ -940,15 +960,15 @@ function CourseSection({
   const isEditing = editingItem?.type === "course" && editingItem.id === course.id;
 
   return (
-    <div className="mb-8">
-      <div className="flex items-center justify-between mb-3">
+    <div className="mb-10">
+      <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
         {isEditing && editingItem.field === "title" ? (
-          <div className="flex items-center gap-2 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
             <input
               type="text"
               value={editValues.title ?? course.title}
               onChange={(e) => onUpdateEditValues({ ...editValues, title: e.target.value })}
-              className="bg-transparent border border-white/20 rounded px-2 py-1 flex-1"
+              className="min-w-0 flex-1 rounded-lg border border-white/20 bg-black/30 px-3 py-2 text-lg font-semibold"
               autoFocus
             />
             <button onClick={onSaveEdit} className="text-sm text-[#63eca9] hover:underline">
@@ -959,53 +979,67 @@ function CourseSection({
             </button>
           </div>
         ) : (
-          <>
-            <h2 className="text-lg font-medium">{course.title}</h2>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => onEdit("title", course.title)}
-                className="p-1 hover:bg-white/10 rounded"
-              >
-                <PencilIcon size={18} />
-              </button>
-              {course.description && (
-                <button
-                  onClick={() => onEdit("description", course.description || "")}
-                  className="p-1 hover:bg-white/10 rounded"
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-xl font-semibold text-white">{course.title}</h2>
+                <IconButton
+                  label="Kursname bearbeiten"
+                  onClick={() => onEdit("title", course.title)}
                 >
-                  <PencilIcon size={18} />
-                </button>
-              )}
-              <button onClick={onDelete} className="text-sm text-red-400 hover:underline">
-                Löschen
-              </button>
+                  <EditIcon size={16} />
+                </IconButton>
+              </div>
             </div>
-          </>
-        )}
-      </div>
-      {isEditing && editingItem.field === "description" ? (
-        <div className="mb-3">
-          <textarea
-            value={editValues.description ?? course.description ?? ""}
-            onChange={(e) => onUpdateEditValues({ ...editValues, description: e.target.value })}
-            className="w-full bg-transparent border border-white/20 rounded px-2 py-1"
-            rows={3}
-            autoFocus
-          />
-          <div className="flex gap-2 mt-2">
-            <button onClick={onSaveEdit} className="text-sm text-[#63eca9] hover:underline">
-              Speichern
-            </button>
-            <button onClick={onCancelEdit} className="text-sm text-white/60 hover:underline">
-              Abbrechen
+            <button
+              type="button"
+              onClick={onDelete}
+              className="shrink-0 text-sm text-red-400/90 hover:text-red-300"
+            >
+              Kurs löschen
             </button>
           </div>
-        </div>
-      ) : (
-        course.description && (
-          <p className="text-sm text-white/70 mb-3">{course.description}</p>
-        )
-      )}
+        )}
+
+        {isEditing && editingItem.field === "description" ? (
+          <div className="mt-3 border-t border-white/10 pt-3">
+            <p className="mb-2 text-xs text-white/50">Kursbeschreibung</p>
+            <textarea
+              value={editValues.description ?? course.description ?? ""}
+              onChange={(e) =>
+                onUpdateEditValues({ ...editValues, description: e.target.value })
+              }
+              className="w-full rounded-lg border border-white/20 bg-black/30 px-3 py-2 text-sm"
+              rows={3}
+              autoFocus
+            />
+            <div className="mt-2 flex gap-2">
+              <button onClick={onSaveEdit} className="text-sm text-[#63eca9] hover:underline">
+                Speichern
+              </button>
+              <button onClick={onCancelEdit} className="text-sm text-white/60 hover:underline">
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-2 flex items-start gap-2 border-t border-white/[0.06] pt-3">
+            {course.description ? (
+              <p className="flex-1 text-sm leading-relaxed text-white/65">
+                {course.description}
+              </p>
+            ) : (
+              <p className="flex-1 text-sm italic text-white/40">Keine Beschreibung</p>
+            )}
+            <IconButton
+              label="Beschreibung bearbeiten"
+              onClick={() => onEdit("description", course.description || "")}
+            >
+              <TextEditIcon size={16} />
+            </IconButton>
+          </div>
+        )}
+      </div>
       <div className="space-y-2">
         <SortableContext
           items={chapters.map((c: Chapter) => c.id)}
@@ -1246,6 +1280,28 @@ function AddVideoModal({
       </div>
       </div>
     </div>
+  );
+}
+
+function IconButton({
+  children,
+  label,
+  onClick,
+}: {
+  children: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-white/55 transition-colors hover:border-[#63eca9]/40 hover:bg-white/[0.08] hover:text-[#63eca9]"
+    >
+      {children}
+    </button>
   );
 }
 

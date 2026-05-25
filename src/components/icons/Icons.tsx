@@ -180,6 +180,79 @@ export function UsersIcon({ className, size = 24 }: IconProps) {
   );
 }
 
+/** Compact edit (pen) for inline rename actions */
+export function EditIcon({ className, size = 24 }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      aria-hidden
+    >
+      <path
+        d="M10.5 2.5L13.5 5.5M2 14L5.5 13.5L12.5 6.5L9.5 3.5L2.5 10.5L2 14H5.5L2 14Z"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** Text / description editing */
+export function TextEditIcon({ className, size = 24 }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+    >
+      <path
+        d="M2.5 4H13.5M2.5 8H10M2.5 12H8"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function PlusVideoIcon({ className, size = 24 }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+    >
+      <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.25" />
+      <path
+        d="M8 5.25V10.75M5.25 8H10.75"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+      />
+      <path
+        d="M11.5 11.5L13 13"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function PencilIcon({ className, size = 24 }: IconProps) {
   return (
     <svg

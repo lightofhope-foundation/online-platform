@@ -281,6 +281,40 @@ export async function updateVideoPositions(updates: { id: string; position: numb
   revalidatePath("/admin/videos");
 }
 
+/** Length (seconds) and storageSize (bytes) from Bunny — for admin list display */
+export async function getBunnyVideoMetadata(bunnyVideoId: string) {
+  await checkAdminAccess();
+
+  const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID;
+  const apiKey = process.env.BUNNY_STREAM_API_KEY;
+  if (!libraryId?.trim() || !apiKey?.trim()) {
+    throw new Error("Bunny Stream env vars are not configured");
+  }
+
+  const response = await fetch(
+    `https://video.bunnycdn.com/library/${libraryId}/videos/${bunnyVideoId}`,
+    {
+      method: "GET",
+      headers: { AccessKey: apiKey },
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to get Bunny video metadata: ${error}`);
+  }
+
+  const video = (await response.json()) as { length?: number; storageSize?: number };
+  return {
+    durationSeconds:
+      typeof video.length === "number" && video.length > 0 ? video.length : null,
+    storageSizeBytes:
+      typeof video.storageSize === "number" && video.storageSize > 0
+        ? video.storageSize
+        : null,
+  };
+}
+
 // Get Bunny video status (for polling)
 export async function getVideoStatus(bunnyVideoId: string) {
   await checkAdminAccess();
