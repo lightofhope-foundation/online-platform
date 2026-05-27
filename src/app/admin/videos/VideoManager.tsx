@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   DndContext,
   closestCenter,
@@ -36,6 +37,10 @@ import {
   getVideoStatus,
 } from "./actions";
 import { uploadBunnyVideo, BUNNY_STATUS } from "@/lib/bunnyCDN";
+import {
+  normalizeChapterPositions,
+  normalizeVideoPositions,
+} from "@/lib/courseContentOrder";
 
 type Course = {
   id: string;
@@ -85,10 +90,19 @@ export default function VideoManager({
   initialChapters,
   initialVideos,
 }: VideoManagerProps) {
+  const router = useRouter();
+  const orderSnapshotRef = useRef<{
+    chapters: Chapter[];
+    videos: Video[];
+  } | null>(null);
+  const skipPropsSyncRef = useRef(false);
+
   const [courses] = useState(initialCourses);
   const [chapters, setChapters] = useState(initialChapters);
   const [videos, setVideos] = useState(initialVideos);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const [orderSaveMessage, setOrderSaveMessage] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<{
     type: "course" | "chapter" | "video";
     id: string;
@@ -109,6 +123,13 @@ export default function VideoManager({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Sync from server after router.refresh() (not while dragging/saving)
+  useEffect(() => {
+    if (skipPropsSyncRef.current || isSavingOrder) return;
+    setChapters(initialChapters);
+    setVideos(initialVideos);
+  }, [initialChapters, initialVideos, isSavingOrder]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -146,15 +167,83 @@ export default function VideoManager({
     videos.sort((a, b) => a.position - b.position);
   });
 
-  // Handle drag end
-  const handleDragEnd = (event: DragEndEvent) => {
+  const persistOrder = async (
+    nextChapters: Chapter[],
+    nextVideos: Video[]
+  ): Promise<boolean> => {
+    const normalizedChapters = normalizeChapterPositions(nextChapters);
+    const normalizedVideos = normalizeVideoPositions(nextVideos);
+
+    setIsSavingOrder(true);
+    setOrderSaveMessage(null);
+    skipPropsSyncRef.current = true;
+
+    try {
+      const chapterResult = await updateChapterPositions(
+        normalizedChapters.map((ch) => ({ id: ch.id, position: ch.position }))
+      );
+      if (!chapterResult.ok) {
+        throw new Error(chapterResult.error);
+      }
+
+      const videoResult = await updateVideoPositions(
+        normalizedVideos.map((v) => ({
+          id: v.id,
+          position: v.position,
+          chapterId: v.chapter_id,
+        }))
+      );
+      if (!videoResult.ok) {
+        throw new Error(videoResult.error);
+      }
+
+      setChapters(normalizedChapters);
+      setVideos(normalizedVideos);
+      setHasUnsavedChanges(false);
+      setOrderSaveMessage("Reihenfolge gespeichert");
+      setTimeout(() => setOrderSaveMessage(null), 2500);
+
+      skipPropsSyncRef.current = false;
+      router.refresh();
+      return true;
+    } catch (error) {
+      console.error("Failed to save positions:", error);
+      const message =
+        error instanceof Error ? error.message : "Fehler beim Speichern der Reihenfolge";
+      alert(message);
+
+      if (orderSnapshotRef.current) {
+        setChapters(orderSnapshotRef.current.chapters);
+        setVideos(orderSnapshotRef.current.videos);
+      }
+      setHasUnsavedChanges(false);
+      return false;
+    } finally {
+      skipPropsSyncRef.current = false;
+      setIsSavingOrder(false);
+      orderSnapshotRef.current = null;
+    }
+  };
+
+  const handleDragStart = () => {
+    orderSnapshotRef.current = {
+      chapters: chapters.map((c) => ({ ...c })),
+      videos: videos.map((v) => ({ ...v })),
+    };
+  };
+
+  // Handle drag end — auto-save to database
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over) return;
+    if (!over || active.id === over.id) return;
 
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    // Check if it's a chapter drag
+    let nextChapters = chapters;
+    let nextVideos = videos;
+    let changed = false;
+
     const activeChapter = chapters.find((c) => c.id === activeId);
     if (activeChapter) {
       const overChapter = chapters.find((c) => c.id === overId);
@@ -163,80 +252,79 @@ export default function VideoManager({
         const oldIndex = courseChapters.findIndex((c) => c.id === activeId);
         const newIndex = courseChapters.findIndex((c) => c.id === overId);
         const newChapters = arrayMove(courseChapters, oldIndex, newIndex);
-        const updatedChapters = chapters.map((ch) => {
+        nextChapters = chapters.map((ch) => {
           const newPos = newChapters.findIndex((nc) => nc.id === ch.id);
           if (newPos !== -1 && ch.course_id === activeChapter.course_id) {
             return { ...ch, position: newPos + 1 };
           }
           return ch;
         });
-        setChapters(updatedChapters);
-        setHasUnsavedChanges(true);
+        changed = true;
       }
-      return;
-    }
-
-    // Check if it's a video drag
-    const activeVideo = videos.find((v) => v.id === activeId);
-    if (activeVideo) {
+    } else {
+      const activeVideo = videos.find((v) => v.id === activeId);
       const overVideo = videos.find((v) => v.id === overId);
-      if (overVideo) {
-        // Same chapter
+      if (activeVideo && overVideo) {
         if (activeVideo.chapter_id === overVideo.chapter_id) {
           const chapterVideos = videos.filter((v) => v.chapter_id === activeVideo.chapter_id);
           const oldIndex = chapterVideos.findIndex((v) => v.id === activeId);
           const newIndex = chapterVideos.findIndex((v) => v.id === overId);
-          const newVideos = arrayMove(chapterVideos, oldIndex, newIndex);
-          const updatedVideos = videos.map((v) => {
-            const newPos = newVideos.findIndex((nv) => nv.id === v.id);
+          const reordered = arrayMove(chapterVideos, oldIndex, newIndex);
+          nextVideos = videos.map((v) => {
+            const newPos = reordered.findIndex((nv) => nv.id === v.id);
             if (newPos !== -1 && v.chapter_id === activeVideo.chapter_id) {
               return { ...v, position: newPos + 1 };
             }
             return v;
           });
-          setVideos(updatedVideos);
-          setHasUnsavedChanges(true);
         } else {
-          // Different chapter - move video to new chapter
-          const targetChapterVideos = videos.filter((v) => v.chapter_id === overVideo.chapter_id);
-          const newPosition = targetChapterVideos.length + 1;
-          const updatedVideos = videos.map((v) => {
-            if (v.id === activeId) {
-              return { ...v, chapter_id: overVideo.chapter_id, position: newPosition };
-            }
-            return v;
-          });
-          setVideos(updatedVideos);
-          setHasUnsavedChanges(true);
+          const sourceChapterId = activeVideo.chapter_id;
+          const targetChapterId = overVideo.chapter_id;
+          const remaining = videos.filter((v) => v.id !== activeId);
+          const targetList = remaining
+            .filter((v) => v.chapter_id === targetChapterId)
+            .sort((a, b) => a.position - b.position);
+          const insertIndex = targetList.findIndex((v) => v.id === overId);
+          const movedVideo: Video = {
+            ...activeVideo,
+            chapter_id: targetChapterId,
+          };
+          if (insertIndex >= 0) {
+            targetList.splice(insertIndex, 0, movedVideo);
+          } else {
+            targetList.push(movedVideo);
+          }
+          const renumberedTarget = targetList.map((v, i) => ({
+            ...v,
+            position: i + 1,
+          }));
+          const sourceList = remaining
+            .filter((v) => v.chapter_id === sourceChapterId)
+            .sort((a, b) => a.position - b.position)
+            .map((v, i) => ({ ...v, position: i + 1 }));
+          const others = remaining.filter(
+            (v) => v.chapter_id !== sourceChapterId && v.chapter_id !== targetChapterId
+          );
+          nextVideos = [...others, ...sourceList, ...renumberedTarget];
         }
+        changed = true;
       }
     }
+
+    if (!changed) return;
+
+    setChapters(nextChapters);
+    setVideos(nextVideos);
+    setHasUnsavedChanges(true);
+    await persistOrder(nextChapters, nextVideos);
   };
 
-  // Save positions
   const handleSavePositions = async () => {
-    try {
-      // Update chapter positions
-      const chapterUpdates = chapters.map((ch) => ({
-        id: ch.id,
-        position: ch.position,
-      }));
-      await updateChapterPositions(chapterUpdates);
-
-      // Update video positions
-      const videoUpdates = videos.map((v) => ({
-        id: v.id,
-        position: v.position,
-        chapterId: v.chapter_id,
-      }));
-      await updateVideoPositions(videoUpdates);
-
-      setHasUnsavedChanges(false);
-      window.location.reload(); // Refresh to get latest data
-    } catch (error) {
-      console.error("Failed to save positions:", error);
-      alert("Fehler beim Speichern der Reihenfolge");
-    }
+    orderSnapshotRef.current = {
+      chapters: chapters.map((c) => ({ ...c })),
+      videos: videos.map((v) => ({ ...v })),
+    };
+    await persistOrder(chapters, videos);
   };
 
   // Poll video status
@@ -452,18 +540,29 @@ export default function VideoManager({
   }
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={(e) => void handleDragEnd(e)}
+    >
       <div className="space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Videos &amp; Kurse verwalten</h1>
-          <div className="flex gap-3">
-            {hasUnsavedChanges && (
+          <div className="flex items-center gap-3">
+            {isSavingOrder && (
+              <span className="text-sm text-white/50">Speichert Reihenfolge…</span>
+            )}
+            {orderSaveMessage && !isSavingOrder && (
+              <span className="text-sm text-[#63eca9]">{orderSaveMessage}</span>
+            )}
+            {hasUnsavedChanges && !isSavingOrder && (
               <button
-                onClick={handleSavePositions}
+                onClick={() => void handleSavePositions()}
                 className="px-4 py-2 rounded border border-[#63eca9] bg-[#63eca9]/10 text-[#63eca9] hover:bg-[#63eca9]/20 text-sm font-medium"
               >
-                Reihenfolge speichern
+                Reihenfolge erneut speichern
               </button>
             )}
             <a href="/admin" className="text-sm text-[#63eca9] hover:underline">
@@ -625,6 +724,7 @@ export default function VideoManager({
 // Sortable Chapter Component
 function SortableChapter({
   chapter,
+  isSubsequentChapter = false,
   videos,
   onEdit,
   onDelete,
@@ -644,6 +744,7 @@ function SortableChapter({
   setEditValues,
 }: {
   chapter: Chapter;
+  isSubsequentChapter?: boolean;
   videos: Video[];
   onEdit: (field: string, value: string) => void;
   onDelete: () => void;
@@ -675,7 +776,13 @@ function SortableChapter({
   const isEditing = editingItem?.type === "chapter" && editingItem.id === chapter.id;
 
   return (
-    <div ref={setNodeRef} style={style} className="overflow-hidden rounded-xl border border-white/10">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] ${
+        isSubsequentChapter ? "mt-2 ring-1 ring-white/[0.06]" : ""
+      }`}
+    >
       <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-white/[0.06] px-4 py-3.5">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <div
@@ -1040,15 +1147,16 @@ function CourseSection({
           </div>
         )}
       </div>
-      <div className="space-y-2">
+      <div className="space-y-4">
         <SortableContext
           items={chapters.map((c: Chapter) => c.id)}
           strategy={verticalListSortingStrategy}
         >
-          {chapters.map((chapter: Chapter) => (
+          {chapters.map((chapter: Chapter, chapterIndex: number) => (
             <SortableChapter
               key={chapter.id}
               chapter={chapter}
+              isSubsequentChapter={chapterIndex > 0}
               videos={videosByChapter.get(chapter.id) || []}
               onEdit={(field, value) => {
                 if (field === "title") {

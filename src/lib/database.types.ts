@@ -602,6 +602,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_reorder_chapters: {
+        Args: { p_items: Json }
+        Returns: undefined
+      }
+      admin_reorder_videos: {
+        Args: { p_items: Json }
+        Returns: undefined
+      }
       allocate_next_client_id: {
         Args: { p_first_name: string; p_last_name: string }
         Returns: string

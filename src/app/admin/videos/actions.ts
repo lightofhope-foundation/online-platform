@@ -248,37 +248,66 @@ export async function deleteVideo(id: string) {
   revalidatePath("/admin/videos");
 }
 
-// Position update actions
-export async function updateChapterPositions(updates: { id: string; position: number }[]) {
-  await checkAdminAccess();
-  const supabase = getSupabaseAdminClient();
-  
-  for (const update of updates) {
-    await supabase
-      .from("chapters")
-      .update({ position: update.position, updated_at: new Date().toISOString() })
-      .eq("id", update.id);
-  }
+// Position update actions (atomic RPC — avoids swap conflicts + surfaces errors)
+export async function updateChapterPositions(
+  updates: { id: string; position: number }[]
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    if (updates.length === 0) return { ok: true };
+    await checkAdminAccess();
+    const supabase = getSupabaseAdminClient();
 
-  revalidatePath("/admin/videos");
+    const payload = updates.map((u) => ({
+      id: u.id,
+      position: u.position,
+    }));
+
+    const { error } = await supabase.rpc("admin_reorder_chapters", {
+      p_items: payload,
+    });
+
+    if (error) {
+      console.error("admin_reorder_chapters:", error);
+      return { ok: false, error: error.message };
+    }
+
+    revalidatePath("/admin/videos");
+    return { ok: true };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Speichern fehlgeschlagen";
+    return { ok: false, error: message };
+  }
 }
 
-export async function updateVideoPositions(updates: { id: string; position: number; chapterId: string }[]) {
-  await checkAdminAccess();
-  const supabase = getSupabaseAdminClient();
-  
-  for (const update of updates) {
-    await supabase
-      .from("videos")
-      .update({ 
-        position: update.position, 
-        chapter_id: update.chapterId,
-        updated_at: new Date().toISOString() 
-      })
-      .eq("id", update.id);
-  }
+export async function updateVideoPositions(
+  updates: { id: string; position: number; chapterId: string }[]
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    if (updates.length === 0) return { ok: true };
+    await checkAdminAccess();
+    const supabase = getSupabaseAdminClient();
 
-  revalidatePath("/admin/videos");
+    const payload = updates.map((u) => ({
+      id: u.id,
+      position: u.position,
+      chapter_id: u.chapterId,
+    }));
+
+    const { error } = await supabase.rpc("admin_reorder_videos", {
+      p_items: payload,
+    });
+
+    if (error) {
+      console.error("admin_reorder_videos:", error);
+      return { ok: false, error: error.message };
+    }
+
+    revalidatePath("/admin/videos");
+    return { ok: true };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Speichern fehlgeschlagen";
+    return { ok: false, error: message };
+  }
 }
 
 /** Length (seconds) and storageSize (bytes) from Bunny — for admin list display */

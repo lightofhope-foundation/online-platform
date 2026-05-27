@@ -16,12 +16,20 @@ import {
   getVideoAccessState,
   type VideoProgressRow,
 } from "@/lib/videoUnlock";
+import { sortVideosByChapterOrder } from "@/lib/courseContentOrder";
+
+type ChapterRow = {
+  id: string;
+  title: string;
+  position: number;
+};
 
 type VideoRow = {
   id: string;
   title: string;
   position: number;
   requires_workbook: boolean;
+  chapter_id: string;
 };
 
 type PageProps = {
@@ -32,6 +40,7 @@ export default function CourseDetailPage({ params }: PageProps) {
   const { slug } = use(params);
   const router = useRouter();
   const supabase = getSupabaseBrowserClient();
+  const [chapters, setChapters] = useState<ChapterRow[]>([]);
   const [videos, setVideos] = useState<VideoRow[]>([]);
   const [isAdmin] = useState<boolean>(false);
   const [course, setCourse] = useState<{ id: string; title: string; slug: string } | null>(null);
@@ -69,19 +78,30 @@ export default function CourseDetailPage({ params }: PageProps) {
 
     const { data: chapterRows } = await supabase
       .from("chapters")
-      .select("id")
-      .eq("course_id", courseData.id);
-    const chapterIds = (chapterRows || []).map((c: { id: string }) => c.id);
+      .select("id, title, position")
+      .eq("course_id", courseData.id)
+      .is("deleted_at", null)
+      .order("position", { ascending: true });
+
+    const chapterList = (chapterRows ?? []) as ChapterRow[];
+    setChapters(chapterList);
+
+    const chapterIds = chapterList.map((c) => c.id);
+    if (chapterIds.length === 0) {
+      setVideos([]);
+      return;
+    }
 
     const { data: vids } = await supabase
       .from("videos")
       .select("id,title,position,requires_workbook,chapter_id")
       .in("chapter_id", chapterIds)
-      .is("deleted_at", null)
-      .order("position", { ascending: true });
+      .is("deleted_at", null);
 
     if (vids) {
-      setVideos(vids as VideoRow[]);
+      setVideos(
+        sortVideosByChapterOrder(chapterList, vids as VideoRow[])
+      );
     }
   };
 
@@ -175,111 +195,124 @@ export default function CourseDetailPage({ params }: PageProps) {
           </button>
         </div>
 
-        <div className="space-y-3">
-          {videos.map((v, index) => {
-            const access = getVideoAccessState(
-              index,
-              v.id,
-              orderedVideos,
-              progressByVideoId,
-              unlockByVideoId
-            );
-            const canOpen =
-              !listLoading &&
-              canWatchVideo(
-                index,
-                v.id,
-                orderedVideos,
-                progressByVideoId,
-                unlockByVideoId
-              );
-            const progressRow = getVideoProgress(v.id);
-            const isCompleted = access.status === "completed";
-            const isLocked = !canOpen && !isCompleted;
-            const prevStatus = isLocked
-              ? getPreviousVideoStatus(
-                  index,
-                  orderedVideos,
-                  progressByVideoId,
-                  titleByVideoId
-                )
-              : null;
-            const unlockedSince =
-              canOpen && !isCompleted
-                ? getUnlockedSinceMessage(v.id, unlockByVideoId)
-                : null;
+        <div className="space-y-8">
+          {chapters.map((chapter) => {
+            const chapterVideos = videos.filter((v) => v.chapter_id === chapter.id);
+            if (chapterVideos.length === 0) return null;
 
             return (
-              <div
-                key={v.id}
-                className="flex items-center justify-between rounded-[16px] border border-white/10 bg-white/[0.02] p-4"
-              >
-                <div className="flex items-center gap-3">
-                  {isLocked ? (
-                    <span className="text-white/60">
-                      <LockIcon />
-                    </span>
-                  ) : isCompleted ? (
-                    <span className="text-[#63eca9]" title="Video abgeschlossen">
-                      ✓
-                    </span>
-                  ) : null}
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium">{v.title}</div>
-                    {access.status === "locked_schedule" ? (
-                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-                        <span className="text-xs text-white/60">{access.message}</span>
-                        {prevStatus && (
-                          <PreviousVideoStatusBadge
-                            previousTitle={prevStatus.previousTitle}
-                            completed={prevStatus.completed}
-                          />
-                        )}
+              <section key={chapter.id} className="space-y-3">
+                <h2 className="border-b border-white/10 pb-2 text-lg font-semibold text-white">
+                  Kapitel {chapter.position}: {chapter.title}
+                </h2>
+                {chapterVideos.map((v) => {
+                  const index = videos.findIndex((row) => row.id === v.id);
+                  const access = getVideoAccessState(
+                    index,
+                    v.id,
+                    orderedVideos,
+                    progressByVideoId,
+                    unlockByVideoId
+                  );
+                  const canOpen =
+                    !listLoading &&
+                    canWatchVideo(
+                      index,
+                      v.id,
+                      orderedVideos,
+                      progressByVideoId,
+                      unlockByVideoId
+                    );
+                  const progressRow = getVideoProgress(v.id);
+                  const isCompleted = access.status === "completed";
+                  const isLocked = !canOpen && !isCompleted;
+                  const prevStatus = isLocked
+                    ? getPreviousVideoStatus(
+                        index,
+                        orderedVideos,
+                        progressByVideoId,
+                        titleByVideoId
+                      )
+                    : null;
+                  const unlockedSince =
+                    canOpen && !isCompleted
+                      ? getUnlockedSinceMessage(v.id, unlockByVideoId)
+                      : null;
+
+                  return (
+                    <div
+                      key={v.id}
+                      className="flex items-center justify-between rounded-[16px] border border-white/10 bg-white/[0.02] p-4"
+                    >
+                      <div className="flex items-center gap-3">
+                        {isLocked ? (
+                          <span className="text-white/60">
+                            <LockIcon />
+                          </span>
+                        ) : isCompleted ? (
+                          <span className="text-[#63eca9]" title="Video abgeschlossen">
+                            ✓
+                          </span>
+                        ) : null}
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium">{v.title}</div>
+                          {access.status === "locked_schedule" ? (
+                            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                              <span className="text-xs text-white/60">{access.message}</span>
+                              {prevStatus && (
+                                <PreviousVideoStatusBadge
+                                  previousTitle={prevStatus.previousTitle}
+                                  completed={prevStatus.completed}
+                                />
+                              )}
+                            </div>
+                          ) : access.status === "locked_sequence" ? (
+                            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                              <span className="text-xs text-white/60">{access.message}</span>
+                              {prevStatus && (
+                                <PreviousVideoStatusBadge
+                                  previousTitle={prevStatus.previousTitle}
+                                  completed={prevStatus.completed}
+                                />
+                              )}
+                            </div>
+                          ) : isCompleted ? (
+                            <div className="text-xs text-[#63eca9]">Abgeschlossen</div>
+                          ) : unlockedSince ? (
+                            <div className="text-xs text-[#63eca9]">{unlockedSince}</div>
+                          ) : progressRow && progressRow.percent > 0 ? (
+                            <div className="text-xs text-white/60">
+                              {Math.round(progressRow.percent)}% abgeschlossen
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
-                    ) : access.status === "locked_sequence" ? (
-                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-                        <span className="text-xs text-white/60">{access.message}</span>
-                        {prevStatus && (
-                          <PreviousVideoStatusBadge
-                            previousTitle={prevStatus.previousTitle}
-                            completed={prevStatus.completed}
-                          />
-                        )}
-                      </div>
-                    ) : isCompleted ? (
-                      <div className="text-xs text-[#63eca9]">Abgeschlossen</div>
-                    ) : unlockedSince ? (
-                      <div className="text-xs text-[#63eca9]">{unlockedSince}</div>
-                    ) : progressRow && progressRow.percent > 0 ? (
-                      <div className="text-xs text-white/60">
-                        {Math.round(progressRow.percent)}% abgeschlossen
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-                {isAdmin ? (
-                  <Link
-                    href={`/video/${v.id}`}
-                    className="rounded-full border border-white/10 px-3 py-2 text-sm hover:bg-white/[0.08]"
-                  >
-                    Bearbeiten
-                  </Link>
-                ) : canOpen ? (
-                  <Link
-                    href={`/video/${v.id}`}
-                    className="rounded-full border border-white/10 px-3 py-2 text-sm hover:bg-white/[0.08]"
-                  >
-                    {isCompleted ? "Wiederholen" : "Öffnen"}
-                  </Link>
-                ) : (
-                  <button
-                    className="rounded-full border border-white/10 px-3 py-2 text-sm text-white/60 cursor-not-allowed"
-                    disabled
-                  >
-                    Gesperrt
-                  </button>
-                )}
-              </div>
+                      {isAdmin ? (
+                        <Link
+                          href={`/video/${v.id}`}
+                          className="rounded-full border border-white/10 px-3 py-2 text-sm hover:bg-white/[0.08]"
+                        >
+                          Bearbeiten
+                        </Link>
+                      ) : canOpen ? (
+                        <Link
+                          href={`/video/${v.id}`}
+                          className="rounded-full border border-white/10 px-3 py-2 text-sm hover:bg-white/[0.08]"
+                        >
+                          {isCompleted ? "Wiederholen" : "Öffnen"}
+                        </Link>
+                      ) : (
+                        <button
+                          className="rounded-full border border-white/10 px-3 py-2 text-sm text-white/60 cursor-not-allowed"
+                          disabled
+                        >
+                          Gesperrt
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </section>
             );
           })}
         </div>
