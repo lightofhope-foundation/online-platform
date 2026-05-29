@@ -1,10 +1,14 @@
 export type UiShellVersion = "legacy" | "v2";
 
+export const DEFAULT_UI_SHELL_VERSION: UiShellVersion = "v2";
+
 export const UI_SHELL_COOKIE = "loh_ui_shell";
 export const UI_SHELL_STORAGE_KEY = "loh_ui_shell";
 
 export function parseUiShellVersion(value: string | null | undefined): UiShellVersion {
-  return value === "v2" ? "v2" : "legacy";
+  if (value === "legacy") return "legacy";
+  if (value === "v2") return "v2";
+  return DEFAULT_UI_SHELL_VERSION;
 }
 
 export function isUiShellToggleVisible(): boolean {

@@ -11,6 +11,7 @@ import {
 } from "react";
 import { setUiShellVersion } from "@/app/actions/uiShell";
 import {
+  DEFAULT_UI_SHELL_VERSION,
   UI_SHELL_STORAGE_KEY,
   type UiShellVersion,
 } from "@/lib/uiShell";
@@ -29,18 +30,22 @@ export function UiShellProvider({
   children: ReactNode;
   initialVersion: UiShellVersion;
 }) {
-  const [version, setVersionState] = useState<UiShellVersion>(initialVersion);
+  const [version, setVersionState] = useState<UiShellVersion>(
+    initialVersion ?? DEFAULT_UI_SHELL_VERSION
+  );
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem(UI_SHELL_STORAGE_KEY);
       if (stored === "v2" || stored === "legacy") {
         setVersionState(stored);
+        return;
       }
+      setVersionState(initialVersion ?? DEFAULT_UI_SHELL_VERSION);
     } catch {
       /* ignore */
     }
-  }, []);
+  }, [initialVersion]);
 
   const setVersion = useCallback((next: UiShellVersion) => {
     setVersionState(next);
