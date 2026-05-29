@@ -1,0 +1,76 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { FabSettings } from "./FabSettings";
+import { MobileNav } from "./MobileNav";
+import { LegacyPlatformBackground } from "./PlatformBackground";
+import { LogoutButton } from "./LogoutButton";
+import { LogoutIcon } from "./icons/Icons";
+import {
+  adminNavItems,
+  clientNavItems,
+  isNavItemActive,
+} from "@/lib/navConfig";
+import { UiShellToggle } from "./UiShellToggle";
+
+type AppShellLegacyProps = {
+  children: React.ReactNode;
+};
+
+export function AppShellLegacy({ children }: AppShellLegacyProps) {
+  const pathname = usePathname();
+  const isAdminRoute = pathname.startsWith("/admin");
+  const desktopNavItems = isAdminRoute ? adminNavItems : clientNavItems;
+
+  return (
+    <>
+      <LegacyPlatformBackground />
+      <FabSettings />
+      <MobileNav />
+      <UiShellToggle />
+
+      <main className="relative z-10 min-h-screen text-white">
+        <div className="mx-auto max-w-7xl px-6 py-10">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[300px_1fr]">
+            <aside className="sticky top-6 hidden self-start rounded-[24px] border border-white/10 bg-white/[0.02] p-6 backdrop-blur-sm lg:block">
+              <nav className="space-y-4 text-white/90">
+                {desktopNavItems.map((item) => {
+                  const isActive = isNavItemActive(
+                    pathname,
+                    item.href,
+                    isAdminRoute
+                  );
+                  return (
+                    <Link
+                      key={item.href + item.name}
+                      href={item.href}
+                      className={`flex items-center gap-3 rounded-full border border-white/10 px-5 py-3 text-sm transition-all hover:border-[#63eca9]/50 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(99,236,169,0.3)] ${
+                        isActive
+                          ? "border-[#63eca9]/50 bg-gradient-to-r from-[#63eca9]/20 to-[#63eca9]/20 shadow-[0_0_20px_rgba(99,236,169,0.4)]"
+                          : ""
+                      }`}
+                    >
+                      <span className="text-white">{item.icon}</span>
+                      <span>{item.name}</span>
+                    </Link>
+                  );
+                })}
+                <LogoutButton className="w-full">
+                  <span className="text-white">
+                    <LogoutIcon size={18} />
+                  </span>
+                  <span>Ausloggen</span>
+                </LogoutButton>
+              </nav>
+            </aside>
+
+            <section className="rounded-[24px] border border-white/10 bg-white/[0.02] p-8 backdrop-blur-sm">
+              {children}
+            </section>
+          </div>
+        </div>
+      </main>
+    </>
+  );
+}

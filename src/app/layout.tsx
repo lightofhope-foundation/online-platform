@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { cookies } from "next/headers";
 import "./globals.css";
 import { Providers } from "./providers";
+import { UI_SHELL_COOKIE, parseUiShellVersion } from "@/lib/uiShell";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,11 +23,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const initialUiShell = parseUiShellVersion(
+    cookieStore.get(UI_SHELL_COOKIE)?.value
+  );
+
   return (
     <html lang="de">
       <head>
@@ -37,7 +44,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Providers>{children}</Providers>
+        <Providers initialUiShell={initialUiShell}>{children}</Providers>
       </body>
     </html>
   );

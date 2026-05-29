@@ -77,7 +77,7 @@ export default async function AdminHome() {
 
 function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-lg border border-white/10 p-4">
+    <div className="glass-panel rounded-2xl p-4">
       <div className="text-sm text-white/60">{label}</div>
       <div className="text-2xl font-bold mt-1">{value}</div>
     </div>

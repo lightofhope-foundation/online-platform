@@ -3,10 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SettingsIcon } from "./icons/Icons";
+import { useUiShellOptional } from "./UiShellProvider";
 
 export const FabSettings: React.FC = () => {
   const pathname = usePathname();
+  const shell = useUiShellOptional();
+
   if (pathname.startsWith("/admin")) return null;
+  if (shell?.version === "v2") return null;
 
   return (
     <Link
