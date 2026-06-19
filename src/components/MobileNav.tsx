@@ -11,15 +11,53 @@ import {
   HamburgerIcon,
   FeedbackIcon,
   TherapyIcon,
+  OverviewIcon,
+  UsersIcon,
 } from "./icons/Icons";
 import { LogoutIcon } from "./icons/Icons";
 import { LogoutButton } from "./LogoutButton";
+import { resolveNavArea } from "@/lib/navConfig";
 
 export const MobileNav: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
-  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  const navArea = resolveNavArea(pathname);
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
   const active = "text-[#63eca9]";
+
+  if (navArea === "admin") {
+    return null;
+  }
+
+  if (navArea === "therapist") {
+    return (
+      <nav className="fixed bottom-0 left-0 right-0 z-20 mx-auto max-w-3xl md:hidden">
+        <div className="mx-4 mb-4 rounded-2xl border border-white/10 bg-white/5 backdrop-blur">
+          <ul className="grid grid-cols-2 items-center justify-between px-6 py-3 text-white">
+            <li className="flex items-center justify-center">
+              <Link
+                href="/therapist"
+                aria-label="Überblick"
+                className={pathname === "/therapist" ? active : ""}
+              >
+                <OverviewIcon size={24} />
+              </Link>
+            </li>
+            <li className="flex items-center justify-center">
+              <Link
+                href="/therapist/clients"
+                aria-label="Klient:innen"
+                className={pathname.startsWith("/therapist/clients") ? active : ""}
+              >
+                <UsersIcon size={24} />
+              </Link>
+            </li>
+          </ul>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <>

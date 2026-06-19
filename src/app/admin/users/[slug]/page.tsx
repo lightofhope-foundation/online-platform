@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 import { AdminUserTiles } from "@/components/admin/AdminUserTiles";
 import { UserAccessLevelSelect } from "@/components/admin/UserAccessLevelSelect";
 import { fetchAccessLevelOptions } from "@/lib/accessLevels";
+import { DisplayAliasEditor } from "@/components/admin/DisplayAliasEditor";
 import { formatGermanDateTime, isValidClientIdFormat, normalizeClientIdForUrl } from "@/lib/clientId";
+import { resolvePersonLabel } from "@/lib/formatDisplayName";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +34,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ slu
     last_name: string | null;
     client_id: string;
     access_level: number;
+    display_alias: string | null;
   } | null = null;
   let authUser: { email?: string; last_sign_in_at?: string } | null = null;
 
@@ -40,7 +43,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ slu
 
     const { data, error } = await admin
       .from("profiles")
-      .select("user_id, role, created_at, first_name, last_name, client_id, access_level")
+      .select("user_id, role, created_at, first_name, last_name, client_id, access_level, display_alias")
       .eq("client_id", clientId)
       .maybeSingle();
 
@@ -56,6 +59,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ slu
       last_name: data.last_name,
       client_id: data.client_id,
       access_level: data.access_level ?? 0,
+      display_alias: data.display_alias ?? null,
     };
 
     const { data: authUserRes } = await admin.auth.admin.getUserById(profile.user_id);
@@ -79,9 +83,12 @@ export default async function UserDetailPage({ params }: { params: Promise<{ slu
             ← Zurück zu Nutzern
           </Link>
           <h1 className="mt-2 text-2xl font-semibold">
-            {formatFullName(profile.first_name, profile.last_name) !== "—"
-              ? formatFullName(profile.first_name, profile.last_name)
-              : (authUser.email ?? "Nutzer")}
+            {resolvePersonLabel(
+              profile.first_name,
+              profile.last_name,
+              authUser.email,
+              profile.display_alias
+            )}
           </h1>
           <p className="mt-1 text-sm text-white/60">
             Nutzer-ID: <span className="font-mono text-white/80">{profile.client_id}</span>
@@ -102,6 +109,18 @@ export default async function UserDetailPage({ params }: { params: Promise<{ slu
           />
         </div>
       )}
+
+      <div className="rounded-[20px] border border-white/10 bg-white/[0.02] p-6">
+        <h2 className="mb-4 text-sm font-medium text-white/70">Anzeige-Alias</h2>
+        <DisplayAliasEditor
+          userId={profile.user_id}
+          firstName={profile.first_name}
+          lastName={profile.last_name}
+          email={authUser.email ?? null}
+          currentAlias={profile.display_alias}
+          revalidatePaths={[`/admin/users/${profile.client_id.toLowerCase()}`]}
+        />
+      </div>
 
       <div className="rounded-[20px] border border-white/10 bg-white/[0.02] p-6">
         <h2 className="mb-4 text-sm font-medium text-white/70">Kurzübersicht</h2>

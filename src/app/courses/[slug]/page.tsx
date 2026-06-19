@@ -16,12 +16,15 @@ import {
   getVideoAccessState,
   type VideoProgressRow,
 } from "@/lib/videoUnlock";
-import { sortVideosByChapterOrder } from "@/lib/courseContentOrder";
+import { fetchClientPrimaryTopic } from "@/lib/fetchClientTopic";
+import { isLohCourseSlug, orderChaptersForTopic, sortVideosByTopicChapterOrder } from "@/lib/lohCourseOrder";
 
 type ChapterRow = {
   id: string;
   title: string;
   position: number;
+  board_slug?: string | null;
+  is_intro?: boolean | null;
 };
 
 type VideoRow = {
@@ -76,14 +79,24 @@ export default function CourseDetailPage({ params }: PageProps) {
     }
     setCourse(courseData);
 
+    const { data: authData } = await supabase.auth.getUser();
+    const userId = authData.user?.id ?? null;
+    const topicSlug = isLohCourseSlug(courseData.slug)
+      ? await fetchClientPrimaryTopic(supabase, userId)
+      : null;
+
     const { data: chapterRows } = await supabase
       .from("chapters")
-      .select("id, title, position")
+      .select("id, title, position, board_slug, is_intro")
       .eq("course_id", courseData.id)
       .is("deleted_at", null)
       .order("position", { ascending: true });
 
-    const chapterList = (chapterRows ?? []) as ChapterRow[];
+    const rawChapters = (chapterRows ?? []) as ChapterRow[];
+    const chapterList =
+      topicSlug != null
+        ? orderChaptersForTopic(rawChapters, topicSlug)
+        : rawChapters;
     setChapters(chapterList);
 
     const chapterIds = chapterList.map((c) => c.id);
@@ -100,7 +113,9 @@ export default function CourseDetailPage({ params }: PageProps) {
 
     if (vids) {
       setVideos(
-        sortVideosByChapterOrder(chapterList, vids as VideoRow[])
+        topicSlug != null
+          ? sortVideosByTopicChapterOrder(chapterList, vids as VideoRow[], topicSlug)
+          : (vids as VideoRow[]).sort((a, b) => a.position - b.position)
       );
     }
   };

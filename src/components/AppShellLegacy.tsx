@@ -10,6 +10,8 @@ import { LogoutIcon } from "./icons/Icons";
 import {
   adminNavItems,
   clientNavItems,
+  therapistNavItems,
+  resolveNavArea,
   isNavItemActive,
 } from "@/lib/navConfig";
 import { UiShellToggle } from "./UiShellToggle";
@@ -20,8 +22,13 @@ type AppShellLegacyProps = {
 
 export function AppShellLegacy({ children }: AppShellLegacyProps) {
   const pathname = usePathname();
-  const isAdminRoute = pathname.startsWith("/admin");
-  const desktopNavItems = isAdminRoute ? adminNavItems : clientNavItems;
+  const navArea = resolveNavArea(pathname);
+  const desktopNavItems =
+    navArea === "admin"
+      ? adminNavItems
+      : navArea === "therapist"
+        ? therapistNavItems
+        : clientNavItems;
 
   return (
     <>
@@ -39,7 +46,7 @@ export function AppShellLegacy({ children }: AppShellLegacyProps) {
                   const isActive = isNavItemActive(
                     pathname,
                     item.href,
-                    isAdminRoute
+                    navArea
                   );
                   return (
                     <Link

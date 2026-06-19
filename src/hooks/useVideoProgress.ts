@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabaseClient';
+import { isClientRole, useProfileRole } from '@/hooks/useProfileRole';
 
 export interface VideoProgress {
   id: string;
@@ -26,6 +27,7 @@ export const useVideoProgress = () => {
   const [courseProgress, setCourseProgress] = useState<Map<string, CourseProgress>>(new Map());
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const { role, loading: roleLoading, isClient } = useProfileRole();
   const supabase = getSupabaseBrowserClient();
 
   // Cache user ID to avoid repeated auth calls
@@ -287,16 +289,22 @@ export const useVideoProgress = () => {
   }, [courseProgress]);
 
   useEffect(() => {
+    if (roleLoading) return;
+    if (!isClientRole(role)) {
+      setLoading(false);
+      return;
+    }
     if (userId) {
       loadProgress();
       loadCourseProgress();
     }
-  }, [userId, loadProgress, loadCourseProgress]);
+  }, [userId, loadProgress, loadCourseProgress, role, roleLoading]);
 
   return {
     progress,
     courseProgress,
-    loading,
+    loading: loading || roleLoading,
+    isClient,
     updateProgress,
     getVideoProgress,
     getCourseProgress,

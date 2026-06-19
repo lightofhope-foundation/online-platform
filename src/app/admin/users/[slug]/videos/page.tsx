@@ -56,7 +56,7 @@ export default async function AdminUserVideosPage({
     notFound();
   }
 
-  const videos = await fetchPublishedVideosDetail(admin);
+  const videos = await fetchPublishedVideosDetail(admin, profile.user_id);
   const orderedVideos = videos.map((v) => ({ id: v.id, position: v.position }));
 
   const { data: progressRows } = await admin

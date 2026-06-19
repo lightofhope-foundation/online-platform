@@ -11,12 +11,16 @@ export function parseUiShellVersion(value: string | null | undefined): UiShellVe
   return DEFAULT_UI_SHELL_VERSION;
 }
 
+const SHELL_TOGGLE_SESSION_KEY = "loh_show_shell_toggle";
+
+/** Classic/Neu-Slider standardmäßig aus. Wieder einschalten: `?showShellToggle=1` oder `NEXT_PUBLIC_UI_SHELL_TOGGLE=true` */
 export function isUiShellToggleVisible(): boolean {
-  if (typeof window === "undefined") {
-    return process.env.NODE_ENV === "development";
+  if (process.env.NEXT_PUBLIC_UI_SHELL_TOGGLE === "true") return true;
+  if (typeof window === "undefined") return false;
+  if (sessionStorage.getItem(SHELL_TOGGLE_SESSION_KEY) === "1") return true;
+  if (new URLSearchParams(window.location.search).get("showShellToggle") === "1") {
+    sessionStorage.setItem(SHELL_TOGGLE_SESSION_KEY, "1");
+    return true;
   }
-  return (
-    process.env.NODE_ENV === "development" ||
-    process.env.NEXT_PUBLIC_UI_SHELL_TOGGLE === "true"
-  );
+  return false;
 }

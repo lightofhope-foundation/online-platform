@@ -3,5 +3,11 @@ export const LOH_LOGO_SRC =
 
 export const LOH_ACCENT = "#63eca9";
 
+/** Galaxy star hue (degrees) — matches LOH_ACCENT #63eca9 */
+export const LOH_GALAXY_HUE = 152;
+
+/** Light Pillar (sidebar menu) — React Bits preset */
+export const LOH_PILLAR_COLOR = "#309880";
+
 export const SIDEBAR_QUOTE =
   "We heal together, we grow together, we bring hope.";

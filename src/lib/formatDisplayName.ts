@@ -1,3 +1,15 @@
+/** Admin-Kurzname hat Vorrang, sonst „Vorname N.“ */
+export function resolvePersonLabel(
+  firstName: string | null | undefined,
+  lastName: string | null | undefined,
+  email?: string | null,
+  displayAlias?: string | null
+): string {
+  const alias = displayAlias?.trim();
+  if (alias) return alias;
+  return formatDisplayName(firstName, lastName, email);
+}
+
 /** Display name: "Andreas G." from first + last name */
 export function formatDisplayName(
   firstName: string | null | undefined,

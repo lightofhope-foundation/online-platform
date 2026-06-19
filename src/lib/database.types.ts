@@ -49,28 +49,34 @@ export type Database = {
       }
       chapters: {
         Row: {
+          board_slug: string | null
           course_id: string
           created_at: string
           deleted_at: string | null
           id: string
+          is_intro: boolean
           position: number
           title: string
           updated_at: string
         }
         Insert: {
+          board_slug?: string | null
           course_id: string
           created_at?: string
           deleted_at?: string | null
           id?: string
+          is_intro?: boolean
           position?: number
           title: string
           updated_at?: string
         }
         Update: {
+          board_slug?: string | null
           course_id?: string
           created_at?: string
           deleted_at?: string | null
           id?: string
+          is_intro?: boolean
           position?: number
           title?: string
           updated_at?: string
@@ -82,6 +88,55 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "courses"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_primary_topics: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          source: string
+          topic_slug: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          source?: string
+          topic_slug: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          source?: string
+          topic_slug?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_primary_topics_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "client_primary_topics_topic_slug_fkey"
+            columns: ["topic_slug"]
+            isOneToOne: false
+            referencedRelation: "loh_topics"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "client_primary_topics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -172,6 +227,53 @@ export type Database = {
           subsequent_unlock_interval_days?: number
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      loh_topic_board_sequences: {
+        Row: {
+          board_slug: string
+          position: number
+          topic_slug: string
+        }
+        Insert: {
+          board_slug: string
+          position: number
+          topic_slug: string
+        }
+        Update: {
+          board_slug?: string
+          position?: number
+          topic_slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loh_topic_board_sequences_topic_slug_fkey"
+            columns: ["topic_slug"]
+            isOneToOne: false
+            referencedRelation: "loh_topics"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
+      loh_topics: {
+        Row: {
+          created_at: string
+          display_name: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          slug?: string
+          sort_order?: number
         }
         Relationships: []
       }
@@ -307,6 +409,7 @@ export type Database = {
           last_name: string | null
           role: Database["public"]["Enums"]["user_role"]
           street: string | null
+          display_alias: string | null
           updated_at: string
           user_id: string
         }
@@ -321,6 +424,7 @@ export type Database = {
           last_name?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           street?: string | null
+          display_alias?: string | null
           updated_at?: string
           user_id: string
         }
@@ -330,6 +434,7 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           date_of_birth?: string | null
+          display_alias?: string | null
           first_name?: string | null
           house_number?: string | null
           last_name?: string | null

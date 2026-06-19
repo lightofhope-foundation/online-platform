@@ -6,11 +6,17 @@ import { useEffect, useRef, useState } from "react";
 import { LogoutButton } from "@/components/LogoutButton";
 import { formatDisplayName, formatInitials } from "@/lib/formatDisplayName";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { resolveNavArea } from "@/lib/navConfig";
 
 export function UserMenu() {
   const pathname = usePathname();
-  const isAdminRoute = pathname.startsWith("/admin");
-  const settingsHref = isAdminRoute ? "/admin/einstellungen" : "/settings";
+  const navArea = resolveNavArea(pathname);
+  const settingsHref =
+    navArea === "admin"
+      ? "/admin/einstellungen"
+      : navArea === "therapist"
+        ? "#"
+        : "/settings";
   const { profile } = useUserProfile();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -80,9 +86,13 @@ export function UserMenu() {
             href={settingsHref}
             role="menuitem"
             onClick={() => setOpen(false)}
-            className="block px-4 py-3 text-sm text-white/90 transition hover:bg-white/[0.06]"
+            className={`block px-4 py-3 text-sm transition hover:bg-white/[0.06] ${
+              settingsHref === "#"
+                ? "pointer-events-none cursor-not-allowed text-white/40"
+                : "text-white/90"
+            }`}
           >
-            Einstellungen
+            Einstellungen{settingsHref === "#" ? " (demnächst)" : ""}
           </Link>
           <LogoutButton className="w-full justify-start rounded-none border-0 border-t border-white/10 bg-transparent px-4 py-3 text-sm hover:bg-white/[0.06]">
             Ausloggen

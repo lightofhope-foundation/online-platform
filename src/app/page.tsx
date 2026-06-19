@@ -1,12 +1,17 @@
-"use client";
+import { redirect } from "next/navigation";
+import { getProfileRole, isAdminEmail } from "@/lib/authRoles";
+import { getAuthUserFromCookie } from "@/lib/supabaseServer";
+import HomeClient from "./HomeClient";
 
-import UiAppShell from "@/components/UiAppShell";
-import { HomeDashboard } from "@/components/home/HomeDashboard";
+export const dynamic = "force-dynamic";
 
-export default function Home() {
-  return (
-    <UiAppShell>
-      <HomeDashboard />
-    </UiAppShell>
-  );
+export default async function Home() {
+  const user = await getAuthUserFromCookie();
+  if (user && !isAdminEmail(user.email)) {
+    const role = await getProfileRole(user.id);
+    if (role === "therapist") redirect("/therapist");
+    if (role === "admin") redirect("/admin");
+  }
+
+  return <HomeClient />;
 }

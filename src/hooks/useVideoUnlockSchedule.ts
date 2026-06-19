@@ -3,14 +3,22 @@
 import { useCallback, useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import type { VideoUnlockRow } from "@/lib/videoUnlock";
+import { isClientRole, useProfileRole } from "@/hooks/useProfileRole";
 
 export function useVideoUnlockSchedule() {
   const [unlockByVideoId, setUnlockByVideoId] = useState<Map<string, VideoUnlockRow>>(
     new Map()
   );
   const [loading, setLoading] = useState(true);
+  const { role, loading: roleLoading } = useProfileRole();
 
   const loadUnlocks = useCallback(async () => {
+    if (!isClientRole(role)) {
+      setUnlockByVideoId(new Map());
+      setLoading(false);
+      return;
+    }
+
     const supabase = getSupabaseBrowserClient();
     const {
       data: { user },
@@ -43,11 +51,12 @@ export function useVideoUnlockSchedule() {
       setUnlockByVideoId(map);
     }
     setLoading(false);
-  }, []);
+  }, [role]);
 
   useEffect(() => {
+    if (roleLoading) return;
     loadUnlocks();
-  }, [loadUnlocks]);
+  }, [loadUnlocks, roleLoading]);
 
-  return { unlockByVideoId, loading, refreshUnlocks: loadUnlocks };
+  return { unlockByVideoId, loading: loading || roleLoading, refreshUnlocks: loadUnlocks };
 }

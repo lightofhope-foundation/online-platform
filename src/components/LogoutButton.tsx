@@ -26,13 +26,18 @@ export const LogoutButton: React.FC<Props> = ({ className, children }) => {
   // Try to preserve the first child as an icon when loading
   const icon = Array.isArray(children) ? children[0] : null;
 
+  const isGlassNav = className?.includes("glass-nav-link");
+  const legacyStyles = isGlassNav
+    ? ""
+    : "border border-white/10 hover:bg-white/[0.08] hover:border-[#63eca9]/50 hover:shadow-[0_0_20px_rgba(99,236,169,0.3)]";
+
   return (
     <button
       type="button"
       onClick={onLogout}
       disabled={loading}
       aria-busy={loading}
-      className={`flex items-center gap-3 rounded-full border border-white/10 px-5 py-3 text-sm transition-all hover:bg-white/[0.08] hover:border-[#63eca9]/50 hover:shadow-[0_0_20px_rgba(99,236,169,0.3)] w-full ${className}`}
+      className={`flex w-full items-center gap-3 rounded-full px-5 py-3 text-sm transition-all ${legacyStyles} ${className ?? ""}`}
     >
       {!loading ? (
         <>{children}</>

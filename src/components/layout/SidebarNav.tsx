@@ -1,20 +1,55 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import { LOH_LOGO_SRC, SIDEBAR_QUOTE } from "@/lib/branding";
 import {
   adminNavItems,
   clientNavItems,
+  therapistNavItems,
+  resolveNavArea,
   isNavItemActive,
 } from "@/lib/navConfig";
-import { LogoutButton } from "@/components/LogoutButton";
+import { GlassNavButton, GlassNavLink } from "./GlassNavLink";
 import { LogoutIcon } from "@/components/icons/Icons";
+import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
+
+function GlassNavLogout() {
+  const router = useRouter();
+  const supabase = getSupabaseBrowserClient();
+  const [loading, setLoading] = useState(false);
+
+  return (
+    <GlassNavButton
+      disabled={loading}
+      aria-busy={loading}
+      onClick={async () => {
+        if (loading) return;
+        setLoading(true);
+        try {
+          await supabase.auth.signOut();
+        } finally {
+          router.replace("/login");
+        }
+      }}
+    >
+      <span className="text-white">
+        <LogoutIcon size={18} />
+      </span>
+      <span>{loading ? "Loggt aus …" : "Ausloggen"}</span>
+    </GlassNavButton>
+  );
+}
 
 export function SidebarNav() {
   const pathname = usePathname();
-  const isAdminRoute = pathname.startsWith("/admin");
-  const navItems = isAdminRoute ? adminNavItems : clientNavItems;
+  const navArea = resolveNavArea(pathname);
+  const navItems =
+    navArea === "admin"
+      ? adminNavItems
+      : navArea === "therapist"
+        ? therapistNavItems
+        : clientNavItems;
 
   return (
     <div className="flex h-full flex-col">
@@ -29,28 +64,19 @@ export function SidebarNav() {
 
       <nav className="flex-1 space-y-3 text-white/90">
         {navItems.map((item) => {
-          const isActive = isNavItemActive(pathname, item.href, isAdminRoute);
+          const isActive = isNavItemActive(pathname, item.href, navArea);
           return (
-            <Link
+            <GlassNavLink
               key={item.href + item.name}
               href={item.href}
-              className={`flex items-center gap-3 rounded-full border border-white/10 px-5 py-3 text-sm transition-all hover:border-[#63eca9]/50 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(99,236,169,0.3)] ${
-                isActive
-                  ? "border-[#63eca9]/50 bg-gradient-to-r from-[#63eca9]/20 to-[#63eca9]/20 shadow-[0_0_20px_rgba(99,236,169,0.4)]"
-                  : ""
-              }`}
+              active={isActive}
             >
               <span className="text-white">{item.icon}</span>
               <span>{item.name}</span>
-            </Link>
+            </GlassNavLink>
           );
         })}
-        <LogoutButton className="w-full">
-          <span className="text-white">
-            <LogoutIcon size={18} />
-          </span>
-          <span>Ausloggen</span>
-        </LogoutButton>
+        <GlassNavLogout />
       </nav>
 
       <footer className="mt-8 space-y-3 border-t border-white/10 pt-6">

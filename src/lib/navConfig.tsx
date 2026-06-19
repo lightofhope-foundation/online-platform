@@ -34,19 +34,39 @@ export const adminNavItems: NavItem[] = [
   { name: "Überblick", icon: <OverviewIcon size={18} />, href: "/admin" },
   { name: "Kurse verwalten", icon: <CoursesManageIcon size={18} />, href: "/admin/videos" },
   { name: "Nutzer", icon: <UsersIcon size={18} />, href: "/admin/users" },
+  { name: "Therapeuten", icon: <TherapyIcon size={18} />, href: "/admin/therapists" },
   { name: "Feedback", icon: <FeedbackIcon size={18} />, href: "/admin/userfeedback" },
   { name: "Einstellungen", icon: <SettingsIcon size={18} />, href: "/admin/einstellungen" },
 ];
 
+export const therapistNavItems: NavItem[] = [
+  { name: "Überblick", icon: <OverviewIcon size={18} />, href: "/therapist" },
+  { name: "Klient:innen", icon: <UsersIcon size={18} />, href: "/therapist/clients" },
+  { name: "Einstellungen", icon: <SettingsIcon size={18} />, href: "#" },
+];
+
+export type NavArea = "admin" | "therapist" | "client";
+
+export function resolveNavArea(pathname: string): NavArea {
+  if (pathname.startsWith("/admin")) return "admin";
+  if (pathname.startsWith("/therapist")) return "therapist";
+  return "client";
+}
+
 export function isNavItemActive(
   pathname: string,
   href: string,
-  isAdminRoute: boolean
+  area: NavArea
 ): boolean {
   if (href === "#") return false;
 
-  if (isAdminRoute) {
+  if (area === "admin") {
     if (href === "/admin") return pathname === "/admin";
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
+
+  if (area === "therapist") {
+    if (href === "/therapist") return pathname === "/therapist";
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 

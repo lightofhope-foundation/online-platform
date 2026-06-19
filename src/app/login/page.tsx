@@ -118,9 +118,9 @@ function LoginForm() {
       failedAttempts.delete(emailKey);
       
       if (data.session) {
-        // Check role to route admins to /admin
         const { data: u } = await supabase.auth.getUser();
         const userEmail = (u?.user?.email ?? "").toLowerCase();
+        const userId = u?.user?.id ?? "";
         if (userEmail === "info@oag-media.com") {
           router.replace("/admin");
           return;
@@ -128,10 +128,12 @@ function LoginForm() {
         const { data: prof } = await supabase
           .from("profiles")
           .select("role")
-          .eq("user_id", u?.user?.id ?? "")
+          .eq("user_id", userId)
           .maybeSingle();
         if (prof?.role === "admin") {
           router.replace("/admin");
+        } else if (prof?.role === "therapist") {
+          router.replace("/therapist");
         } else {
           router.replace("/");
         }

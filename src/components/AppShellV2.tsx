@@ -3,7 +3,7 @@
 import { MobileNav } from "./MobileNav";
 import { PlatformBackground } from "./PlatformBackground";
 import { GlassPanel } from "./layout/GlassPanel";
-import { SidebarNav } from "./layout/SidebarNav";
+import { SidebarMenuPanel } from "./layout/SidebarMenuPanel";
 import { TopBar } from "./layout/TopBar";
 import { UiShellToggle } from "./UiShellToggle";
 
@@ -20,9 +20,7 @@ export function AppShellV2({ children }: AppShellV2Props) {
 
       <div className="shell-v2 relative z-10 min-h-screen text-white">
         <aside className="shell-v2-sidebar hidden lg:block">
-          <GlassPanel className="flex h-full flex-col p-6" as="div">
-            <SidebarNav />
-          </GlassPanel>
+          <SidebarMenuPanel />
         </aside>
 
         <div className="shell-v2-main">

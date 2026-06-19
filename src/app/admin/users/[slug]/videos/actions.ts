@@ -83,7 +83,7 @@ export async function updateUserVideoUnlock(
     throw new Error("Ungültiges Datum/Uhrzeit-Format");
   }
 
-  const videos = await fetchPublishedVideosDetail(supabase);
+  const videos = await fetchPublishedVideosDetail(supabase, userId);
   const video = videos.find((v) => v.id === videoId);
   if (!video) {
     throw new Error("Video nicht gefunden");

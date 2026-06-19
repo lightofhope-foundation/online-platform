@@ -386,7 +386,7 @@ export default function VideoPage({ params }: PageProps) {
             data: { user },
           } = await supabase.auth.getUser();
           if (user) {
-            const ordered = await fetchPublishedVideosOrdered(supabase);
+            const ordered = await fetchPublishedVideosOrdered(supabase, user.id);
             const videoIndex = ordered.findIndex((ov) => ov.id === id);
             if (videoIndex >= 0) {
               const orderedIds = ordered.map((ov) => ov.id);
