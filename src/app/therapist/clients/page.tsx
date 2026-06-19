@@ -6,13 +6,6 @@ import { resolvePersonLabel } from "@/lib/formatDisplayName";
 
 export const dynamic = "force-dynamic";
 
-function formatFullName(firstName: string | null, lastName: string | null): string {
-  const first = firstName?.trim() ?? "";
-  const last = lastName?.trim() ?? "";
-  if (!first && !last) return "—";
-  return `${first} ${last}`.trim();
-}
-
 export default async function TherapistClientsPage() {
   const { user, supabase } = await checkTherapistAccess();
 
@@ -31,6 +24,7 @@ export default async function TherapistClientsPage() {
     last_name: string | null;
     access_level: number;
     created_at: string;
+    display_alias: string | null;
   }[] = [];
 
   if (clientUserIds.length > 0) {

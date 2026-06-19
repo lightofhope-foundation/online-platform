@@ -10,13 +10,6 @@ import { resolvePersonLabel } from "@/lib/formatDisplayName";
 
 export const dynamic = "force-dynamic";
 
-function formatFullName(firstName: string | null, lastName: string | null): string {
-  const first = firstName?.trim() ?? "";
-  const last = lastName?.trim() ?? "";
-  if (!first && !last) return "—";
-  return `${first} ${last}`.trim();
-}
-
 export default async function UserDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const clientId = normalizeClientIdForUrl(slug);
