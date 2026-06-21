@@ -70,7 +70,7 @@ export default async function AdminTherapistsPage() {
           </Link>
           <h1 className="mt-2 text-xl font-semibold">Therapeuten</h1>
           <p className="text-sm text-white/60">
-            Verwaltung aller Therapeuten — Zuweisungen und Strukturbaum folgen in Phase T1.
+            Verwaltung aller Therapeuten inkl. Klient-Zuweisungen.
           </p>
         </div>
       </div>

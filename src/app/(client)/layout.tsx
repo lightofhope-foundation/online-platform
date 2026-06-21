@@ -1,11 +1,13 @@
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
+import AppShell from "@/components/AppShell";
 import { getProfileRole, isAdminEmail } from "@/lib/authRoles";
 import { getAuthUserFromCookie } from "@/lib/supabaseServer";
 
 export const dynamic = "force-dynamic";
 
-export default async function SettingsLayout({ children }: { children: ReactNode }) {
+/** Persistent shell + background for all client routes (avoids white flash on navigation). */
+export default async function ClientAreaLayout({ children }: { children: ReactNode }) {
   const user = await getAuthUserFromCookie();
   if (!user) redirect("/login");
 
@@ -15,5 +17,5 @@ export default async function SettingsLayout({ children }: { children: ReactNode
     if (role === "admin") redirect("/admin");
   }
 
-  return children;
+  return <AppShell>{children}</AppShell>;
 }

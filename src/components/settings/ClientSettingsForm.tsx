@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
-import { updateClientProfile } from "@/app/settings/actions";
+import { updateClientProfile } from "@/app/(client)/settings/actions";
 
 type ProfileState = {
   clientId: string | null;

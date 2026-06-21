@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FabSettings } from "./FabSettings";
 import { MobileNav } from "./MobileNav";
-import { LegacyPlatformBackground } from "./PlatformBackground";
 import { LogoutButton } from "./LogoutButton";
 import { LogoutIcon } from "./icons/Icons";
 import {
@@ -32,7 +31,6 @@ export function AppShellLegacy({ children }: AppShellLegacyProps) {
 
   return (
     <>
-      <LegacyPlatformBackground />
       <FabSettings />
       <MobileNav />
       <UiShellToggle />

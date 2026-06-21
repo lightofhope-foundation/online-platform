@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import LightRays from "@/components/LightRays";
 import type { RegistrationFieldDefinition } from "@/lib/registrationFields";
 import {
   registerClient,
@@ -80,12 +79,8 @@ export function RegistrationPageClient({
   };
 
   return (
-    <main className="relative min-h-screen flex items-center justify-center text-white px-6 py-12">
-      <div className="page-light-rays">
-        <LightRays raysColor="#63eca9" />
-      </div>
-
-      <div className="relative z-10 w-full max-w-lg rounded-2xl border border-white/10 bg-white/[0.06] p-6 backdrop-blur">
+    <main className="relative z-10 min-h-screen flex items-center justify-center text-white px-6 py-12">
+      <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-white/[0.06] p-6 backdrop-blur">
         <h1 className="text-2xl font-semibold mb-1">Registrierung</h1>
         <p className="text-sm text-white/55 mb-6">
           Zugang nur mit gültigem Kurs-Registrierungscode.

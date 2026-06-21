@@ -14,6 +14,8 @@ export type AdminUserRow = {
   role: string;
   access_level: number;
   video_progress: number | null;
+  therapist_label: string | null;
+  therapist_href: string | null;
   created_at: string;
   last_login: string;
   detail_href: string | null;
@@ -48,6 +50,7 @@ export function AdminUsersTable({ rows, accessLevels }: AdminUsersTableProps) {
         r.email,
         r.name,
         r.role,
+        r.therapist_label,
         formatAccessLevelLabel(r.access_level, accessLevels),
       ]
         .join(" ")
@@ -106,7 +109,7 @@ export function AdminUsersTable({ rows, accessLevels }: AdminUsersTableProps) {
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Suchen (Nutzer-ID, E-Mail, Name, Stufe …)"
+          placeholder="Suchen (Nutzer-ID, E-Mail, Name, Therapeut, Stufe …)"
           className="w-full max-w-md rounded-lg border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder:text-white/40 focus:border-[#63eca9]/50 focus:outline-none"
         />
         <button
@@ -170,7 +173,7 @@ export function AdminUsersTable({ rows, accessLevels }: AdminUsersTableProps) {
       <div className="admin-table-scroll overflow-x-auto rounded-lg border border-white/10 bg-white/[0.02]">
         <table
           className={`w-full border-collapse text-sm ${
-            bulkMode ? "min-w-[1120px]" : "min-w-[1040px]"
+            bulkMode ? "min-w-[1280px]" : "min-w-[1200px]"
           }`}
         >
           <thead className="bg-white/[0.04] text-left">
@@ -182,6 +185,7 @@ export function AdminUsersTable({ rows, accessLevels }: AdminUsersTableProps) {
               <th className={thClass}>E-Mail</th>
               <th className={thClass}>Name</th>
               <th className={thClass}>Rolle</th>
+              <th className={thClass}>Therapeut</th>
               <th className={thClass}>Stufe</th>
               <th className={thClass}>Video-Fortschritt</th>
               <th className={thClass}>Erstellt</th>
@@ -217,6 +221,20 @@ export function AdminUsersTable({ rows, accessLevels }: AdminUsersTableProps) {
                   <CellLink href={r.detail_href}>{r.role}</CellLink>
                 </td>
                 <td className={tdClass}>
+                  {r.therapist_href && r.therapist_label ? (
+                    <Link
+                      href={r.therapist_href}
+                      className="inline-block whitespace-nowrap transition-colors hover:text-[#63eca9]"
+                    >
+                      {r.therapist_label}
+                    </Link>
+                  ) : r.role === "client" ? (
+                    <span className="text-white/40">—</span>
+                  ) : (
+                    <span className="text-white/40">—</span>
+                  )}
+                </td>
+                <td className={tdClass}>
                   <CellLink href={r.detail_href}>
                     {r.role === "client"
                       ? formatAccessLevelLabel(r.access_level, accessLevels)
@@ -239,7 +257,7 @@ export function AdminUsersTable({ rows, accessLevels }: AdminUsersTableProps) {
             {filtered.length === 0 && (
               <tr>
                 <td
-                  colSpan={bulkMode ? 9 : 8}
+                  colSpan={bulkMode ? 10 : 9}
                   className="border-b border-white/10 px-3 py-8 text-center text-white/50"
                 >
                   Keine Nutzer gefunden.

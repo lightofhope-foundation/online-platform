@@ -3,7 +3,6 @@
 import React, { useEffect, useState, use, useRef } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { useVideoProgress } from "@/hooks/useVideoProgress";
-import AppShell from "@/components/AppShell";
 import Link from "next/link";
 import { fetchPublishedVideosOrdered } from "@/lib/fetchPublishedVideos";
 import { PreviousVideoStatusBadge } from "@/components/PreviousVideoStatusBadge";
@@ -517,20 +516,17 @@ export default function VideoPage({ params }: PageProps) {
 
   if (loading) {
     return (
-      <AppShell>
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-16 w-16 border-b-2 border-[#63eca9] mb-4"></div>
             <p className="text-white/70 text-lg">Lade Video...</p>
           </div>
         </div>
-      </AppShell>
     );
   }
 
   if (error) {
     return (
-      <AppShell>
         <div className="text-center py-20">
           <div className="text-red-400 text-xl mb-4">⚠️</div>
           <h2 className="text-2xl font-bold text-white mb-4">Video nicht verfügbar</h2>
@@ -539,13 +535,11 @@ export default function VideoPage({ params }: PageProps) {
             Zurück zu den Kursen
           </Link>
         </div>
-      </AppShell>
     );
   }
 
   if (!bunnyId) {
     return (
-      <AppShell>
         <div className="text-center py-20">
           <div className="text-yellow-400 text-xl mb-4">⚠️</div>
           <h2 className="text-2xl font-bold text-white mb-4">Video nicht verknüpft</h2>
@@ -554,12 +548,10 @@ export default function VideoPage({ params }: PageProps) {
             Zurück zu den Kursen
           </Link>
         </div>
-      </AppShell>
     );
   }
 
   return (
-    <AppShell>
       <div className="space-y-6">
         {/* Breadcrumbs */}
         <nav className="flex items-center space-x-2 text-sm text-white/70">
@@ -661,6 +653,5 @@ export default function VideoPage({ params }: PageProps) {
           </aside>
         </div>
       </div>
-    </AppShell>
   );
 }

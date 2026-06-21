@@ -3,8 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminUserTiles } from "@/components/admin/AdminUserTiles";
 import { UserAccessLevelSelect } from "@/components/admin/UserAccessLevelSelect";
+import { ClientTherapistAssignment } from "@/components/admin/ClientTherapistAssignment";
 import { fetchAccessLevelOptions } from "@/lib/accessLevels";
 import { DisplayAliasEditor } from "@/components/admin/DisplayAliasEditor";
+import {
+  fetchClientTherapistMap,
+  fetchTherapistOptions,
+} from "@/lib/adminTherapistData";
 import { formatGermanDateTime, isValidClientIdFormat, normalizeClientIdForUrl } from "@/lib/clientId";
 import { resolvePersonLabel } from "@/lib/formatDisplayName";
 
@@ -67,6 +72,11 @@ export default async function UserDetailPage({ params }: { params: Promise<{ slu
   }
 
   const accessLevels = await fetchAccessLevelOptions();
+  const [therapists, therapistByClient] = await Promise.all([
+    fetchTherapistOptions(admin),
+    fetchClientTherapistMap(admin),
+  ]);
+  const assignment = therapistByClient.get(profile.user_id);
 
   return (
     <div className="space-y-8">
@@ -90,6 +100,19 @@ export default async function UserDetailPage({ params }: { params: Promise<{ slu
       </div>
 
       <AdminUserTiles clientId={profile.client_id} />
+
+      {profile.role === "client" && (
+        <div className="rounded-[20px] border border-white/10 bg-white/[0.02] p-6">
+          <h2 className="mb-4 text-sm font-medium text-white/70">Therapeut</h2>
+          <ClientTherapistAssignment
+            clientUserId={profile.user_id}
+            clientId={profile.client_id}
+            currentTherapistUserId={assignment?.therapist_user_id ?? null}
+            currentTherapistLabel={assignment?.label ?? null}
+            therapists={therapists}
+          />
+        </div>
+      )}
 
       {profile.role === "client" && (
         <div className="rounded-[20px] border border-white/10 bg-white/[0.02] p-6">

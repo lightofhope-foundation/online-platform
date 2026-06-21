@@ -1,8 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DisplayAliasEditor } from "@/components/admin/DisplayAliasEditor";
+import { TherapistClientAssignmentPanel } from "@/components/admin/TherapistClientAssignmentPanel";
 import { TherapistViewTabs } from "@/components/admin/TherapistViewTabs";
 import { checkAdminAccess } from "@/lib/checkAdminAccess";
+import {
+  fetchUnassignedClientOptions,
+  fetchTherapistsWithClients,
+} from "@/lib/adminTherapistData";
 import { formatGermanDateTime } from "@/lib/clientId";
 import { resolvePersonLabel } from "@/lib/formatDisplayName";
 
@@ -30,28 +35,13 @@ export default async function AdminTherapistDetailPage({
   const authUser = authUserRes?.user;
   if (!authUser) notFound();
 
-  const { data: assignedClients } = await supabase
-    .from("clients")
-    .select("user_id")
-    .eq("therapist_user_id", profile.user_id)
-    .is("deleted_at", null);
+  const [{ therapists }, unassignedClients] = await Promise.all([
+    fetchTherapistsWithClients(supabase),
+    fetchUnassignedClientOptions(supabase),
+  ]);
 
-  const clientUserIds = (assignedClients ?? []).map((c) => c.user_id);
-  let clientProfiles: {
-    user_id: string;
-    client_id: string | null;
-    first_name: string | null;
-    last_name: string | null;
-    display_alias: string | null;
-  }[] = [];
-
-  if (clientUserIds.length > 0) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("user_id, client_id, first_name, last_name, display_alias")
-      .in("user_id", clientUserIds);
-    clientProfiles = data ?? [];
-  }
+  const therapistData = therapists.find((t) => t.user_id === profile.user_id);
+  const assignedClients = therapistData?.clients ?? [];
 
   const label = resolvePersonLabel(
     profile.first_name,
@@ -86,50 +76,13 @@ export default async function AdminTherapistDetailPage({
 
       <div className="rounded-[20px] border border-white/10 bg-white/[0.02] p-6">
         <h2 className="mb-4 text-sm font-medium text-white/70">
-          Zugewiesene Klient:innen ({clientProfiles.length})
+          Klient:innen zuweisen ({assignedClients.length})
         </h2>
-        {clientProfiles.length === 0 ? (
-          <p className="text-sm text-white/50">
-            Noch keine Zuweisungen. Manuelle Zuweisung kommt in Phase T1.
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {clientProfiles.map((c) => {
-              const clientLabel = resolvePersonLabel(
-                c.first_name,
-                c.last_name,
-                null,
-                c.display_alias
-              );
-              const href = c.client_id
-                ? `/admin/users/${c.client_id.toLowerCase()}`
-                : null;
-              return (
-                <li key={c.user_id} className="text-sm text-white/80">
-                  {href ? (
-                    <Link href={href} className="text-[#63eca9] hover:underline">
-                      {clientLabel}
-                    </Link>
-                  ) : (
-                    clientLabel
-                  )}
-                  {c.client_id ? (
-                    <span className="ml-2 font-mono text-xs text-white/40">
-                      {c.client_id}
-                    </span>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-
-      <div className="rounded-[20px] border border-white/10 bg-white/[0.02] p-6 opacity-60">
-        <h2 className="mb-2 text-sm font-medium text-white/70">Strukturbaum-Ansicht</h2>
-        <p className="text-sm text-white/50">
-          Visueller Baum (Therapeut → Klient:innen) — Phase T1, Ansicht 2 von 3.
-        </p>
+        <TherapistClientAssignmentPanel
+          therapistUserId={profile.user_id}
+          assignedClients={assignedClients}
+          unassignedClients={unassignedClients}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import LockIcon from "@/components/LockIcon";
-import AppShell from "@/components/AppShell";
 import { useVideoProgress } from "@/hooks/useVideoProgress";
 import { useVideoUnlockSchedule } from "@/hooks/useVideoUnlockSchedule";
 import { PreviousVideoStatusBadge } from "@/components/PreviousVideoStatusBadge";
@@ -160,7 +159,6 @@ export default function CourseDetailPage({ params }: PageProps) {
   const listLoading = progressLoading || unlockLoading;
 
   return (
-    <AppShell>
       <div className="space-y-6">
         <nav className="flex items-center space-x-2 text-sm text-white/70">
           <Link href="/" className="hover:text-white transition-colors">
@@ -332,6 +330,5 @@ export default function CourseDetailPage({ params }: PageProps) {
           })}
         </div>
       </div>
-    </AppShell>
   );
 }

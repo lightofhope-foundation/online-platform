@@ -1,7 +1,6 @@
 "use client";
 
 import { MobileNav } from "./MobileNav";
-import { PlatformBackground } from "./PlatformBackground";
 import { GlassPanel } from "./layout/GlassPanel";
 import { SidebarMenuPanel } from "./layout/SidebarMenuPanel";
 import { TopBar } from "./layout/TopBar";
@@ -14,7 +13,6 @@ type AppShellV2Props = {
 export function AppShellV2({ children }: AppShellV2Props) {
   return (
     <>
-      <PlatformBackground />
       <MobileNav />
       <UiShellToggle />
 

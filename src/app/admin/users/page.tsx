@@ -2,6 +2,7 @@ import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import Link from "next/link";
 import { AdminUsersTable, type AdminUserRow } from "@/components/admin/AdminUsersTable";
 import { fetchAccessLevelOptions } from "@/lib/accessLevels";
+import { fetchClientTherapistMap } from "@/lib/adminTherapistData";
 import { formatGermanDateTime } from "@/lib/clientId";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,8 @@ export default async function AdminUsers() {
   let authById = new Map<string, { email?: string; last_sign_in_at?: string }>();
   const videoProgressByUser = new Map<string, number>();
   const accessLevels = await fetchAccessLevelOptions();
+
+  let therapistByClient = new Map<string, { therapist_user_id: string; label: string }>();
 
   try {
     const admin = getSupabaseAdminClient();
@@ -87,6 +90,8 @@ export default async function AdminUsers() {
 
     const { data: authUsersRes } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
     authById = new Map((authUsersRes?.users ?? []).map((u) => [u.id, u]));
+
+    therapistByClient = await fetchClientTherapistMap(admin);
   } catch (error) {
     console.error("Error initializing admin client:", error);
     return (
@@ -107,6 +112,7 @@ export default async function AdminUsers() {
   const rows: AdminUserRow[] = profiles.map((p) => {
     const au = authById.get(p.user_id);
     const detailHref = p.client_id ? `/admin/users/${p.client_id.toLowerCase()}` : null;
+    const therapist = therapistByClient.get(p.user_id);
     return {
       user_id: p.user_id,
       client_id: p.client_id,
@@ -115,6 +121,10 @@ export default async function AdminUsers() {
       role: p.role,
       access_level: p.access_level ?? 0,
       video_progress: p.role === "client" ? videoProgressByUser.get(p.user_id) ?? 0 : null,
+      therapist_label: therapist?.label ?? null,
+      therapist_href: therapist
+        ? `/admin/therapists/${therapist.therapist_user_id}`
+        : null,
       created_at: formatGermanDateTime(p.created_at),
       last_login: formatGermanDateTime(au?.last_sign_in_at),
       detail_href: detailHref,

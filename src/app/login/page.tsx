@@ -3,10 +3,22 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
-import LightRays from "@/components/LightRays";
 
 // Track failed login attempts per email (client-side only, resets on page refresh)
 const failedAttempts = new Map<string, { count: number; lastAttempt: number }>();
+
+/** Supabase Auth rate limit (429) — typical cooldown after heavy dev testing */
+const SUPABASE_AUTH_RATE_LIMIT_SEC = 120;
+
+function applySupabaseRateLimitCooldown(
+  setRetryAfter: (v: number) => void,
+  setError: (v: string) => void
+) {
+  setRetryAfter(Date.now() + SUPABASE_AUTH_RATE_LIMIT_SEC * 1000);
+  setError(
+    `Supabase hat vorübergehend zu viele Anmeldeversuche blockiert (Rate-Limit). Bitte ${SUPABASE_AUTH_RATE_LIMIT_SEC} Sekunden warten, dann erneut versuchen.`
+  );
+}
 
 function LoginForm() {
   const router = useRouter();
@@ -20,6 +32,21 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [retryAfter, setRetryAfter] = useState<number | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
+
+  const [clearing, setClearing] = useState(false);
+
+  const onClearSession = async () => {
+    setClearing(true);
+    try {
+      await supabase.auth.signOut();
+      failedAttempts.clear();
+      setRetryAfter(null);
+      setCountdown(null);
+      setError("Session zurückgesetzt. Bitte 1–2 Minuten warten, dann erneut einloggen.");
+    } finally {
+      setClearing(false);
+    }
+  };
 
   // Update countdown timer
   useEffect(() => {
@@ -95,8 +122,7 @@ function LoginForm() {
         
         // Handle different error types with clear messages
         if (isRateLimitError) {
-          // Supabase's own rate limiting - just show a gentle message, don't block locally
-          setError(`Bitte warten Sie einen Moment und versuchen Sie es erneut.`);
+          applySupabaseRateLimitCooldown(setRetryAfter, setError);
         } else if (error.message?.includes('Invalid login credentials')) {
           const current = failedAttempts.get(emailKey);
           const attemptsLeft = current ? Math.max(0, 5 - current.count) : 5;
@@ -118,9 +144,8 @@ function LoginForm() {
       failedAttempts.delete(emailKey);
       
       if (data.session) {
-        const { data: u } = await supabase.auth.getUser();
-        const userEmail = (u?.user?.email ?? "").toLowerCase();
-        const userId = u?.user?.id ?? "";
+        const userId = data.session.user.id;
+        const userEmail = (data.session.user.email ?? "").toLowerCase();
         if (userEmail === "info@oag-media.com") {
           router.replace("/admin");
           return;
@@ -145,9 +170,7 @@ function LoginForm() {
       console.error('Login error:', err);
       const error = err as { status?: number; message?: string };
       if (error.status === 429 || error.message?.includes('rate limit')) {
-        const retryDelay = 30; // Reduced from 60 to 30 seconds
-        setRetryAfter(Date.now() + (retryDelay * 1000));
-        setError(`Zu viele Anmeldeversuche. Bitte warten Sie ${retryDelay} Sekunden.`);
+        applySupabaseRateLimitCooldown(setRetryAfter, setError);
       } else {
         setError("Ein Fehler ist aufgetreten. Bitte erneut versuchen.");
       }
@@ -156,11 +179,8 @@ function LoginForm() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center text-white px-6 relative">
-      <div className="page-light-rays">
-        <LightRays raysColor="#63eca9" />
-      </div>
-      <div className="relative z-10 w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.06] p-6 backdrop-blur">
+    <main className="min-h-screen flex items-center justify-center text-white px-6 relative z-10">
+      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.06] p-6 backdrop-blur">
         <h1 className="text-2xl font-semibold mb-4">Login</h1>
         {registered && (
           <div className="mb-4 rounded-lg border border-[#63eca9]/30 bg-[#63eca9]/10 px-3 py-2 text-sm text-[#63eca9]">
@@ -211,7 +231,15 @@ function LoginForm() {
             {loading ? "Bitte warten…" : countdown !== null && countdown > 0 ? `Warten (${countdown}s)` : "Einloggen"}
           </button>
         </form>
-        <p className="mt-6 text-center text-sm text-white/50">
+        <button
+          type="button"
+          onClick={onClearSession}
+          disabled={clearing}
+          className="mt-4 w-full text-center text-xs text-white/45 underline-offset-2 hover:text-white/70 hover:underline disabled:opacity-50"
+        >
+          {clearing ? "Session wird gelöscht …" : "Session zurücksetzen (bei Login-Problemen)"}
+        </button>
+        <p className="mt-4 text-center text-sm text-white/50">
           Neues Konto mit Kurszugang?{" "}
           <Link href="/registrierung" className="text-[#63eca9] hover:underline">
             Registrieren

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { useVideoProgress } from "@/hooks/useVideoProgress";
 import { CircularProgress } from "@/components/CircularProgress";
-import AppShell from "@/components/AppShell";
 
 type Course = { id: string; title: string; slug: string };
 type Profile = { role: "admin" | "therapist" | "patient" | "client" };
@@ -37,7 +36,6 @@ export default function CoursesPage() {
   };
 
   return (
-    <AppShell>
       <div className="space-y-8">
         {/* Page Title */}
         <div className="text-center">
@@ -119,7 +117,6 @@ export default function CoursesPage() {
           </div>
         )}
       </div>
-    </AppShell>
   );
 }
 
