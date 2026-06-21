@@ -42,5 +42,5 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     redirect("/");
   }
 
-  return <AppShell>{children}</AppShell>;
+  return <AppShell contentWidth="wide">{children}</AppShell>;
 }

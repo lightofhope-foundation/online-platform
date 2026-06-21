@@ -24,17 +24,17 @@ function GalaxyBackground() {
         <Galaxy
           mouseRepulsion={false}
           mouseInteraction={false}
-          density={3}
-          glowIntensity={0.3}
-          saturation={0.65}
+          density={2}
+          glowIntensity={0.18}
+          saturation={0.5}
           hueShift={LOH_GALAXY_HUE}
-          twinkleIntensity={0.12}
-          rotationSpeed={0.05}
+          twinkleIntensity={0.06}
+          rotationSpeed={0.02}
           repulsionStrength={0}
           autoCenterRepulsion={0}
-          starSpeed={0.1}
-          speed={0.3}
-          transparent={false}
+          starSpeed={0.05}
+          speed={0.15}
+          transparent
         />
       ) : null}
     </div>

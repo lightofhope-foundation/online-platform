@@ -14,12 +14,17 @@ import {
   isNavItemActive,
 } from "@/lib/navConfig";
 import { UiShellToggle } from "./UiShellToggle";
+import type { ShellContentWidth } from "./UiAppShell";
 
 type AppShellLegacyProps = {
   children: React.ReactNode;
+  contentWidth?: ShellContentWidth;
 };
 
-export function AppShellLegacy({ children }: AppShellLegacyProps) {
+export function AppShellLegacy({
+  children,
+  contentWidth = "default",
+}: AppShellLegacyProps) {
   const pathname = usePathname();
   const navArea = resolveNavArea(pathname);
   const desktopNavItems =
@@ -29,6 +34,9 @@ export function AppShellLegacy({ children }: AppShellLegacyProps) {
         ? therapistNavItems
         : clientNavItems;
 
+  const mainMaxWidth =
+    contentWidth === "wide" ? "max-w-none w-full" : "max-w-7xl";
+
   return (
     <>
       <FabSettings />
@@ -36,7 +44,7 @@ export function AppShellLegacy({ children }: AppShellLegacyProps) {
       <UiShellToggle />
 
       <main className="relative z-10 min-h-screen text-white">
-        <div className="mx-auto max-w-7xl px-6 py-10">
+        <div className={`mx-auto ${mainMaxWidth} px-6 py-10`}>
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[300px_1fr]">
             <aside className="sticky top-6 hidden self-start rounded-[24px] border border-white/10 bg-white/[0.02] p-6 backdrop-blur-sm lg:block">
               <nav className="space-y-4 text-white/90">

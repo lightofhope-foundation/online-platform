@@ -95,7 +95,7 @@ export default async function AdminUsers() {
   } catch (error) {
     console.error("Error initializing admin client:", error);
     return (
-      <div className="mx-auto w-[90%] max-w-[90vw] space-y-8">
+      <div className="space-y-8">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Nutzer & Fortschritt</h1>
           <Link href="/admin" className="text-sm text-[#63eca9] hover:underline">
@@ -132,7 +132,7 @@ export default async function AdminUsers() {
   });
 
   return (
-    <div className="mx-auto w-[90%] max-w-[90vw] space-y-8">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Nutzer & Fortschritt</h1>
         <Link href="/admin" className="text-sm text-[#63eca9] hover:underline">

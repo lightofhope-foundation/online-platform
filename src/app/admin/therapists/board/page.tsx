@@ -10,7 +10,7 @@ export default async function AdminTherapistsBoardPage() {
   const { therapists, unassigned } = await fetchTherapistsWithClients(supabase);
 
   return (
-    <div className="mx-auto w-[90%] max-w-[90vw] space-y-8">
+    <div className="space-y-8">
       <div>
         <Link href="/admin" className="text-sm text-[#63eca9] hover:underline">
           ← Zurück zum Überblick

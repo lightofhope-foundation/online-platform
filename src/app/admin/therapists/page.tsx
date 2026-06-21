@@ -62,7 +62,7 @@ export default async function AdminTherapistsPage() {
   });
 
   return (
-    <div className="mx-auto w-[90%] max-w-[90vw] space-y-8">
+    <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <Link href="/admin" className="text-sm text-[#63eca9] hover:underline">

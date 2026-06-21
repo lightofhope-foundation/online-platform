@@ -3,6 +3,8 @@
 :root {
   --bg: #000000;
   --sidebar-width: 272px;
+  --shell-sidebar-gap: 1.75rem;
+  --shell-content-gutter: 2rem;
 }
 
 html, body {
@@ -123,8 +125,8 @@ html, body {
 
 @media (min-width: 1024px) {
   .shell-v2-main {
-    margin-left: var(--sidebar-width);
-    width: calc(100% - var(--sidebar-width));
+    margin-left: calc(var(--sidebar-width) + var(--shell-sidebar-gap));
+    width: calc(100% - var(--sidebar-width) - var(--shell-sidebar-gap));
   }
 }
 
@@ -133,12 +135,54 @@ html, body {
   max-width: 72rem;
   padding: 1.5rem;
   padding-bottom: 6rem;
+  box-sizing: border-box;
+}
+
+.shell-v2-main-inner--wide {
+  max-width: none;
+  width: 100%;
+  padding-top: 1.5rem;
+  padding-bottom: 6rem;
+  padding-left: var(--shell-content-gutter);
+  padding-right: var(--shell-content-gutter);
 }
 
 @media (min-width: 768px) {
   .shell-v2-main-inner {
     padding: 2.5rem;
     padding-bottom: 2.5rem;
+  }
+
+  .shell-v2-main-inner--wide {
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --shell-sidebar-gap: 2.25rem;
+    --shell-content-gutter: 2.75rem;
+  }
+
+  .shell-v2-main-inner--wide {
+    padding-left: var(--shell-content-gutter);
+    padding-right: var(--shell-content-gutter);
+  }
+}
+
+@media (min-width: 1280px) {
+  :root {
+    --shell-sidebar-gap: 2.75rem;
+    --shell-content-gutter: 3.5rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  :root {
+    --shell-content-gutter: 4rem;
   }
 }
 
