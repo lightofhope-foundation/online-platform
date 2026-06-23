@@ -22,6 +22,7 @@ function GlassNavLogout() {
   return (
     <GlassNavButton
       disabled={loading}
+      loading={loading}
       aria-busy={loading}
       onClick={async () => {
         if (loading) return;
@@ -36,7 +37,7 @@ function GlassNavLogout() {
       <span className="text-white">
         <LogoutIcon size={18} />
       </span>
-      <span>{loading ? "Loggt aus …" : "Ausloggen"}</span>
+      <span>Ausloggen</span>
     </GlassNavButton>
   );
 }
@@ -70,10 +71,9 @@ export function SidebarNav() {
               key={item.href + item.name}
               href={item.href}
               active={isActive}
-            >
-              <span className="text-white">{item.icon}</span>
-              <span>{item.name}</span>
-            </GlassNavLink>
+              icon={item.icon}
+              label={item.name}
+            />
           );
         })}
         <GlassNavLogout />

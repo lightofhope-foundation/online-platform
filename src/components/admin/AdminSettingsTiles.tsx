@@ -1,5 +1,7 @@
+"use client";
+
 import type { ReactNode } from "react";
-import Link from "next/link";
+import { NavPressLink } from "@/components/ui/NavPressLink";
 import { VideosIcon, UsersIcon, SettingsIcon } from "@/components/icons/Icons";
 
 type Tile = {
@@ -11,9 +13,11 @@ type Tile = {
 
 function TileCard({ tile }: { tile: Tile }) {
   return (
-    <Link
+    <NavPressLink
       href={tile.href}
-      className="group flex flex-col gap-3 rounded-[20px] border border-white/15 bg-white/[0.03] p-6 backdrop-blur-sm transition-colors hover:border-[#63eca9]/30 hover:bg-white/[0.06]"
+      className="group relative flex flex-col gap-3 rounded-[20px] border border-white/15 bg-white/[0.03] p-6 backdrop-blur-sm hover:border-[#63eca9]/30 hover:bg-white/[0.06]"
+      innerClassName="flex-col items-stretch gap-3"
+      spinnerClassName="absolute top-4 right-4"
     >
       <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] text-[#63eca9]">
         {tile.icon}
@@ -22,7 +26,7 @@ function TileCard({ tile }: { tile: Tile }) {
         <h3 className="font-medium text-white">{tile.title}</h3>
         <p className="mt-1 text-sm text-white/60">{tile.description}</p>
       </div>
-    </Link>
+    </NavPressLink>
   );
 }
 

@@ -1,5 +1,7 @@
+"use client";
+
 import type { ReactNode } from "react";
-import Link from "next/link";
+import { NavPressLink } from "@/components/ui/NavPressLink";
 
 type DashboardQuickTileProps = {
   title: string;
@@ -19,7 +21,7 @@ export function DashboardQuickTile({
   stat,
 }: DashboardQuickTileProps) {
   const tileClass =
-    "group flex flex-col rounded-[16px] border border-white/10 bg-black/50 p-4 min-h-[112px] transition-all hover:border-[#63eca9]/50 hover:bg-white/[0.04] hover:shadow-[0_0_20px_rgba(99,236,169,0.28)]";
+    "group relative flex flex-col rounded-[16px] border border-white/10 bg-black/50 p-4 min-h-[112px] hover:border-[#63eca9]/50 hover:bg-white/[0.04] hover:shadow-[0_0_20px_rgba(99,236,169,0.28)]";
 
   const content = (
     <>
@@ -44,9 +46,14 @@ export function DashboardQuickTile({
 
   if (href) {
     return (
-      <Link href={href} className={tileClass}>
+      <NavPressLink
+        href={href}
+        className={tileClass}
+        innerClassName="flex-col items-stretch"
+        spinnerClassName="absolute top-3 right-3"
+      >
         {content}
-      </Link>
+      </NavPressLink>
     );
   }
 

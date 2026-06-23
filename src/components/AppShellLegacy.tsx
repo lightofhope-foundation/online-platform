@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FabSettings } from "./FabSettings";
 import { MobileNav } from "./MobileNav";
 import { LogoutButton } from "./LogoutButton";
 import { LogoutIcon } from "./icons/Icons";
+import { NavPressLink } from "@/components/ui/NavPressLink";
 import {
   adminNavItems,
   clientNavItems,
@@ -55,10 +55,10 @@ export function AppShellLegacy({
                     navArea
                   );
                   return (
-                    <Link
+                    <NavPressLink
                       key={item.href + item.name}
                       href={item.href}
-                      className={`flex items-center gap-3 rounded-full border border-white/10 px-5 py-3 text-sm transition-all hover:border-[#63eca9]/50 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(99,236,169,0.3)] ${
+                      className={`flex items-center gap-3 rounded-full border border-white/10 px-5 py-3 text-sm hover:border-[#63eca9]/50 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(99,236,169,0.3)] ${
                         isActive
                           ? "border-[#63eca9]/50 bg-gradient-to-r from-[#63eca9]/20 to-[#63eca9]/20 shadow-[0_0_20px_rgba(99,236,169,0.4)]"
                           : ""
@@ -66,7 +66,7 @@ export function AppShellLegacy({
                     >
                       <span className="text-white">{item.icon}</span>
                       <span>{item.name}</span>
-                    </Link>
+                    </NavPressLink>
                   );
                 })}
                 <LogoutButton className="w-full">

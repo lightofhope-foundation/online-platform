@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   HomeIcon,
@@ -16,6 +15,7 @@ import {
 } from "./icons/Icons";
 import { LogoutIcon } from "./icons/Icons";
 import { LogoutButton } from "./LogoutButton";
+import { NavPressLink } from "@/components/ui/NavPressLink";
 import { resolveNavArea } from "@/lib/navConfig";
 
 export const MobileNav: React.FC = () => {
@@ -25,6 +25,10 @@ export const MobileNav: React.FC = () => {
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
   const active = "text-[#63eca9]";
+  const mobileIconLinkClass = (href: string) =>
+    `relative flex items-center justify-center p-1 ${isActive(href) ? active : ""}`;
+  const mobileSpinnerClass =
+    "absolute -bottom-0.5 left-1/2 -translate-x-1/2 ml-0 h-2.5 w-2.5";
 
   if (navArea === "admin") {
     return null;
@@ -36,22 +40,24 @@ export const MobileNav: React.FC = () => {
         <div className="mx-4 mb-4 rounded-2xl border border-white/10 bg-white/5 backdrop-blur">
           <ul className="grid grid-cols-2 items-center justify-between px-6 py-3 text-white">
             <li className="flex items-center justify-center">
-              <Link
+              <NavPressLink
                 href="/therapist"
                 aria-label="Überblick"
                 className={pathname === "/therapist" ? active : ""}
+                spinnerClassName={mobileSpinnerClass}
               >
                 <OverviewIcon size={24} />
-              </Link>
+              </NavPressLink>
             </li>
             <li className="flex items-center justify-center">
-              <Link
+              <NavPressLink
                 href="/therapist/clients"
                 aria-label="Klient:innen"
                 className={pathname.startsWith("/therapist/clients") ? active : ""}
+                spinnerClassName={mobileSpinnerClass}
               >
                 <UsersIcon size={24} />
-              </Link>
+              </NavPressLink>
             </li>
           </ul>
         </div>
@@ -66,10 +72,24 @@ export const MobileNav: React.FC = () => {
         <div className="mx-4 mb-4 rounded-2xl bg-white/5 backdrop-blur border border-white/10">
           <ul className="grid grid-cols-5 items-center justify-between px-6 py-3 text-white">
             <li className="flex items-center justify-center">
-              <Link href="/" aria-label="Home" className={isActive("/") ? active : ""}><HomeIcon size={24} /></Link>
+              <NavPressLink
+                href="/"
+                aria-label="Home"
+                className={mobileIconLinkClass("/")}
+                spinnerClassName={mobileSpinnerClass}
+              >
+                <HomeIcon size={24} />
+              </NavPressLink>
             </li>
             <li className="flex items-center justify-center">
-              <Link href="/courses" aria-label="Videos" className={isActive("/courses") ? active : ""}><VideosIcon size={24} /></Link>
+              <NavPressLink
+                href="/courses"
+                aria-label="Videos"
+                className={mobileIconLinkClass("/courses")}
+                spinnerClassName={mobileSpinnerClass}
+              >
+                <VideosIcon size={24} />
+              </NavPressLink>
             </li>
             <li className="flex items-center justify-center">
               <a href="#" aria-label="Selbstcheck"><SelbstcheckIcon size={24} /></a>

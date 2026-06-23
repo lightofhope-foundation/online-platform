@@ -2,41 +2,31 @@
 
 import { revalidatePath } from "next/cache";
 import { berlinDatetimeLocalToIso } from "@/lib/berlinDatetime";
+import { checkTherapistAccess } from "@/lib/authRoles";
 import {
+  assertTherapistOwnsClient,
   reseedUserVideoUnlockSchedule,
   resolveClientProfileByClientId,
   upsertUserVideoUnlock,
 } from "@/lib/clientVideoUnlock";
-import { getAuthUserFromCookie } from "@/lib/supabaseServer";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
-async function checkAdminAccess() {
-  const user = await getAuthUserFromCookie();
-  if (!user) throw new Error("Nicht autorisiert");
-
-  const supabase = getSupabaseAdminClient();
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  const emailWhitelisted = user.email === "info@oag-media.com";
-  const isAdmin = profile?.role === "admin" || emailWhitelisted;
-  if (!isAdmin) throw new Error("Nicht autorisiert");
-
-  return { user, supabase };
+async function checkTherapistClientAccess(clientId: string) {
+  const { user, supabase } = await checkTherapistAccess();
+  const resolved = await resolveClientProfileByClientId(supabase, clientId);
+  await assertTherapistOwnsClient(supabase, user.id, resolved.userId);
+  return { user, supabase, ...resolved };
 }
 
 async function logAudit(
-  supabase: ReturnType<typeof getSupabaseAdminClient>,
   actorId: string,
   action: string,
   entityId: string,
   before: Record<string, unknown> | null,
   after: Record<string, unknown> | null
 ) {
-  const { error } = await supabase.from("audit_logs").insert({
+  const adminSupabase = getSupabaseAdminClient();
+  const { error } = await adminSupabase.from("audit_logs").insert({
     actor_id: actorId,
     action,
     entity: "user_video_unlocks",
@@ -50,16 +40,19 @@ async function logAudit(
   }
 }
 
-export async function updateUserVideoUnlock(
+function revalidateTherapistClientPaths(clientId: string) {
+  const slug = clientId.toLowerCase();
+  revalidatePath(`/therapist/clients/${slug}`);
+  revalidatePath(`/therapist/clients/${slug}/videos`);
+}
+
+export async function updateTherapistClientVideoUnlock(
   clientId: string,
   videoId: string,
   unlockAtLocal: string
 ) {
-  const { user, supabase } = await checkAdminAccess();
-  const { userId, clientId: resolvedClientId } = await resolveClientProfileByClientId(
-    supabase,
-    clientId
-  );
+  const { user, supabase, userId, clientId: resolvedClientId } =
+    await checkTherapistClientAccess(clientId);
 
   const unlockAtIso = berlinDatetimeLocalToIso(unlockAtLocal);
   if (!unlockAtIso) {
@@ -83,29 +76,25 @@ export async function updateUserVideoUnlock(
 
   await upsertUserVideoUnlock(supabase, userId, videoId, unlockAtIso);
 
-  await logAudit(supabase, user.id, "unlock_at_updated", `${userId}:${videoId}`, before, {
+  await logAudit(user.id, "therapist_unlock_at_updated", `${userId}:${videoId}`, before, {
     unlock_at: unlockAtIso,
     source: "manual",
   });
 
-  revalidatePath(`/admin/users/${resolvedClientId}/videos`);
-  revalidatePath(`/admin/users/${resolvedClientId}`);
+  revalidateTherapistClientPaths(resolvedClientId);
   return { ok: true as const };
 }
 
-export async function reseedUserVideoUnlocks(clientId: string) {
-  const { user, supabase } = await checkAdminAccess();
-  const { userId, clientId: resolvedClientId } = await resolveClientProfileByClientId(
-    supabase,
-    clientId
-  );
+export async function reseedTherapistClientVideoUnlocks(clientId: string) {
+  const { user, supabase, userId, clientId: resolvedClientId } =
+    await checkTherapistClientAccess(clientId);
 
   const count = await reseedUserVideoUnlockSchedule(supabase, userId);
 
-  await logAudit(supabase, user.id, "unlock_schedule_reseeded", userId, null, {
+  await logAudit(user.id, "therapist_unlock_schedule_reseeded", userId, null, {
     rows_seeded: count,
   });
 
-  revalidatePath(`/admin/users/${resolvedClientId}/videos`);
+  revalidateTherapistClientPaths(resolvedClientId);
   return { ok: true as const, count };
 }

@@ -1,5 +1,7 @@
+"use client";
+
 import type { ReactNode } from "react";
-import Link from "next/link";
+import { NavPressLink } from "@/components/ui/NavPressLink";
 import { VideosIcon, UsersIcon, FeedbackIcon } from "@/components/icons/Icons";
 
 type Tile = {
@@ -15,8 +17,8 @@ type AdminUserTilesProps = {
 };
 
 function TileCard({ tile }: { tile: Tile }) {
-  const className =
-    "group flex flex-col gap-3 rounded-[20px] border border-white/15 bg-white/[0.03] p-6 backdrop-blur-sm transition-colors hover:border-white/25 hover:bg-white/[0.06]";
+  const tileClass =
+    "group relative flex flex-col gap-3 rounded-[20px] border border-white/15 bg-white/[0.03] p-6 backdrop-blur-sm hover:border-white/25 hover:bg-white/[0.06]";
 
   const inner = (
     <>
@@ -32,16 +34,21 @@ function TileCard({ tile }: { tile: Tile }) {
 
   if (tile.disabled || !tile.href) {
     return (
-      <div className={`${className} cursor-not-allowed opacity-50`} aria-disabled>
+      <div className={`${tileClass} cursor-not-allowed opacity-50`} aria-disabled>
         {inner}
       </div>
     );
   }
 
   return (
-    <Link href={tile.href} className={className}>
+    <NavPressLink
+      href={tile.href}
+      className={tileClass}
+      innerClassName="flex-col items-stretch gap-3"
+      spinnerClassName="absolute top-4 right-4"
+    >
       {inner}
-    </Link>
+    </NavPressLink>
   );
 }
 
