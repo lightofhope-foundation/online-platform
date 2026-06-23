@@ -410,6 +410,7 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
           street: string | null
           display_alias: string | null
+          phone_number: string | null
           updated_at: string
           user_id: string
         }
@@ -425,6 +426,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           street?: string | null
           display_alias?: string | null
+          phone_number?: string | null
           updated_at?: string
           user_id: string
         }

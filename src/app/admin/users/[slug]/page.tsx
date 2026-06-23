@@ -11,6 +11,7 @@ import {
   fetchTherapistOptions,
 } from "@/lib/adminTherapistData";
 import { formatGermanDateTime, isValidClientIdFormat, normalizeClientIdForUrl } from "@/lib/clientId";
+import { formatProfileRole } from "@/lib/profileRole";
 import { resolvePersonLabel } from "@/lib/formatDisplayName";
 
 export const dynamic = "force-dynamic";
@@ -99,7 +100,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ slu
         </div>
       </div>
 
-      <AdminUserTiles clientId={profile.client_id} />
+      <AdminUserTiles clientId={profile.client_id} role={profile.role} />
 
       {profile.role === "client" && (
         <div className="rounded-[20px] border border-white/10 bg-white/[0.02] p-6">
@@ -127,7 +128,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ slu
       )}
 
       <div className="rounded-[20px] border border-white/10 bg-white/[0.02] p-6">
-        <h2 className="mb-4 text-sm font-medium text-white/70">Anzeige-Alias</h2>
+        <h2 className="mb-4 text-sm font-medium text-white/70">Anzeigename</h2>
         <DisplayAliasEditor
           userId={profile.user_id}
           firstName={profile.first_name}
@@ -147,7 +148,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ slu
           </div>
           <div>
             <p className="text-xs text-white/50">Rolle</p>
-            <p className="text-white">{profile.role}</p>
+            <p className="text-white">{formatProfileRole(profile.role)}</p>
           </div>
           <div>
             <p className="text-xs text-white/50">Registriert</p>

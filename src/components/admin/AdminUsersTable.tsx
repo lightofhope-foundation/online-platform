@@ -5,6 +5,7 @@ import Link from "next/link";
 import { bulkUpdateUserAccessLevel } from "@/app/admin/users/actions";
 import type { AccessLevelOption } from "@/lib/accessLevels";
 import { formatAccessLevelLabel } from "@/lib/accessLevels";
+import { formatProfileRole } from "@/lib/profileRole";
 
 export type AdminUserRow = {
   user_id: string;
@@ -218,7 +219,7 @@ export function AdminUsersTable({ rows, accessLevels }: AdminUsersTableProps) {
                   <CellLink href={r.detail_href}>{r.name}</CellLink>
                 </td>
                 <td className={tdClass}>
-                  <CellLink href={r.detail_href}>{r.role}</CellLink>
+                  <CellLink href={r.detail_href}>{formatProfileRole(r.role)}</CellLink>
                 </td>
                 <td className={tdClass}>
                   {r.therapist_href && r.therapist_label ? (

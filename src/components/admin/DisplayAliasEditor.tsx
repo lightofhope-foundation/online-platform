@@ -32,7 +32,7 @@ export function DisplayAliasEditor({
     startTransition(async () => {
       const result = await updateDisplayAlias(userId, alias, revalidatePaths);
       if (result.ok) {
-        setMessage("Alias gespeichert.");
+        setMessage("Anzeigename gespeichert.");
       } else {
         setMessage(result.error);
       }
@@ -43,7 +43,7 @@ export function DisplayAliasEditor({
     <div className="space-y-3">
       <div>
         <label htmlFor={`alias-${userId}`} className="mb-1 block text-xs text-white/50">
-          Anzeige-Alias (Admin)
+          Anzeigename (Admin)
         </label>
         <input
           id={`alias-${userId}`}
@@ -71,7 +71,7 @@ export function DisplayAliasEditor({
         disabled={pending}
         className="rounded-md border border-[#63eca9]/40 bg-[#63eca9]/10 px-4 py-2 text-sm text-[#63eca9] transition hover:bg-[#63eca9]/20 disabled:opacity-50"
       >
-        {pending ? "Speichern …" : "Alias speichern"}
+        {pending ? "Speichern …" : "Anzeigename speichern"}
       </button>
       {message ? <p className="text-sm text-white/70">{message}</p> : null}
     </div>

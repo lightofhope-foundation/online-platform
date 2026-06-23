@@ -7,6 +7,7 @@ export type UserProfile = {
   firstName: string | null;
   lastName: string | null;
   email: string | null;
+  displayAlias: string | null;
 };
 
 export function useUserProfile() {
@@ -28,7 +29,7 @@ export function useUserProfile() {
 
       const { data } = await supabase
         .from("profiles")
-        .select("first_name, last_name")
+        .select("first_name, last_name, display_alias")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -37,6 +38,7 @@ export function useUserProfile() {
           firstName: data?.first_name ?? null,
           lastName: data?.last_name ?? null,
           email: user.email ?? null,
+          displayAlias: data?.display_alias ?? null,
         });
         setLoading(false);
       }

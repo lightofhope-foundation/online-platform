@@ -1,7 +1,8 @@
 import { getAuthUserFromCookie } from "@/lib/supabaseServer";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
+import type { UserRole } from "@/lib/profileRole";
 
-export type UserRole = "admin" | "therapist" | "patient" | "client";
+export type { UserRole } from "@/lib/profileRole";
 
 const ADMIN_EMAIL_WHITELIST = "info@oag-media.com";
 

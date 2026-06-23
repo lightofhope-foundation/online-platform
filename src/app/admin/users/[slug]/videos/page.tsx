@@ -7,7 +7,7 @@ import {
   normalizeClientIdForUrl,
 } from "@/lib/clientId";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import {
   reseedUserVideoUnlocks,
   updateUserVideoUnlock,
@@ -35,6 +35,21 @@ export default async function AdminUserVideosPage({
   }
 
   const admin = getSupabaseAdminClient();
+
+  const { data: profileRow } = await admin
+    .from("profiles")
+    .select("role")
+    .eq("client_id", clientId)
+    .maybeSingle();
+
+  if (!profileRow) {
+    notFound();
+  }
+
+  if (profileRow.role !== "client") {
+    redirect(`/admin/users/${clientId}`);
+  }
+
   let resolved;
   try {
     resolved = await resolveClientProfileByClientId(admin, clientId);

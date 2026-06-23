@@ -34,6 +34,12 @@ export function AdminSettingsTiles() {
   const base = "/admin/einstellungen";
   const tiles: Tile[] = [
     {
+      title: "Mein Profil",
+      description: "Anzeigename und Handynummer für Ihr Admin-Konto.",
+      href: `${base}/profil`,
+      icon: <UsersIcon size={24} />,
+    },
+    {
       title: "Videokurseinstellungen",
       description:
         "Standard-Freischaltung für alle Klienten, Stufe 0–5 und Einzelpersonen.",

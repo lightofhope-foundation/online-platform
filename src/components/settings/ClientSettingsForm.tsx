@@ -3,6 +3,9 @@
 import { useEffect, useState, useTransition } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { updateClientProfile } from "@/app/(client)/settings/actions";
+import { updateProfileSelfSettings } from "@/app/actions/profileSelfSettings";
+import { formatDisplayName } from "@/lib/formatDisplayName";
+import { ProfileSelfSettingsFields } from "./ProfileSelfSettingsFields";
 
 type ProfileState = {
   clientId: string | null;
@@ -11,6 +14,9 @@ type ProfileState = {
   dateOfBirth: string;
   street: string;
   houseNumber: string;
+  displayName: string;
+  phoneNumber: string;
+  displayNameSuggestion: string;
 };
 
 export function ClientSettingsForm() {
@@ -26,6 +32,9 @@ export function ClientSettingsForm() {
     dateOfBirth: "",
     street: "",
     houseNumber: "",
+    displayName: "",
+    phoneNumber: "",
+    displayNameSuggestion: "",
   });
 
   useEffect(() => {
@@ -43,7 +52,7 @@ export function ClientSettingsForm() {
         const { data, error: fetchError } = await supabase
           .from("profiles")
           .select(
-            "client_id, role, first_name, last_name, date_of_birth, street, house_number"
+            "client_id, role, first_name, last_name, date_of_birth, street, house_number, display_alias, phone_number"
           )
           .eq("user_id", user.id)
           .maybeSingle();
@@ -66,6 +75,13 @@ export function ClientSettingsForm() {
             dateOfBirth: data.date_of_birth ?? "",
             street: data.street ?? "",
             houseNumber: data.house_number ?? "",
+            displayName: data.display_alias ?? "",
+            phoneNumber: data.phone_number ?? "",
+            displayNameSuggestion: formatDisplayName(
+              data.first_name,
+              data.last_name,
+              user.email
+            ),
           });
         }
       } catch (err) {
@@ -87,13 +103,19 @@ export function ClientSettingsForm() {
     setError(null);
     startTransition(async () => {
       try {
-        await updateClientProfile({
-          firstName: profile.firstName,
-          lastName: profile.lastName,
-          dateOfBirth: profile.dateOfBirth || null,
-          street: profile.street || null,
-          houseNumber: profile.houseNumber || null,
-        });
+        await Promise.all([
+          updateProfileSelfSettings({
+            displayName: profile.displayName,
+            phoneNumber: profile.phoneNumber,
+          }),
+          updateClientProfile({
+            firstName: profile.firstName,
+            lastName: profile.lastName,
+            dateOfBirth: profile.dateOfBirth || null,
+            street: profile.street || null,
+            houseNumber: profile.houseNumber || null,
+          }),
+        ]);
         setMessage("Gespeichert");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Fehler beim Speichern");
@@ -128,6 +150,20 @@ export function ClientSettingsForm() {
         />
         <p className="mt-1 text-xs text-white/40">Wird von der Plattform vergeben und kann nicht geändert werden.</p>
       </div>
+
+      <ProfileSelfSettingsFields
+        displayNameId="client-display-name"
+        phoneId="client-phone"
+        displayName={profile.displayName}
+        phoneNumber={profile.phoneNumber}
+        onDisplayNameChange={(displayName) =>
+          setProfile((p) => ({ ...p, displayName }))
+        }
+        onPhoneNumberChange={(phoneNumber) =>
+          setProfile((p) => ({ ...p, phoneNumber }))
+        }
+        displayNameSuggestion={profile.displayNameSuggestion}
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>

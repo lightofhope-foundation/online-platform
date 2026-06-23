@@ -14,6 +14,7 @@ type Tile = {
 
 type AdminUserTilesProps = {
   clientId: string;
+  role: string;
 };
 
 function TileCard({ tile }: { tile: Tile }) {
@@ -52,7 +53,11 @@ function TileCard({ tile }: { tile: Tile }) {
   );
 }
 
-export function AdminUserTiles({ clientId }: AdminUserTilesProps) {
+export function AdminUserTiles({ clientId, role }: AdminUserTilesProps) {
+  if (role !== "client") {
+    return null;
+  }
+
   const base = `/admin/users/${clientId}`;
   const tiles: Tile[] = [
     {
