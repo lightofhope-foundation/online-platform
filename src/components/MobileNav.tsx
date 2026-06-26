@@ -8,7 +8,6 @@ import {
   SelbstcheckIcon,
   RecordingsIcon,
   HamburgerIcon,
-  FeedbackIcon,
   TherapyIcon,
   OverviewIcon,
   UsersIcon,
@@ -92,10 +91,14 @@ export const MobileNav: React.FC = () => {
               </NavPressLink>
             </li>
             <li className="flex items-center justify-center">
-              <a href="#" aria-label="Selbstcheck"><SelbstcheckIcon size={24} /></a>
-            </li>
-            <li className="flex items-center justify-center">
-              <a href="#" aria-label="Aufnahmen"><RecordingsIcon size={24} /></a>
+              <NavPressLink
+                href="/sitzungsaufnahmen"
+                aria-label="Aufnahmen"
+                className={mobileIconLinkClass("/sitzungsaufnahmen")}
+                spinnerClassName={mobileSpinnerClass}
+              >
+                <RecordingsIcon size={24} />
+              </NavPressLink>
             </li>
             <li className="flex items-center justify-center">
               <button aria-label="Menü" onClick={() => setMenuOpen(true)}>
@@ -134,24 +137,15 @@ export const MobileNav: React.FC = () => {
           </button>
           <ul className="mt-6 space-y-3">
             <li>
-              <a
-                href="#"
-                className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3"
-                onClick={() => setMenuOpen(false)}
-              >
-                <FeedbackIcon size={20} />
-                <span>Feedback</span>
-              </a>
-            </li>
-            <li>
-              <a
-                href="#"
-                className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3"
+              <NavPressLink
+                href="/sitzungen"
+                className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3"
+                innerClassName="w-full items-center gap-3"
                 onClick={() => setMenuOpen(false)}
               >
                 <TherapyIcon size={20} />
-                <span>1:1 Therapie</span>
-              </a>
+                <span>Sitzungen</span>
+              </NavPressLink>
             </li>
             <li onClick={() => setMenuOpen(false)}>
               <LogoutButton className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 w-full">

@@ -12,6 +12,7 @@ import {
   therapistNavItems,
   resolveNavArea,
   isNavItemActive,
+  visibleNavItems,
 } from "@/lib/navConfig";
 import { UiShellToggle } from "./UiShellToggle";
 import type { ShellContentWidth } from "./UiAppShell";
@@ -27,12 +28,13 @@ export function AppShellLegacy({
 }: AppShellLegacyProps) {
   const pathname = usePathname();
   const navArea = resolveNavArea(pathname);
-  const desktopNavItems =
+  const desktopNavItems = visibleNavItems(
     navArea === "admin"
       ? adminNavItems
       : navArea === "therapist"
         ? therapistNavItems
-        : clientNavItems;
+        : clientNavItems
+  );
 
   const mainMaxWidth =
     contentWidth === "wide" ? "max-w-none w-full" : "max-w-7xl";

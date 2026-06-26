@@ -9,6 +9,7 @@ import {
   therapistNavItems,
   resolveNavArea,
   isNavItemActive,
+  visibleNavItems,
 } from "@/lib/navConfig";
 import { GlassNavButton, GlassNavLink } from "./GlassNavLink";
 import { LogoutIcon } from "@/components/icons/Icons";
@@ -45,12 +46,13 @@ function GlassNavLogout() {
 export function SidebarNav() {
   const pathname = usePathname();
   const navArea = resolveNavArea(pathname);
-  const navItems =
+  const navItems = visibleNavItems(
     navArea === "admin"
       ? adminNavItems
       : navArea === "therapist"
         ? therapistNavItems
-        : clientNavItems;
+        : clientNavItems
+  );
 
   return (
     <div className="flex h-full flex-col">

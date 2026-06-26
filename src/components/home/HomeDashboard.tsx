@@ -7,7 +7,7 @@ import { DashboardOverallProgress } from "@/components/dashboard/DashboardOveral
 import { DashboardQuickTile } from "@/components/dashboard/DashboardQuickTile";
 import { VideoThumbnailPreview } from "@/components/dashboard/VideoThumbnailPreview";
 import { GlassPanel } from "@/components/layout/GlassPanel";
-import { VideosIcon, RecordingsIcon, SelbstcheckIcon } from "@/components/icons/Icons";
+import { VideosIcon, RecordingsIcon, TherapyIcon } from "@/components/icons/Icons";
 import { useVideoProgress } from "@/hooks/useVideoProgress";
 import type { CourseProgress } from "@/hooks/useVideoProgress";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
@@ -217,12 +217,14 @@ export function HomeDashboard() {
         <DashboardQuickTile
           title="Sitzungsaufnahmen"
           subtitle="Demnächst"
+          href="/sitzungsaufnahmen"
           icon={<RecordingsIcon size={20} />}
         />
         <DashboardQuickTile
-          title="Selbstcheck"
+          title="Sitzungen"
           subtitle="Demnächst"
-          icon={<SelbstcheckIcon size={20} />}
+          href="/sitzungen"
+          icon={<TherapyIcon size={20} />}
         />
       </div>
     </>

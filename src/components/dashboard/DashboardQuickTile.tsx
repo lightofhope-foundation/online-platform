@@ -21,7 +21,7 @@ export function DashboardQuickTile({
   stat,
 }: DashboardQuickTileProps) {
   const tileClass =
-    "group relative flex flex-col rounded-[16px] border border-white/10 bg-black/50 p-4 min-h-[112px] hover:border-[#63eca9]/50 hover:bg-white/[0.04] hover:shadow-[0_0_20px_rgba(99,236,169,0.28)]";
+    "nav-press-link--tile group relative flex w-full flex-col rounded-[16px] border border-white/10 bg-black/50 p-4 min-h-[112px] hover:border-[#63eca9]/50 hover:bg-white/[0.04] hover:shadow-[0_0_20px_rgba(99,236,169,0.28)]";
 
   const content = (
     <>
@@ -49,7 +49,7 @@ export function DashboardQuickTile({
       <NavPressLink
         href={href}
         className={tileClass}
-        innerClassName="flex-col items-stretch"
+        innerClassName="flex flex-col items-stretch w-full"
         spinnerClassName="absolute top-3 right-3"
       >
         {content}

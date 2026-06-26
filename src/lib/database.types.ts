@@ -486,6 +486,105 @@ export type Database = {
         }
         Relationships: []
       }
+      therapy_session_note_revisions: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          client_body_after: string | null
+          client_body_before: string | null
+          id: string
+          note_id: string
+          therapist_body_after: string | null
+          therapist_body_before: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          client_body_after?: string | null
+          client_body_before?: string | null
+          id?: string
+          note_id: string
+          therapist_body_after?: string | null
+          therapist_body_before?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          client_body_after?: string | null
+          client_body_before?: string | null
+          id?: string
+          note_id?: string
+          therapist_body_after?: string | null
+          therapist_body_before?: string | null
+        }
+        Relationships: []
+      }
+      therapy_session_notes: {
+        Row: {
+          author_id: string
+          client_body: string | null
+          created_at: string
+          id: string
+          session_id: string
+          therapist_body: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          client_body?: string | null
+          created_at?: string
+          id?: string
+          session_id: string
+          therapist_body?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          client_body?: string | null
+          created_at?: string
+          id?: string
+          session_id?: string
+          therapist_body?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      therapy_sessions: {
+        Row: {
+          client_user_id: string
+          created_at: string
+          id: string
+          meeting_url: string | null
+          released_to_client: boolean
+          scheduled_at: string | null
+          session_number: number
+          topic: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_user_id: string
+          created_at?: string
+          id?: string
+          meeting_url?: string | null
+          released_to_client?: boolean
+          scheduled_at?: string | null
+          session_number: number
+          topic?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_user_id?: string
+          created_at?: string
+          id?: string
+          meeting_url?: string | null
+          released_to_client?: boolean
+          scheduled_at?: string | null
+          session_number?: number
+          topic?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_video_unlocks: {
         Row: {
           created_at: string

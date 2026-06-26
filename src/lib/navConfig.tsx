@@ -18,15 +18,31 @@ export type NavItem = {
   name: string;
   href: string;
   icon: ReactNode;
+  /** Hidden in sidebar but kept for later re-enable */
+  hidden?: boolean;
 };
 
 export const clientNavItems: NavItem[] = [
   { name: "Startseite", icon: <HomeIcon size={18} />, href: "/" },
   { name: "Video-Section", icon: <VideosIcon size={18} />, href: "/courses" },
-  { name: "Sitzungsaufnahmen", icon: <RecordingsIcon size={18} />, href: "#" },
-  { name: "Selbstcheck", icon: <SelbstcheckIcon size={18} />, href: "#" },
-  { name: "Sitzungen", icon: <TherapyIcon size={18} />, href: "#" },
-  { name: "1:1 Therapie", icon: <TherapyIcon size={18} />, href: "#" },
+  {
+    name: "Sitzungsaufnahmen",
+    icon: <RecordingsIcon size={18} />,
+    href: "/sitzungsaufnahmen",
+  },
+  {
+    name: "Selbstcheck",
+    icon: <SelbstcheckIcon size={18} />,
+    href: "/selbstcheck",
+    hidden: true,
+  },
+  { name: "Sitzungen", icon: <TherapyIcon size={18} />, href: "/sitzungen" },
+  {
+    name: "1:1 Therapie",
+    icon: <TherapyIcon size={18} />,
+    href: "/therapie",
+    hidden: true,
+  },
   { name: "Einstellungen", icon: <SettingsIcon size={18} />, href: "/settings" },
 ];
 
@@ -51,6 +67,10 @@ export function resolveNavArea(pathname: string): NavArea {
   if (pathname.startsWith("/admin")) return "admin";
   if (pathname.startsWith("/therapist")) return "therapist";
   return "client";
+}
+
+export function visibleNavItems(items: NavItem[]): NavItem[] {
+  return items.filter((item) => !item.hidden);
 }
 
 export function isNavItemActive(

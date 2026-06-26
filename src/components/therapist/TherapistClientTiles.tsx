@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { NavPressLink } from "@/components/ui/NavPressLink";
-import { VideosIcon, UsersIcon, FeedbackIcon } from "@/components/icons/Icons";
+import { VideosIcon, UsersIcon, FeedbackIcon, CalendarIcon } from "@/components/icons/Icons";
 
 type Tile = {
   title: string;
@@ -56,6 +56,12 @@ export function TherapistClientTiles({ clientId }: { clientId: string }) {
       description: "Fortschritt und Freischaltzeiten für zugewiesene Klient:innen bearbeiten.",
       href: `${base}/videos`,
       icon: <VideosIcon size={24} />,
+    },
+    {
+      title: "Sitzungsakte",
+      description: "14 Sitzungen — Pfad, Notizen und Freigabe für den Klienten.",
+      href: `${base}/sitzungen`,
+      icon: <CalendarIcon size={24} />,
     },
     {
       title: "Therapiepfad / Überbegriff",
