@@ -53,13 +53,16 @@ export async function uploadBunnyStorageFile(
   const cleanPath = path.replace(/^\//, "");
   const url = `https://storage.bunnycdn.com/${zone}/${cleanPath}`;
 
+  const bytes =
+    body instanceof ArrayBuffer ? new Uint8Array(body) : new Uint8Array(body);
+
   const res = await fetch(url, {
     method: "PUT",
     headers: {
       AccessKey: accessKey,
       "Content-Type": contentType,
     },
-    body: body instanceof Buffer ? body : Buffer.from(body),
+    body: new Blob([bytes], { type: contentType }),
   });
 
   if (!res.ok) {
