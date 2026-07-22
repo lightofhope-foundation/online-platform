@@ -131,9 +131,129 @@ export async function updateTherapySessionNote(
   if (error) throw new Error(error.message);
 }
 
+export async function setTherapySessionRecording(
+  supabase: AdminClient,
+  sessionId: string,
+  bunnyVideoId: string | null,
+  title: string | null
+) {
+  const { error } = await supabase
+    .from("therapy_sessions")
+    .update({
+      recording_bunny_video_id: bunnyVideoId,
+      recording_title: title?.trim() || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", sessionId);
+
+  if (error) throw new Error(error.message);
+}
+
+export async function insertSpecialTherapySession(
+  supabase: AdminClient,
+  clientUserId: string,
+  afterPathOrder: number
+): Promise<{ id: string }> {
+  const { data: existing, error: loadError } = await supabase
+    .from("therapy_sessions")
+    .select("id, path_order, session_number, is_special")
+    .eq("client_user_id", clientUserId)
+    .order("path_order", { ascending: true });
+
+  if (loadError) throw new Error(loadError.message);
+  if (!existing?.length) throw new Error("Keine Sitzungen gefunden");
+
+  const toShift = existing
+    .filter((s) => s.path_order > afterPathOrder)
+    .sort((a, b) => b.path_order - a.path_order);
+
+  for (const row of toShift) {
+    const { error } = await supabase
+      .from("therapy_sessions")
+      .update({ path_order: row.path_order + 1, updated_at: new Date().toISOString() })
+      .eq("id", row.id);
+    if (error) throw new Error(error.message);
+  }
+
+  const specialNumbers = existing
+    .filter((s) => s.is_special)
+    .map((s) => s.session_number);
+  const nextSpecialNumber = Math.max(1000, ...specialNumbers, 1000) + 1;
+  const now = new Date().toISOString();
+
+  const { data: inserted, error: insertError } = await supabase
+    .from("therapy_sessions")
+    .insert({
+      client_user_id: clientUserId,
+      session_number: nextSpecialNumber,
+      path_order: afterPathOrder + 1,
+      is_special: true,
+      topic: "Sondersitzung",
+      released_to_client: false,
+      created_at: now,
+      updated_at: now,
+    })
+    .select("id")
+    .single();
+
+  if (insertError || !inserted) {
+    throw new Error(insertError?.message ?? "Sondersitzung konnte nicht erstellt werden");
+  }
+
+  return { id: inserted.id };
+}
+
+export async function deleteSpecialTherapySession(
+  supabase: AdminClient,
+  clientUserId: string,
+  sessionId: string
+): Promise<void> {
+  const { data: session, error: loadError } = await supabase
+    .from("therapy_sessions")
+    .select("id, path_order, is_special")
+    .eq("id", sessionId)
+    .eq("client_user_id", clientUserId)
+    .maybeSingle();
+
+  if (loadError) throw new Error(loadError.message);
+  if (!session?.is_special) {
+    throw new Error("Nur Sondersitzungen können entfernt werden");
+  }
+
+  const removedOrder = session.path_order;
+
+  const { error: deleteError } = await supabase
+    .from("therapy_sessions")
+    .delete()
+    .eq("id", sessionId);
+
+  if (deleteError) throw new Error(deleteError.message);
+
+  const { data: toShift, error: shiftLoadError } = await supabase
+    .from("therapy_sessions")
+    .select("id, path_order")
+    .eq("client_user_id", clientUserId)
+    .gt("path_order", removedOrder)
+    .order("path_order", { ascending: true });
+
+  if (shiftLoadError) throw new Error(shiftLoadError.message);
+
+  for (const row of toShift ?? []) {
+    const { error } = await supabase
+      .from("therapy_sessions")
+      .update({
+        path_order: row.path_order - 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", row.id);
+    if (error) throw new Error(error.message);
+  }
+}
+
 export function revalidateTherapySessionPaths(clientId: string) {
   const slug = clientId.toLowerCase();
   revalidatePath(`/therapist/clients/${slug}/sitzungen`);
   revalidatePath(`/admin/users/${slug}/sitzungen`);
   revalidatePath("/sitzungen");
+  revalidatePath("/sitzungsaufnahmen");
 }

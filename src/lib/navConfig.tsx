@@ -61,11 +61,19 @@ export const therapistNavItems: NavItem[] = [
   { name: "Einstellungen", icon: <SettingsIcon size={18} />, href: "/therapist/settings" },
 ];
 
-export type NavArea = "admin" | "therapist" | "client";
+export const setterNavItems: NavItem[] = [
+  { name: "Überblick", icon: <OverviewIcon size={18} />, href: "/setter" },
+  { name: "Klient:innen", icon: <UsersIcon size={18} />, href: "/setter/users" },
+  { name: "Neuer Klient", icon: <UsersIcon size={18} />, href: "/setter/users/new" },
+  { name: "Einstellungen", icon: <SettingsIcon size={18} />, href: "/setter/settings" },
+];
+
+export type NavArea = "admin" | "therapist" | "setter" | "client";
 
 export function resolveNavArea(pathname: string): NavArea {
   if (pathname.startsWith("/admin")) return "admin";
   if (pathname.startsWith("/therapist")) return "therapist";
+  if (pathname.startsWith("/setter")) return "setter";
   return "client";
 }
 
@@ -88,6 +96,16 @@ export function isNavItemActive(
   if (area === "therapist") {
     if (href === "/therapist") return pathname === "/therapist";
     if (href === "/therapist/settings") return pathname.startsWith("/therapist/settings");
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
+
+  if (area === "setter") {
+    if (href === "/setter") return pathname === "/setter";
+    if (href === "/setter/settings") return pathname.startsWith("/setter/settings");
+    if (href === "/setter/users/new") return pathname === "/setter/users/new";
+    if (href === "/setter/users") {
+      return pathname.startsWith("/setter/users") && pathname !== "/setter/users/new";
+    }
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 

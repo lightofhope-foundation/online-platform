@@ -3,6 +3,9 @@ export const LOH_LOGO_SRC =
 
 export const LOH_ACCENT = "#63eca9";
 
+/** Silk background base color (React Bits Silk) */
+export const LOH_SILK_COLOR = "#076356";
+
 /** Galaxy star hue (degrees) — matches LOH_ACCENT #63eca9 */
 export const LOH_GALAXY_HUE = 152;
 

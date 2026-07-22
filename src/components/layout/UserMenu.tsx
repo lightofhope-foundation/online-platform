@@ -16,7 +16,9 @@ export function UserMenu() {
       ? "/admin/einstellungen/profil"
       : navArea === "therapist"
         ? "/therapist/settings"
-        : "/settings";
+        : navArea === "setter"
+          ? "/setter/settings"
+          : "/settings";
   const { profile } = useUserProfile();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);

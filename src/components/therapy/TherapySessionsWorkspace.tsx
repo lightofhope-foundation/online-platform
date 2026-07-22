@@ -1,24 +1,29 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { clientAddSessionNote } from "@/app/(client)/sitzungen/actions";
 import {
   adminAddSessionNote,
   adminSetSessionReleased,
   adminUpdateSessionMeta,
   adminUpdateSessionNote,
-} from "@/app/admin/users/[slug]/sitzungen/actions";
-import {
+  clientAddSessionNote,
   therapistAddSessionNote,
+  therapistDeleteSpecialSession,
+  therapistInsertSpecialSession,
   therapistSetSessionReleased,
   therapistUpdateSessionMeta,
   therapistUpdateSessionNote,
-} from "@/app/therapist/clients/[slug]/sitzungen/actions";
+} from "@/app/actions/therapySessions";
 import type { TherapySessionWithNotes } from "@/lib/therapySessions";
+import { formatTherapySessionLabel } from "@/lib/therapySessions";
+import { sortSessionsOnPath } from "@/lib/therapyPathLayout";
 import { isoToBerlinDatetimeLocal } from "@/lib/berlinDatetime";
 import { formatGermanDateTime } from "@/lib/clientId";
 import { CalendarIcon } from "@/components/icons/Icons";
 import { SessionPathBubbles } from "./SessionPathBubbles";
+import { SessionRecordingPanel } from "./SessionRecordingPanel";
+import { SessionRecordingQuickAccess } from "./SessionRecordingQuickAccess";
 import { SessionReleaseSwitch } from "./SessionReleaseSwitch";
 
 export type TherapySessionsMode = "therapist" | "admin" | "client";
@@ -28,16 +33,34 @@ export type TherapySessionsWorkspaceProps = {
   mode: TherapySessionsMode;
   clientId?: string;
   therapistName?: string;
+  initialSessionNumber?: number | null;
+  bunnyLibraryId?: string;
 };
 
-function getInitialSessionNumber(
+function getInitialSessionId(
   mode: TherapySessionsMode,
-  sessions: TherapySessionWithNotes[]
-): number | null {
-  if (mode === "client") {
-    return sessions.find((s) => s.released_to_client)?.session_number ?? null;
+  sessions: TherapySessionWithNotes[],
+  preferred?: number | null
+): string | null {
+  if (preferred != null && preferred >= 1 && preferred <= 18) {
+    const match = sessions.find(
+      (s) => !s.is_special && s.session_number === preferred
+    );
+    if (match) {
+      if (mode === "client" && !match.released_to_client) {
+        return sessions.find((s) => s.released_to_client)?.id ?? null;
+      }
+      return match.id;
+    }
   }
-  return 1;
+  if (mode === "client") {
+    return sessions.find((s) => s.released_to_client)?.id ?? null;
+  }
+  return (
+    sessions.find((s) => !s.is_special && s.session_number === 1)?.id ??
+    sessions[0]?.id ??
+    null
+  );
 }
 
 function NoteBlock({
@@ -63,7 +86,10 @@ export function TherapySessionsWorkspace({
   mode,
   clientId,
   therapistName,
+  initialSessionNumber,
+  bunnyLibraryId,
 }: TherapySessionsWorkspaceProps) {
+  const router = useRouter();
   const onSetReleased = useMemo(() => {
     if (!clientId) return undefined;
     if (mode === "therapist") {
@@ -124,9 +150,12 @@ export function TherapySessionsWorkspace({
     return undefined;
   }, [mode, clientId]);
 
-  const [selectedNumber, setSelectedNumber] = useState<number | null>(() =>
-    getInitialSessionNumber(mode, sessions)
+  const sortedSessions = useMemo(() => sortSessionsOnPath(sessions), [sessions]);
+
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(() =>
+    getInitialSessionId(mode, sessions, initialSessionNumber)
   );
+  const [highlightSessionId, setHighlightSessionId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [noteError, setNoteError] = useState<string | null>(null);
   const [draftTherapist, setDraftTherapist] = useState("");
@@ -139,8 +168,8 @@ export function TherapySessionsWorkspace({
   const [linkDraft, setLinkDraft] = useState("");
 
   const selected = useMemo(
-    () => sessions.find((s) => s.session_number === selectedNumber) ?? null,
-    [sessions, selectedNumber]
+    () => sessions.find((s) => s.id === selectedSessionId) ?? null,
+    [sessions, selectedSessionId]
   );
 
   const canManage = mode === "therapist" || mode === "admin";
@@ -164,13 +193,41 @@ export function TherapySessionsWorkspace({
     setLinkDraft(session.meeting_url ?? "");
   };
 
-  const handleSelect = (num: number) => {
-    setSelectedNumber(num);
-    const session = sessions.find((s) => s.session_number === num);
+  const handleSelect = (sessionId: string) => {
+    setSelectedSessionId(sessionId);
+    const session = sessions.find((s) => s.id === sessionId);
     if (session && canManage) syncMetaDrafts(session);
     setDraftTherapist("");
     setDraftClient("");
     setEditingNoteId(null);
+  };
+
+  const handleAddSpecial = (afterPathOrder: number) => {
+    if (!clientId || mode !== "therapist") return;
+    startTransition(async () => {
+      const result = await therapistInsertSpecialSession(clientId, afterPathOrder);
+      if (result.sessionId) {
+        setHighlightSessionId(result.sessionId);
+        setSelectedSessionId(result.sessionId);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 480));
+      router.refresh();
+      window.setTimeout(() => setHighlightSessionId(null), 700);
+    });
+  };
+
+  const handleDeleteSpecial = () => {
+    if (!clientId || mode !== "therapist" || !selected?.is_special) return;
+    if (!window.confirm("Sondersitzung wirklich entfernen?")) return;
+    const fallbackId =
+      sessions.find((s) => !s.is_special && s.session_number === 1)?.id ??
+      sessions.find((s) => !s.is_special)?.id ??
+      null;
+    startTransition(async () => {
+      await therapistDeleteSpecialSession(clientId, selected.id);
+      setSelectedSessionId(fallbackId);
+      router.refresh();
+    });
   };
 
   if (!selected) {
@@ -178,7 +235,7 @@ export function TherapySessionsWorkspace({
       <div className="space-y-6">
         <SessionPathBubbles
           sessions={sessions}
-          selectedNumber={null}
+          selectedSessionId={null}
           onSelect={handleSelect}
           clientView={mode === "client"}
           therapistName={therapistName}
@@ -201,6 +258,7 @@ export function TherapySessionsWorkspace({
         scheduledAtLocal: scheduleDraft,
         meetingUrl: linkDraft,
       });
+      router.refresh();
     });
   };
 
@@ -224,6 +282,7 @@ export function TherapySessionsWorkspace({
         );
         setDraftTherapist("");
         setDraftClient("");
+        router.refresh();
       } catch (error) {
         setNoteError(
           error instanceof Error ? error.message : "Speichern fehlgeschlagen."
@@ -243,6 +302,7 @@ export function TherapySessionsWorkspace({
     startTransition(async () => {
       await onUpdateNote(editingNoteId, editTherapist, editClient);
       setEditingNoteId(null);
+      router.refresh();
     });
   };
 
@@ -250,18 +310,24 @@ export function TherapySessionsWorkspace({
     <div className="space-y-8">
       <SessionPathBubbles
         sessions={sessions}
-        selectedNumber={selectedNumber}
+        selectedSessionId={selectedSessionId}
         onSelect={handleSelect}
         clientView={mode === "client"}
         therapistName={therapistName}
+        canAddSpecial={mode === "therapist" && Boolean(clientId)}
+        onAddSpecial={mode === "therapist" && clientId ? handleAddSpecial : undefined}
+        highlightSessionId={highlightSessionId}
       />
 
       <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-xl font-semibold text-white">
-              Sitzung {selected.session_number}
-              {selected.topic ? ` — ${selected.topic}` : ""}
+              {formatTherapySessionLabel(
+                selected.session_number,
+                selected.topic,
+                selected.is_special
+              )}
             </h2>
             {selected.scheduled_at && (
               <p className="mt-1 flex items-center gap-2 text-sm text-white/60">
@@ -292,10 +358,23 @@ export function TherapySessionsWorkspace({
           </div>
 
           {canManage && onSetReleased && (
-            <SessionReleaseSwitch
-              released={selected.released_to_client}
-              onChange={(released) => onSetReleased(selected.id, released)}
-            />
+            <div className="flex flex-col items-end gap-2">
+              <SessionReleaseSwitch
+                released={selected.released_to_client}
+                variant={selected.is_special ? "special" : "default"}
+                onChange={(released) => onSetReleased(selected.id, released)}
+              />
+              {mode === "therapist" && selected.is_special && (
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={handleDeleteSpecial}
+                  className="rounded-xl border border-red-400/40 bg-red-500/10 px-3 py-1.5 text-xs text-red-300 hover:bg-red-500/20 disabled:opacity-50"
+                >
+                  Sondersitzung entfernen
+                </button>
+              )}
+            </div>
           )}
         </div>
 
@@ -341,6 +420,34 @@ export function TherapySessionsWorkspace({
             </div>
           </div>
         )}
+
+        {mode === "therapist" && clientId && (
+          <SessionRecordingPanel
+            clientId={clientId}
+            sessionId={selected.id}
+            sessionNumber={selected.session_number}
+            recordingTitle={selected.recording_title}
+            bunnyVideoId={selected.recording_bunny_video_id}
+            onUpdated={() => router.refresh()}
+          />
+        )}
+
+        {mode === "client" &&
+          selected.released_to_client &&
+          selected.recording_bunny_video_id &&
+          bunnyLibraryId && (
+            <SessionRecordingQuickAccess
+              sessionNumber={selected.session_number}
+              sessionLabel={formatTherapySessionLabel(
+                selected.session_number,
+                selected.topic,
+                selected.is_special
+              )}
+              recordingTitle={selected.recording_title}
+              bunnyVideoId={selected.recording_bunny_video_id}
+              bunnyLibraryId={bunnyLibraryId}
+            />
+          )}
 
         {clientSessionLocked && (
           <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm text-white/50">
@@ -499,18 +606,24 @@ export function TherapySessionsWorkspace({
               </tr>
             </thead>
             <tbody>
-              {sessions.map((session) => (
+              {sortedSessions.map((session) => (
                 <tr
                   key={session.id}
-                  className="border-t border-white/10 hover:bg-white/[0.02]"
+                  className={`border-t border-white/10 hover:bg-white/[0.02] ${
+                    session.is_special ? "bg-red-500/[0.08]" : ""
+                  }`}
                 >
                   <td className="px-4 py-3">
                     <button
                       type="button"
-                      onClick={() => handleSelect(session.session_number)}
-                      className="text-[#63eca9] hover:underline"
+                      onClick={() => handleSelect(session.id)}
+                      className={
+                        session.is_special
+                          ? "text-red-300 hover:underline"
+                          : "text-[#63eca9] hover:underline"
+                      }
                     >
-                      {session.session_number}
+                      {session.is_special ? "S" : session.session_number}
                     </button>
                   </td>
                   <td className="px-4 py-3 text-white/80">{session.topic ?? "—"}</td>
@@ -524,6 +637,7 @@ export function TherapySessionsWorkspace({
                       <SessionReleaseSwitch
                         released={session.released_to_client}
                         label=""
+                        variant={session.is_special ? "special" : "default"}
                         onChange={(released) => onSetReleased(session.id, released)}
                       />
                     )}

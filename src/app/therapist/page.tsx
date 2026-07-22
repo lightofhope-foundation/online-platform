@@ -113,7 +113,7 @@ export default async function TherapistHomePage() {
     };
   });
 
-  const therapistName = formatFullName(profile.first_name, profile.last_name);
+  const therapistName = formatFullName(profile?.first_name ?? null, profile?.last_name ?? null);
 
   return (
     <div className="mx-auto w-[90%] max-w-[90vw] space-y-8">

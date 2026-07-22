@@ -1,116 +1,75 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import type { TherapySessionWithNotes } from "@/lib/therapySessions";
+import { formatTherapySessionLabel } from "@/lib/therapySessions";
 import { formatGermanDateTime } from "@/lib/clientId";
-
-const COLS = 4;
-const COL_X = [10, 35, 60, 85];
-const ROW_Y = [10, 35, 60, 85];
-const TURN_R = (ROW_Y[1] - ROW_Y[0]) / 2;
-const BUBBLE_R = 4.2;
+import {
+  BUBBLE_R,
+  buildPathLayout,
+  bubbleLabel,
+  isArcSegment,
+  trimmedSegmentD,
+} from "@/lib/therapyPathLayout";
 
 const PATH_INACTIVE_STROKE = "rgba(255,255,255,0.3)";
-
-/** Linie von Bubble-Rand zu Bubble-Rand — sichtbar zwischen den Kreisen */
-function trimmedLineD(from: number, to: number): string {
-  const a = sessionPosition(from);
-  const b = sessionPosition(to);
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const len = Math.hypot(dx, dy);
-  if (len === 0) return "";
-  const pad = BUBBLE_R + 0.15;
-  const sx = a.x + (dx / len) * pad;
-  const sy = a.y + (dy / len) * pad;
-  const ex = b.x - (dx / len) * pad;
-  const ey = b.y - (dy / len) * pad;
-  return `M ${sx} ${sy} L ${ex} ${ey}`;
-}
-
-function isArcSegment(d: string): boolean {
-  return d.includes(" A ");
-}
-
-function sessionPosition(n: number): { x: number; y: number } {
-  const row = Math.floor((n - 1) / COLS);
-  const posInRow = (n - 1) % COLS;
-  const rtl = row % 2 === 1;
-  const col = rtl ? COLS - 1 - posInRow : posInRow;
-  return { x: COL_X[col], y: ROW_Y[row] };
-}
-
-const PATH_NODES = Array.from({ length: 14 }, (_, i) => {
-  const n = i + 1;
-  return { n, ...sessionPosition(n) };
-});
-
-/** Einzelsegmente 1→2→…→14 für farbige Freigabe-Logik */
-const PATH_SEGMENTS: { from: number; to: number; d: string }[] = [
-  { from: 1, to: 2, d: `M ${COL_X[0]} ${ROW_Y[0]} L ${COL_X[1]} ${ROW_Y[0]}` },
-  { from: 2, to: 3, d: `M ${COL_X[1]} ${ROW_Y[0]} L ${COL_X[2]} ${ROW_Y[0]}` },
-  { from: 3, to: 4, d: `M ${COL_X[2]} ${ROW_Y[0]} L ${COL_X[3]} ${ROW_Y[0]}` },
-  {
-    from: 4,
-    to: 5,
-    d: `M ${COL_X[3]} ${ROW_Y[0]} A ${TURN_R} ${TURN_R} 0 0 1 ${COL_X[3]} ${ROW_Y[1]}`,
-  },
-  { from: 5, to: 6, d: `M ${COL_X[3]} ${ROW_Y[1]} L ${COL_X[2]} ${ROW_Y[1]}` },
-  { from: 6, to: 7, d: `M ${COL_X[2]} ${ROW_Y[1]} L ${COL_X[1]} ${ROW_Y[1]}` },
-  { from: 7, to: 8, d: `M ${COL_X[1]} ${ROW_Y[1]} L ${COL_X[0]} ${ROW_Y[1]}` },
-  {
-    from: 8,
-    to: 9,
-    d: `M ${COL_X[0]} ${ROW_Y[1]} A ${TURN_R} ${TURN_R} 0 0 0 ${COL_X[0]} ${ROW_Y[2]}`,
-  },
-  { from: 9, to: 10, d: `M ${COL_X[0]} ${ROW_Y[2]} L ${COL_X[1]} ${ROW_Y[2]}` },
-  { from: 10, to: 11, d: `M ${COL_X[1]} ${ROW_Y[2]} L ${COL_X[2]} ${ROW_Y[2]}` },
-  { from: 11, to: 12, d: `M ${COL_X[2]} ${ROW_Y[2]} L ${COL_X[3]} ${ROW_Y[2]}` },
-  {
-    from: 12,
-    to: 13,
-    d: `M ${COL_X[3]} ${ROW_Y[2]} A ${TURN_R} ${TURN_R} 0 0 1 ${COL_X[3]} ${ROW_Y[3]}`,
-  },
-  { from: 13, to: 14, d: `M ${COL_X[3]} ${ROW_Y[3]} L ${COL_X[2]} ${ROW_Y[3]}` },
-];
+const SPECIAL_RED = "#f87171";
+const SPECIAL_GLOW = "rgba(248,113,113,0.45)";
 
 type SessionPathBubblesProps = {
   sessions: TherapySessionWithNotes[];
-  selectedNumber: number | null;
-  onSelect: (sessionNumber: number) => void;
+  selectedSessionId: string | null;
+  onSelect: (sessionId: string) => void;
   clientView?: boolean;
   therapistName?: string;
+  canAddSpecial?: boolean;
+  onAddSpecial?: (afterPathOrder: number) => void | Promise<void>;
+  highlightSessionId?: string | null;
 };
-
-function sessionByNumber(
-  sessions: TherapySessionWithNotes[],
-  n: number
-): TherapySessionWithNotes | undefined {
-  return sessions.find((s) => s.session_number === n);
-}
-
-function isReleased(sessions: TherapySessionWithNotes[], n: number): boolean {
-  return sessionByNumber(sessions, n)?.released_to_client ?? false;
-}
 
 export function SessionPathBubbles({
   sessions,
-  selectedNumber,
+  selectedSessionId,
   onSelect,
   clientView,
   therapistName,
+  canAddSpecial,
+  onAddSpecial,
+  highlightSessionId,
 }: SessionPathBubblesProps) {
+  const [hoveredSegment, setHoveredSegment] = useState<number | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  const { nodes, points, segments, viewBox } = buildPathLayout(sessions);
+  const nodeCount = nodes.length;
+
+  const handleAddSpecial = (afterPathOrder: number) => {
+    if (!onAddSpecial || pending) return;
+    startTransition(async () => {
+      await onAddSpecial(afterPathOrder);
+    });
+  };
+
   return (
-    <div className="session-path-chart rounded-[28px] border border-white/12 bg-white/[0.05] p-3 sm:p-4">
+    <div className="session-path-chart overflow-visible rounded-[28px] border border-white/12 bg-white/[0.05] px-2 pb-3 pt-5 sm:px-3 sm:pb-4 sm:pt-6">
       <svg
-        viewBox="0 0 100 100"
-        className="mx-auto block h-auto w-full"
-        style={{ maxHeight: "min(72vh, 560px)" }}
+        viewBox={viewBox}
+        preserveAspectRatio="xMidYMid meet"
+        className="session-path-chart-path-fade mx-auto block h-auto w-full"
+        style={{ maxHeight: "min(62vh, 520px)" }}
         role="img"
-        aria-label="14 Sitzungen auf dem Therapiepfad"
+        aria-label={`${nodeCount} Sitzungen auf dem Therapiepfad`}
       >
         <defs>
           <filter id="bubble-released-glow" x="-80%" y="-80%" width="260%" height="260%">
-            <feGaussianBlur stdDeviation="1.1" result="blur" />
+            <feGaussianBlur stdDeviation="0.9" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="bubble-special-glow" x="-80%" y="-80%" width="260%" height="260%">
+            <feGaussianBlur stdDeviation="1" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
@@ -118,31 +77,43 @@ export function SessionPathBubbles({
           </filter>
         </defs>
 
-        {/* Basis-Pfad: immer alle Segmente (auch unter freigegebenen) */}
-        {PATH_SEGMENTS.map(({ from, to, d }) => (
+        {segments.map(({ fromIndex, toIndex, d }) => (
           <path
-            key={`base-${from}-${to}`}
+            key={`base-${fromIndex}-${toIndex}`}
             d={d}
             fill="none"
             stroke={PATH_INACTIVE_STROKE}
-            strokeWidth={0.4}
+            strokeWidth={0.42}
             strokeLinecap="round"
             strokeLinejoin="round"
           />
         ))}
 
-        {/* Grüne Verbindungen unter den Bubbles — Lücken sichtbar, keine Überlappung auf den Kreisen */}
-        {PATH_SEGMENTS.map(({ from, to, d }) => {
-          const active = isReleased(sessions, from) && isReleased(sessions, to);
-          if (!active) return null;
-          const segmentD = isArcSegment(d) ? d : trimmedLineD(from, to);
+        {segments.map(({ fromIndex, toIndex, d }) => {
+          const fromSession = nodes[fromIndex];
+          const toSession = nodes[toIndex];
+          const fromSpecial = fromSession.is_special;
+          const toSpecial = toSession.is_special;
+          const fromReleased = fromSession.released_to_client;
+          const toReleased = toSession.released_to_client;
+
+          if (!fromReleased || !toReleased) return null;
+
+          const useRed = fromSpecial || toSpecial;
+          const segmentD = isArcSegment(d)
+            ? d
+            : trimmedSegmentD(fromIndex, toIndex, nodeCount);
           if (!segmentD) return null;
+
+          const strokeOuter = useRed ? SPECIAL_GLOW : "rgba(99,236,169,0.45)";
+          const strokeInner = useRed ? SPECIAL_RED : "#63eca9";
+
           return (
-            <g key={`active-${from}-${to}`} pointerEvents="none">
+            <g key={`active-${fromIndex}-${toIndex}`} pointerEvents="none">
               <path
                 d={segmentD}
                 fill="none"
-                stroke="rgba(99,236,169,0.45)"
+                stroke={strokeOuter}
                 strokeWidth={1.35}
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -150,7 +121,7 @@ export function SessionPathBubbles({
               <path
                 d={segmentD}
                 fill="none"
-                stroke="#63eca9"
+                stroke={strokeInner}
                 strokeWidth={0.85}
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -159,14 +130,74 @@ export function SessionPathBubbles({
           );
         })}
 
-        {PATH_NODES.map(({ n, x, y }) => {
-          const session = sessionByNumber(sessions, n);
-          if (!session) return null;
+        {canAddSpecial &&
+          onAddSpecial &&
+          segments.map((segment, idx) => (
+            <g
+              key={`insert-${segment.fromIndex}-${segment.toIndex}`}
+              onMouseEnter={() => setHoveredSegment(idx)}
+              onMouseLeave={() => setHoveredSegment(null)}
+            >
+              <path
+                d={segment.d}
+                fill="none"
+                stroke="transparent"
+                strokeWidth={4}
+                strokeLinecap="round"
+                className="cursor-pointer"
+                onClick={() => handleAddSpecial(segment.afterPathOrder)}
+              />
+              {hoveredSegment === idx && (
+                <g
+                  className="session-path-add-special cursor-pointer"
+                  transform={`translate(${segment.mid.x} ${segment.mid.y})`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddSpecial(segment.afterPathOrder);
+                  }}
+                >
+                  <circle
+                    r={1.9}
+                    fill="rgba(190,40,40,0.92)"
+                    stroke="rgba(255,180,180,0.9)"
+                    strokeWidth={0.22}
+                    className="session-path-add-pulse"
+                  />
+                  <line
+                    x1={-0.8}
+                    y1={0}
+                    x2={0.8}
+                    y2={0}
+                    stroke="#fff"
+                    strokeWidth={0.35}
+                    strokeLinecap="round"
+                  />
+                  <line
+                    x1={0}
+                    y1={-0.8}
+                    x2={0}
+                    y2={0.8}
+                    stroke="#fff"
+                    strokeWidth={0.35}
+                    strokeLinecap="round"
+                  />
+                </g>
+              )}
+            </g>
+          ))}
 
+        {nodes.map((session, index) => {
+          const { x, y } = points[index];
           const released = session.released_to_client;
           const locked = clientView && !released;
-          const selected = selectedNumber === n;
-          const title = session.topic?.trim() || `Sitzung ${n}`;
+          const selected = selectedSessionId === session.id;
+          const isSpecial = session.is_special;
+          const isEntering = highlightSessionId === session.id;
+          const title = formatTherapySessionLabel(
+            session.session_number,
+            session.topic,
+            session.is_special
+          );
           const schedule = session.scheduled_at
             ? formatGermanDateTime(session.scheduled_at)
             : null;
@@ -178,38 +209,61 @@ export function SessionPathBubbles({
           const plateFill = locked
             ? "rgba(36, 42, 40, 0.96)"
             : selected
-              ? "rgba(58, 98, 76, 0.96)"
+              ? isSpecial
+                ? "rgba(92, 44, 44, 0.96)"
+                : "rgba(58, 98, 76, 0.96)"
               : released
-                ? "rgba(54, 92, 72, 0.96)"
-                : "rgba(40, 46, 44, 0.96)";
+                ? isSpecial
+                  ? "rgba(82, 38, 38, 0.96)"
+                  : "rgba(54, 92, 72, 0.96)"
+                : isSpecial
+                  ? "rgba(52, 32, 32, 0.96)"
+                  : "rgba(40, 46, 44, 0.96)";
 
           const stroke = locked
             ? "rgba(255,255,255,0.22)"
             : selected
-              ? "rgba(99,236,169,0.9)"
+              ? isSpecial
+                ? "rgba(248,113,113,0.95)"
+                : "rgba(99,236,169,0.9)"
               : released
-                ? "rgba(99,236,169,0.95)"
-                : "rgba(255,255,255,0.32)";
+                ? isSpecial
+                  ? "rgba(248,113,113,0.95)"
+                  : "rgba(99,236,169,0.95)"
+                : isSpecial
+                  ? "rgba(248,113,113,0.55)"
+                  : "rgba(255,255,255,0.32)";
 
           const textFill = locked
             ? "rgba(255,255,255,0.42)"
             : released && !selected
-              ? "#b8ffd9"
+              ? isSpecial
+                ? "#ffd0d0"
+                : "#b8ffd9"
               : "#f8fffc";
+
+          const glowFilter =
+            isSpecial && released
+              ? "url(#bubble-special-glow)"
+              : "url(#bubble-released-glow)";
+          const glowColor = isSpecial ? "rgba(248,113,113,0.18)" : "rgba(99,236,169,0.14)";
+          const glowStroke = isSpecial ? "rgba(248,113,113,0.5)" : "rgba(99,236,169,0.42)";
 
           return (
             <g
-              key={n}
-              className={
+              key={session.id}
+              className={[
                 locked
                   ? "cursor-not-allowed outline-none"
-                  : "session-path-bubble cursor-pointer outline-none focus:outline-none focus-visible:outline-none"
-              }
-              onClick={() => !locked && onSelect(n)}
+                  : "session-path-bubble cursor-pointer outline-none focus:outline-none focus-visible:outline-none",
+                isEntering ? "session-path-bubble-enter" : "",
+              ].join(" ")}
+              transform={`translate(${x} ${y})`}
+              onClick={() => !locked && onSelect(session.id)}
               onKeyDown={(e) => {
                 if (!locked && (e.key === "Enter" || e.key === " ")) {
                   e.preventDefault();
-                  onSelect(n);
+                  onSelect(session.id);
                 }
               }}
               role="button"
@@ -219,62 +273,57 @@ export function SessionPathBubbles({
             >
               {released && (
                 <>
+                  <circle cx={0} cy={0} r={BUBBLE_R + 1.35} fill={glowColor} />
                   <circle
-                    cx={x}
-                    cy={y}
-                    r={BUBBLE_R + 1.6}
-                    fill="rgba(99,236,169,0.14)"
-                  />
-                  <circle
-                    cx={x}
-                    cy={y}
-                    r={BUBBLE_R + 1}
+                    cx={0}
+                    cy={0}
+                    r={BUBBLE_R + 0.85}
                     fill="none"
-                    stroke="rgba(99,236,169,0.42)"
-                    strokeWidth="0.35"
-                    filter="url(#bubble-released-glow)"
+                    stroke={glowStroke}
+                    strokeWidth="0.3"
+                    filter={glowFilter}
                   />
                 </>
               )}
-              <circle cx={x} cy={y} r={BUBBLE_R + 0.25} fill={plateFill} />
+              <circle cx={0} cy={0} r={BUBBLE_R + 0.2} fill={plateFill} />
               <circle
-                cx={x}
-                cy={y}
+                cx={0}
+                cy={0}
                 r={BUBBLE_R}
                 fill={plateFill}
                 stroke={stroke}
-                strokeWidth={selected ? 0.45 : 0.35}
+                strokeWidth={selected ? 0.4 : 0.3}
               />
               {selected && (
                 <circle
-                  cx={x}
-                  cy={y}
-                  r={BUBBLE_R + 0.55}
+                  cx={0}
+                  cy={0}
+                  r={BUBBLE_R + 0.5}
                   fill="none"
-                  stroke="rgba(99,236,169,0.5)"
-                  strokeWidth="0.25"
+                  stroke={isSpecial ? "rgba(248,113,113,0.55)" : "rgba(99,236,169,0.5)"}
+                  strokeWidth="0.22"
                 />
               )}
               <text
-                x={x}
-                y={y}
+                x={0}
+                y={0}
                 textAnchor="middle"
                 dominantBaseline="central"
                 fill={textFill}
-                fontSize="3.8"
+                fontSize={isSpecial ? "3.2" : "3.55"}
                 fontWeight="600"
                 style={{ pointerEvents: "none", userSelect: "none" }}
               >
-                {n}
+                {bubbleLabel(session)}
               </text>
               {released && !clientView && (
                 <circle
-                  cx={x + BUBBLE_R * 0.72}
-                  cy={y - BUBBLE_R * 0.72}
-                  r={0.9}
-                  fill="#63eca9"
+                  cx={BUBBLE_R * 0.72}
+                  cy={-BUBBLE_R * 0.72}
+                  r={0.8}
+                  fill={isSpecial ? SPECIAL_RED : "#63eca9"}
                   stroke="#2a3834"
-                  strokeWidth="0.2"
+                  strokeWidth="0.18"
                 />
               )}
             </g>
@@ -282,11 +331,16 @@ export function SessionPathBubbles({
         })}
       </svg>
 
-      {clientView && (
+      {clientView ? (
         <p className="mt-3 text-center text-xs text-white/45">
-          Grüne Verbindungen und Bubbles = freigegebene Sitzungen.
+          Grüne Verbindungen und Bubbles = freigegebene Sitzungen. Rote = Sondersitzungen.
         </p>
-      )}
+      ) : canAddSpecial ? (
+        <p className="mt-3 text-center text-xs text-white/45">
+          Über eine Verbindungslinie hovern und <span className="text-red-300">+</span> klicken,
+          um eine Sondersitzung einzufügen.
+        </p>
+      ) : null}
     </div>
   );
 }

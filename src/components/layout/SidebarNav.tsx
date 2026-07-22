@@ -7,6 +7,7 @@ import {
   adminNavItems,
   clientNavItems,
   therapistNavItems,
+  setterNavItems,
   resolveNavArea,
   isNavItemActive,
   visibleNavItems,
@@ -51,7 +52,9 @@ export function SidebarNav() {
       ? adminNavItems
       : navArea === "therapist"
         ? therapistNavItems
-        : clientNavItems
+        : navArea === "setter"
+          ? setterNavItems
+          : clientNavItems
   );
 
   return (

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DisplayAliasEditor } from "@/components/admin/DisplayAliasEditor";
 import { TherapistClientAssignmentPanel } from "@/components/admin/TherapistClientAssignmentPanel";
+import { TherapistSetterRoleToggle } from "@/components/admin/TherapistSetterRoleToggle";
 import { TherapistViewTabs } from "@/components/admin/TherapistViewTabs";
 import { checkAdminAccess } from "@/lib/checkAdminAccess";
 import {
@@ -43,6 +44,13 @@ export default async function AdminTherapistDetailPage({
   const therapistData = therapists.find((t) => t.user_id === profile.user_id);
   const assignedClients = therapistData?.clients ?? [];
 
+  const { data: extraRole } = await supabase
+    .from("profile_extra_roles")
+    .select("role")
+    .eq("user_id", profile.user_id)
+    .eq("role", "setter_closer")
+    .maybeSingle();
+
   const label = resolvePersonLabel(
     profile.first_name,
     profile.last_name,
@@ -73,6 +81,11 @@ export default async function AdminTherapistDetailPage({
           revalidatePaths={[`/admin/therapists/${profile.user_id}`]}
         />
       </div>
+
+      <TherapistSetterRoleToggle
+        userId={profile.user_id}
+        initialEnabled={Boolean(extraRole)}
+      />
 
       <div className="rounded-[20px] border border-white/10 bg-white/[0.02] p-6">
         <h2 className="mb-4 text-sm font-medium text-white/70">

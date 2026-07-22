@@ -145,6 +145,7 @@ export type Database = {
           access_revoked: boolean
           created_at: string
           deleted_at: string | null
+          intake_data: Json
           is_paid: boolean
           therapist_user_id: string | null
           updated_at: string
@@ -154,6 +155,7 @@ export type Database = {
           access_revoked?: boolean
           created_at?: string
           deleted_at?: string | null
+          intake_data?: Json
           is_paid?: boolean
           therapist_user_id?: string | null
           updated_at?: string
@@ -163,6 +165,7 @@ export type Database = {
           access_revoked?: boolean
           created_at?: string
           deleted_at?: string | null
+          intake_data?: Json
           is_paid?: boolean
           therapist_user_id?: string | null
           updated_at?: string
@@ -334,6 +337,45 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_therapy_config: {
+        Row: {
+          id: number
+          standard_session_count: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: number
+          standard_session_count?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: number
+          standard_session_count?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      profile_extra_roles: {
+        Row: {
+          user_id: string
+          role: Database["public"]["Enums"]["user_role"]
+          created_at: string
+        }
+        Insert: {
+          user_id: string
+          role: Database["public"]["Enums"]["user_role"]
+          created_at?: string
+        }
+        Update: {
+          user_id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          created_at?: string
+        }
+        Relationships: []
+      }
       platform_unlock_defaults_by_level: {
         Row: {
           access_level: number
@@ -411,6 +453,8 @@ export type Database = {
           street: string | null
           display_alias: string | null
           phone_number: string | null
+          zoom_meeting_url: string | null
+          calendly_url: string | null
           updated_at: string
           user_id: string
         }
@@ -427,6 +471,8 @@ export type Database = {
           street?: string | null
           display_alias?: string | null
           phone_number?: string | null
+          zoom_meeting_url?: string | null
+          calendly_url?: string | null
           updated_at?: string
           user_id: string
         }
@@ -442,6 +488,9 @@ export type Database = {
           last_name?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           street?: string | null
+          phone_number?: string | null
+          zoom_meeting_url?: string | null
+          calendly_url?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -554,7 +603,11 @@ export type Database = {
           client_user_id: string
           created_at: string
           id: string
+          is_special: boolean
           meeting_url: string | null
+          path_order: number
+          recording_bunny_video_id: string | null
+          recording_title: string | null
           released_to_client: boolean
           scheduled_at: string | null
           session_number: number
@@ -565,7 +618,11 @@ export type Database = {
           client_user_id: string
           created_at?: string
           id?: string
+          is_special?: boolean
           meeting_url?: string | null
+          path_order: number
+          recording_bunny_video_id?: string | null
+          recording_title?: string | null
           released_to_client?: boolean
           scheduled_at?: string | null
           session_number: number
@@ -576,7 +633,11 @@ export type Database = {
           client_user_id?: string
           created_at?: string
           id?: string
+          is_special?: boolean
           meeting_url?: string | null
+          path_order?: number
+          recording_bunny_video_id?: string | null
+          recording_title?: string | null
           released_to_client?: boolean
           scheduled_at?: string | null
           session_number?: number
@@ -855,7 +916,7 @@ export type Database = {
     }
     Enums: {
       unlock_schedule_source: "default" | "manual" | "override"
-      user_role: "admin" | "therapist" | "patient" | "client"
+      user_role: "admin" | "therapist" | "setter_closer" | "teamlead" | "patient" | "client"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -984,7 +1045,7 @@ export const Constants = {
   public: {
     Enums: {
       unlock_schedule_source: ["default", "manual", "override"],
-      user_role: ["admin", "therapist", "patient", "client"],
+      user_role: ["admin", "therapist", "setter_closer", "teamlead", "patient", "client"],
     },
   },
 } as const

@@ -10,6 +10,7 @@ export default async function Home() {
   if (user && !isAdminEmail(user.email)) {
     const role = await getProfileRole(user.id);
     if (role === "therapist") redirect("/therapist");
+    if (role === "setter_closer") redirect("/setter");
     if (role === "admin") redirect("/admin");
   }
 

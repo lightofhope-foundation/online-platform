@@ -9,6 +9,7 @@ type VideoThumbnailPreviewProps = {
   bunnyVideoId: string | null | undefined;
   title: string;
   href?: string | null;
+  onPlay?: () => void;
   className?: string;
 };
 
@@ -16,10 +17,11 @@ export function VideoThumbnailPreview({
   bunnyVideoId,
   title,
   href,
+  onPlay,
   className = "h-20 w-32 shrink-0",
 }: VideoThumbnailPreviewProps) {
   const candidates = useMemo(
-    () => (bunnyVideoId ? getBunnyThumbnailCandidates(bunnyVideoId, 360) : []),
+    () => (bunnyVideoId ? getBunnyThumbnailCandidates(bunnyVideoId, 480) : []),
     [bunnyVideoId]
   );
   const [candidateIndex, setCandidateIndex] = useState(0);
@@ -41,10 +43,12 @@ export function VideoThumbnailPreview({
     }
   };
 
+  const interactive = Boolean(href || onPlay);
+
   const frame = (
     <div
       className={`relative overflow-hidden rounded-lg border border-white/10 bg-black/60 ${className} ${
-        href ? "transition hover:border-[#63eca9]/40 hover:opacity-95" : ""
+        interactive ? "transition hover:border-[#63eca9]/40 hover:opacity-95" : ""
       }`}
     >
       {src ? (
@@ -58,8 +62,8 @@ export function VideoThumbnailPreview({
             onError={handleImageError}
           />
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
-            <span className="rounded-full bg-black/55 p-1.5 text-white">
-              <PlayIcon size={18} />
+            <span className="rounded-full bg-black/55 p-2 text-white shadow-lg">
+              <PlayIcon size={22} />
             </span>
           </div>
         </>
@@ -71,6 +75,19 @@ export function VideoThumbnailPreview({
       )}
     </div>
   );
+
+  if (onPlay) {
+    return (
+      <button
+        type="button"
+        onClick={onPlay}
+        className="block w-full shrink-0 text-left"
+        aria-label={`${title} abspielen`}
+      >
+        {frame}
+      </button>
+    );
+  }
 
   if (href) {
     return (

@@ -1,6 +1,7 @@
 import { getAuthUserFromCookie } from "@/lib/supabaseServer";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import type { UserRole } from "@/lib/profileRole";
+import { getUserPortalRoles, userHasPortalRole } from "@/lib/userRoles";
 
 export type { UserRole } from "@/lib/profileRole";
 
@@ -27,15 +28,21 @@ export async function resolvePostLoginPath(
 ): Promise<string> {
   if (isAdminEmail(email)) return "/admin";
 
-  const role = await getProfileRole(userId);
-  if (role === "admin") return "/admin";
-  if (role === "therapist") return "/therapist";
+  const roles = await getUserPortalRoles(userId);
+  if (userHasPortalRole(roles, "admin")) return "/admin";
+  if (userHasPortalRole(roles, "therapist")) return "/therapist";
+  if (userHasPortalRole(roles, "setter_closer")) return "/setter";
   return "/";
 }
 
 export async function checkTherapistAccess() {
   const user = await getAuthUserFromCookie();
   if (!user) throw new Error("Nicht autorisiert");
+
+  const roles = await getUserPortalRoles(user.id);
+  if (!userHasPortalRole(roles, "therapist")) {
+    throw new Error("Nicht autorisiert");
+  }
 
   const supabase = getSupabaseAdminClient();
   const { data: profile } = await supabase
@@ -44,9 +51,5 @@ export async function checkTherapistAccess() {
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (profile?.role !== "therapist") {
-    throw new Error("Nicht autorisiert");
-  }
-
-  return { user, supabase, profile };
+  return { user, supabase, profile, roles };
 }

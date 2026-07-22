@@ -1,6 +1,8 @@
 "use client";
 
+import { BackgroundLayerToggles } from "./BackgroundLayerToggles";
 import { NotificationBell } from "./NotificationBell";
+import { RoleViewSwitcher } from "./RoleViewSwitcher";
 import { UserMenu } from "./UserMenu";
 
 type TopBarProps = {
@@ -16,6 +18,8 @@ export function TopBar({ title }: TopBarProps) {
         <div className="flex-1" />
       )}
       <div className="flex items-center gap-3">
+        <RoleViewSwitcher />
+        <BackgroundLayerToggles />
         <NotificationBell />
         <UserMenu />
       </div>

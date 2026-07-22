@@ -1,4 +1,4 @@
-import { SelfProfileSettingsForm } from "@/components/settings/SelfProfileSettingsForm";
+import { StaffProfileSettingsForm } from "@/components/settings/StaffProfileSettingsForm";
 
 export const dynamic = "force-dynamic";
 
@@ -8,10 +8,10 @@ export default function TherapistSettingsPage() {
       <div>
         <h1 className="text-2xl font-semibold">Einstellungen</h1>
         <p className="mt-1 text-sm text-white/60">
-          Anzeigename und Handynummer für Ihr Therapeuten-Profil.
+          Anzeigename, Handynummer, Zoom- und Calendly-Link.
         </p>
       </div>
-      <SelfProfileSettingsForm allowedRoles={["therapist"]} idPrefix="therapist" />
+      <StaffProfileSettingsForm portalRole="therapist" idPrefix="therapist" />
     </div>
   );
 }

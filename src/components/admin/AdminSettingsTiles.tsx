@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { NavPressLink } from "@/components/ui/NavPressLink";
-import { VideosIcon, UsersIcon, SettingsIcon } from "@/components/icons/Icons";
+import { TherapyIcon, VideosIcon, UsersIcon, SettingsIcon } from "@/components/icons/Icons";
 
 type Tile = {
   title: string;
@@ -51,6 +51,12 @@ export function AdminSettingsTiles() {
       description: "Pflichtfelder und zusätzliche Angaben bei der Registrierung.",
       href: `${base}/registrierung`,
       icon: <UsersIcon size={24} />,
+    },
+    {
+      title: "Therapie & Sitzungsakte",
+      description: "Anzahl Standard-Sitzungen pro Klient (z. B. 18).",
+      href: `${base}/therapie`,
+      icon: <TherapyIcon size={24} />,
     },
     {
       title: "Klienten-Stufen",

@@ -7,6 +7,7 @@ type SessionReleaseSwitchProps = {
   disabled?: boolean;
   onChange: (released: boolean) => Promise<unknown>;
   label?: string;
+  variant?: "default" | "special";
 };
 
 export function SessionReleaseSwitch({
@@ -14,10 +15,12 @@ export function SessionReleaseSwitch({
   disabled,
   onChange,
   label = "Für Klient freigeben",
+  variant = "default",
 }: SessionReleaseSwitchProps) {
   const [pending, startTransition] = useTransition();
   const [optimistic, setOptimistic] = useState(released);
   const inputId = useId();
+  const isSpecial = variant === "special";
 
   useEffect(() => {
     setOptimistic(released);
@@ -25,6 +28,12 @@ export function SessionReleaseSwitch({
 
   const active = optimistic;
   const isDisabled = disabled || pending;
+
+  const trackActive = isSpecial
+    ? "border-red-400/60 bg-red-500/25"
+    : "border-[#63eca9]/60 bg-[#63eca9]/25";
+  const knobActive = isSpecial ? "translate-x-5 bg-red-400" : "translate-x-5 bg-[#63eca9]";
+  const labelActive = isSpecial ? "text-red-300" : "text-[#63eca9]";
 
   return (
     <label
@@ -51,18 +60,16 @@ export function SessionReleaseSwitch({
           });
         }}
         className={`relative h-7 w-12 rounded-full border transition-all duration-300 ${
-          active
-            ? "border-[#63eca9]/60 bg-[#63eca9]/25"
-            : "border-white/20 bg-white/[0.06]"
+          active ? trackActive : "border-white/20 bg-white/[0.06]"
         }`}
       >
         <span
           className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-300 ${
-            active ? "translate-x-5 bg-[#63eca9]" : "translate-x-0"
+            active ? knobActive : "translate-x-0"
           }`}
         />
       </button>
-      <span className={`text-xs font-medium ${active ? "text-[#63eca9]" : "text-white/40"}`}>
+      <span className={`text-xs font-medium ${active ? labelActive : "text-white/40"}`}>
         {active ? "Freigegeben" : "Gesperrt"}
       </span>
     </label>

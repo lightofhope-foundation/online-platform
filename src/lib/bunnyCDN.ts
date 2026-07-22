@@ -117,6 +117,29 @@ export function getBunnyHlsPlaylistUrl(bunnyVideoId: string): string {
   return `https://${getBunnyStreamCdnHost()}/${bunnyVideoId}/playlist.m3u8`;
 }
 
+/** Official Bunny Stream embed URL (reliable in modals / iframes). */
+export function getBunnyEmbedUrl(
+  libraryId: string,
+  bunnyVideoId: string,
+  options?: { autoplay?: boolean }
+): string {
+  const autoplay = options?.autoplay ? "true" : "false";
+  return `https://iframe.mediadelivery.net/embed/${libraryId}/${bunnyVideoId}?autoplay=${autoplay}&preload=true&responsive=true`;
+}
+
+/** Raw GUID or Bunny player/playlist URL → video GUID */
+export function extractBunnyVideoId(value: string): string | null {
+  const trimmed = value.trim();
+  const guidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (guidRegex.test(trimmed)) return trimmed;
+
+  const match = trimmed.match(
+    /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i
+  );
+  return match ? match[0] : null;
+}
+
 /**
  * Create a new video in Bunny CDN
  */
@@ -148,7 +171,8 @@ export async function createBunnyVideo(title: string): Promise<BunnyVideo> {
 export async function uploadBunnyVideo(
   videoId: string,
   file: File,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  uploadPath = "/api/admin/videos/upload"
 ): Promise<void> {
   if (typeof window === "undefined") {
     throw new Error("uploadBunnyVideo can only be called from client-side");
@@ -185,7 +209,7 @@ export async function uploadBunnyVideo(
     });
 
     // Upload through our backend route (prevents browser->Bunny auth/CORS issues).
-    xhr.open("POST", "/api/admin/videos/upload");
+    xhr.open("POST", uploadPath);
     xhr.send(formData);
   });
 }

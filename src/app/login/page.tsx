@@ -159,6 +159,8 @@ function LoginForm() {
           router.replace("/admin");
         } else if (prof?.role === "therapist") {
           router.replace("/therapist");
+        } else if (prof?.role === "setter_closer") {
+          router.replace("/setter");
         } else {
           router.replace("/");
         }

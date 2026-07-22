@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import Galaxy from "./Galaxy";
 import LightRays from "./LightRays";
-import { LOH_ACCENT, LOH_GALAXY_HUE } from "@/lib/branding";
+import Silk from "./Silk";
+import { useBackgroundLayers } from "@/components/BackgroundLayersProvider";
+import { LOH_ACCENT, LOH_GALAXY_HUE, LOH_SILK_COLOR } from "@/lib/branding";
 
-function GalaxyBackground() {
+function usePrefersReducedMotion() {
   const [mounted, setMounted] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
 
@@ -17,6 +19,30 @@ function GalaxyBackground() {
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, []);
+
+  return { mounted, reduceMotion };
+}
+
+function SilkBackground() {
+  const { mounted, reduceMotion } = usePrefersReducedMotion();
+
+  return (
+    <div className="page-silk" aria-hidden>
+      {mounted && !reduceMotion ? (
+        <Silk
+          speed={5}
+          scale={0.8}
+          color={LOH_SILK_COLOR}
+          noiseIntensity={0}
+          rotation={0}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function GalaxyBackground() {
+  const { mounted, reduceMotion } = usePrefersReducedMotion();
 
   return (
     <div className="page-galaxy" aria-hidden>
@@ -41,14 +67,22 @@ function GalaxyBackground() {
   );
 }
 
-/** Single app-wide background: galaxy + light rays (mounted once in Providers). */
+/** Single app-wide background: silk + galaxy + light rays (mounted once in Providers). */
 export function PlatformBackground() {
+  const { layers } = useBackgroundLayers();
+
   return (
     <>
-      <GalaxyBackground />
-      <div className="page-light-rays" aria-hidden>
-        <LightRays raysColor={LOH_ACCENT} />
-      </div>
+      {layers.silk ? <SilkBackground /> : null}
+      {layers.galaxy ? <GalaxyBackground /> : null}
+      {layers.lightRays ? (
+        <div className="page-light-rays" aria-hidden>
+          <LightRays raysColor={LOH_ACCENT} />
+        </div>
+      ) : null}
+      {!layers.silk && !layers.galaxy ? (
+        <div className="page-bg-fallback" aria-hidden />
+      ) : null}
     </>
   );
 }

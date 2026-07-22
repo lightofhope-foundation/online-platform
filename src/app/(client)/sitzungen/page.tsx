@@ -7,9 +7,20 @@ import { loadTherapySessionsWithNotes } from "@/lib/therapySessions";
 
 export const dynamic = "force-dynamic";
 
-export default async function SitzungenPage() {
+export default async function SitzungenPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ sitzung?: string }>;
+}) {
   const user = await getAuthUserFromCookie();
   if (!user) redirect("/login");
+
+  const { sitzung: sitzungRaw } = await searchParams;
+  const sitzungNum = sitzungRaw ? Number(sitzungRaw) : NaN;
+  const initialSessionNumber =
+    Number.isInteger(sitzungNum) && sitzungNum >= 1 && sitzungNum <= 18
+      ? sitzungNum
+      : null;
 
   const supabase = getSupabaseAdminClient();
   const { data: profile } = await supabase
@@ -54,6 +65,8 @@ export default async function SitzungenPage() {
     }
   }
 
+  const bunnyLibraryId = process.env.BUNNY_STREAM_LIBRARY_ID?.trim() ?? "";
+
   return (
     <div className="space-y-8">
       <div>
@@ -80,6 +93,8 @@ export default async function SitzungenPage() {
         sessions={sessions}
         mode="client"
         therapistName={therapistName}
+        initialSessionNumber={initialSessionNumber}
+        bunnyLibraryId={bunnyLibraryId}
       />
     </div>
   );

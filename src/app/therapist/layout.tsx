@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import { getAuthUserFromCookie } from "@/lib/supabaseServer";
-import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
+import { getUserPortalRoles, userHasPortalRole } from "@/lib/userRoles";
 
 export const dynamic = "force-dynamic";
 
@@ -13,14 +13,8 @@ export default async function TherapistLayout({ children }: { children: ReactNod
   }
 
   try {
-    const admin = getSupabaseAdminClient();
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("role")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (profile?.role !== "therapist") {
+    const roles = await getUserPortalRoles(user.id);
+    if (!userHasPortalRole(roles, "therapist")) {
       redirect("/");
     }
   } catch (e) {
