@@ -13,7 +13,8 @@ export function formatTherapySessionLabel(
 ): string {
   if (isSpecial) {
     const trimmed = topic?.trim();
-    return trimmed || "Sondersitzung";
+    if (!trimmed || /^sondersitzung$/i.test(trimmed)) return "Notsitzung";
+    return trimmed;
   }
 
   const trimmed = topic?.trim();

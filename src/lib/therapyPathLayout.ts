@@ -174,6 +174,6 @@ export function trimmedSegmentD(
 }
 
 export function bubbleLabel(session: TherapySessionWithNotes): string {
-  if (session.is_special) return "S";
+  if (session.is_special) return "N";
   return String(session.session_number);
 }

@@ -21,7 +21,8 @@ import { sortSessionsOnPath } from "@/lib/therapyPathLayout";
 import { isoToBerlinDatetimeLocal } from "@/lib/berlinDatetime";
 import { formatGermanDateTime } from "@/lib/clientId";
 import { CalendarIcon } from "@/components/icons/Icons";
-import { SessionPathBubbles } from "./SessionPathBubbles";
+import { AdminSessionPathFrame } from "./AdminSessionPathFrame";
+import { SessionPathBubbles, type SessionPathChrome } from "./SessionPathBubbles";
 import { SessionRecordingPanel } from "./SessionRecordingPanel";
 import { SessionRecordingQuickAccess } from "./SessionRecordingQuickAccess";
 import { SessionReleaseSwitch } from "./SessionReleaseSwitch";
@@ -35,6 +36,7 @@ export type TherapySessionsWorkspaceProps = {
   therapistName?: string;
   initialSessionNumber?: number | null;
   bunnyLibraryId?: string;
+  pathChrome?: SessionPathChrome | null;
 };
 
 function getInitialSessionId(
@@ -88,6 +90,7 @@ export function TherapySessionsWorkspace({
   therapistName,
   initialSessionNumber,
   bunnyLibraryId,
+  pathChrome,
 }: TherapySessionsWorkspaceProps) {
   const router = useRouter();
   const onSetReleased = useMemo(() => {
@@ -218,7 +221,7 @@ export function TherapySessionsWorkspace({
 
   const handleDeleteSpecial = () => {
     if (!clientId || mode !== "therapist" || !selected?.is_special) return;
-    if (!window.confirm("Sondersitzung wirklich entfernen?")) return;
+    if (!window.confirm("Notsitzung wirklich entfernen?")) return;
     const fallbackId =
       sessions.find((s) => !s.is_special && s.session_number === 1)?.id ??
       sessions.find((s) => !s.is_special)?.id ??
@@ -233,13 +236,28 @@ export function TherapySessionsWorkspace({
   if (!selected) {
     return (
       <div className="space-y-6">
-        <SessionPathBubbles
-          sessions={sessions}
-          selectedSessionId={null}
-          onSelect={handleSelect}
-          clientView={mode === "client"}
-          therapistName={therapistName}
-        />
+        {mode === "admin" ? (
+          <AdminSessionPathFrame>
+            <SessionPathBubbles
+              sessions={sessions}
+              selectedSessionId={null}
+              onSelect={handleSelect}
+              clientView={false}
+              therapistName={therapistName}
+              pathChrome={pathChrome}
+              adminLayout
+            />
+          </AdminSessionPathFrame>
+        ) : (
+          <SessionPathBubbles
+            sessions={sessions}
+            selectedSessionId={null}
+            onSelect={handleSelect}
+            clientView={mode === "client"}
+            therapistName={therapistName}
+            pathChrome={pathChrome}
+          />
+        )}
         {mode === "client" && (
           <p className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center text-sm text-white/50">
             Ihr Therapeut hat noch keine Sitzung freigegeben. Sobald eine Sitzung
@@ -308,16 +326,32 @@ export function TherapySessionsWorkspace({
 
   return (
     <div className="space-y-8">
-      <SessionPathBubbles
-        sessions={sessions}
-        selectedSessionId={selectedSessionId}
-        onSelect={handleSelect}
-        clientView={mode === "client"}
-        therapistName={therapistName}
-        canAddSpecial={mode === "therapist" && Boolean(clientId)}
-        onAddSpecial={mode === "therapist" && clientId ? handleAddSpecial : undefined}
-        highlightSessionId={highlightSessionId}
-      />
+      {mode === "admin" ? (
+        <AdminSessionPathFrame>
+          <SessionPathBubbles
+            sessions={sessions}
+            selectedSessionId={selectedSessionId}
+            onSelect={handleSelect}
+            clientView={false}
+            therapistName={therapistName}
+            highlightSessionId={highlightSessionId}
+            pathChrome={pathChrome}
+            adminLayout
+          />
+        </AdminSessionPathFrame>
+      ) : (
+        <SessionPathBubbles
+          sessions={sessions}
+          selectedSessionId={selectedSessionId}
+          onSelect={handleSelect}
+          clientView={mode === "client"}
+          therapistName={therapistName}
+          canAddSpecial={mode === "therapist" && Boolean(clientId)}
+          onAddSpecial={mode === "therapist" && clientId ? handleAddSpecial : undefined}
+          highlightSessionId={highlightSessionId}
+          pathChrome={pathChrome}
+        />
+      )}
 
       <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -371,7 +405,7 @@ export function TherapySessionsWorkspace({
                   onClick={handleDeleteSpecial}
                   className="rounded-xl border border-red-400/40 bg-red-500/10 px-3 py-1.5 text-xs text-red-300 hover:bg-red-500/20 disabled:opacity-50"
                 >
-                  Sondersitzung entfernen
+                  Notsitzung entfernen
                 </button>
               )}
             </div>
@@ -623,7 +657,7 @@ export function TherapySessionsWorkspace({
                           : "text-[#63eca9] hover:underline"
                       }
                     >
-                      {session.is_special ? "S" : session.session_number}
+                      {session.is_special ? "N" : session.session_number}
                     </button>
                   </td>
                   <td className="px-4 py-3 text-white/80">{session.topic ?? "—"}</td>

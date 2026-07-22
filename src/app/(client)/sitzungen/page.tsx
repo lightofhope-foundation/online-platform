@@ -1,8 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import { TherapySessionsWorkspace } from "@/components/therapy/TherapySessionsWorkspace";
+import { SessionPathHero } from "@/components/therapy/SessionPathHero";
 import { getAuthUserFromCookie } from "@/lib/supabaseServer";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import { resolvePersonLabel } from "@/lib/formatDisplayName";
+import { LOH_SESSION_PATH_DEFAULT_BG } from "@/lib/branding";
 import { loadTherapySessionsWithNotes } from "@/lib/therapySessions";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +41,7 @@ export default async function SitzungenPage({
 
   const { data: assignment } = await supabase
     .from("clients")
-    .select("therapist_user_id")
+    .select("therapist_user_id, session_path_background_url")
     .eq("user_id", profile.user_id)
     .is("deleted_at", null)
     .maybeSingle();
@@ -66,14 +68,17 @@ export default async function SitzungenPage({
   }
 
   const bunnyLibraryId = process.env.BUNNY_STREAM_LIBRARY_ID?.trim() ?? "";
+  const backgroundUrl =
+    assignment?.session_path_background_url?.trim() || LOH_SESSION_PATH_DEFAULT_BG;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Sitzungen</h1>
-        <p className="mt-2 text-sm text-white/60">
-          Therapeut: <span className="text-white/90">{therapistName}</span>
-          {therapistPhone && (
+    <SessionPathHero
+      title="DEINE SITZUNGSÜBERSICHT"
+      backgroundUrl={backgroundUrl}
+      subtitle={
+        <>
+          Therapeut: <span className="text-white/85">{therapistName}</span>
+          {therapistPhone ? (
             <>
               {" "}
               · Tel.{" "}
@@ -81,14 +86,12 @@ export default async function SitzungenPage({
                 {therapistPhone}
               </a>
             </>
-          )}
-        </p>
-        <p className="mt-1 text-xs text-white/40">
-          Nur freigegebene Sitzungen sind anklickbar. Ihre Notizen sehen Sie in den
-          Klienten-Einträgen.
-        </p>
-      </div>
-
+          ) : null}
+          <br />
+          Nur freigegebene Sitzungen sind anklickbar.
+        </>
+      }
+    >
       <TherapySessionsWorkspace
         sessions={sessions}
         mode="client"
@@ -96,6 +99,6 @@ export default async function SitzungenPage({
         initialSessionNumber={initialSessionNumber}
         bunnyLibraryId={bunnyLibraryId}
       />
-    </div>
+    </SessionPathHero>
   );
 }

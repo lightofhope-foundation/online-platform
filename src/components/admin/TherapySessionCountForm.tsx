@@ -49,7 +49,7 @@ export function TherapySessionCountForm({
         />
         <p className="mt-2 text-xs text-white/45">
           Gilt für neu angelegte und noch nicht vollständig geseedete Klienten-Akten.
-          Sondersitzungen bleiben zusätzlich einfügbar.
+          Notsitzungen bleiben zusätzlich einfügbar.
         </p>
         {updatedAt ? (
           <p className="mt-1 text-xs text-white/35">

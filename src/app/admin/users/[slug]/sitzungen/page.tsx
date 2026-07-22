@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TherapySessionsWorkspace } from "@/components/therapy/TherapySessionsWorkspace";
+import { SessionPathHero } from "@/components/therapy/SessionPathHero";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import {
   isValidClientIdFormat,
   normalizeClientIdForUrl,
 } from "@/lib/clientId";
 import { resolvePersonLabel } from "@/lib/formatDisplayName";
+import { LOH_SESSION_PATH_DEFAULT_BG } from "@/lib/branding";
 import { loadTherapySessionsWithNotes } from "@/lib/therapySessions";
 
 export const dynamic = "force-dynamic";
@@ -41,35 +43,47 @@ export default async function AdminUserSitzungenPage({
   const sessions = await loadTherapySessionsWithNotes(admin, profile.user_id);
   const boundClientId = profile.client_id;
 
+  const { data: clientRow } = await admin
+    .from("clients")
+    .select("session_path_background_url")
+    .eq("user_id", profile.user_id)
+    .maybeSingle();
+
+  const backgroundUrl =
+    clientRow?.session_path_background_url?.trim() || LOH_SESSION_PATH_DEFAULT_BG;
+
   return (
-    <div className="space-y-8">
-      <div>
+    <SessionPathHero
+      title="DEINE SITZUNGSÜBERSICHT"
+      backgroundUrl={backgroundUrl}
+      canEditBackground
+      clientUserId={profile.user_id}
+      clientId={boundClientId}
+      backLink={
         <Link
           href={`/admin/users/${boundClientId}`}
           className="text-sm text-[#63eca9] hover:underline"
         >
           ← Zurück zur Nutzer-Akte
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold">Sitzungsakte (Admin)</h1>
-        <p className="mt-1 text-sm text-white/60">
+      }
+      subtitle={
+        <>
           {resolvePersonLabel(
             profile.first_name,
             profile.last_name,
             authUser.email,
             profile.display_alias
           )}{" "}
-          · Nutzer-ID <span className="font-mono text-white/80">{boundClientId}</span>
-        </p>
-        <p className="mt-1 text-xs text-white/40">
-          Änderungszähler in Rot — vollständiger Diff-Verlauf folgt in Phase S3.
-        </p>
-      </div>
-
+          · Nutzer-ID <span className="font-mono text-white/70">{boundClientId}</span>
+        </>
+      }
+    >
       <TherapySessionsWorkspace
         sessions={sessions}
         mode="admin"
         clientId={boundClientId}
       />
-    </div>
+    </SessionPathHero>
   );
 }

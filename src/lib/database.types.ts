@@ -147,6 +147,7 @@ export type Database = {
           deleted_at: string | null
           intake_data: Json
           is_paid: boolean
+          session_path_background_url: string | null
           therapist_user_id: string | null
           updated_at: string
           user_id: string
@@ -157,6 +158,7 @@ export type Database = {
           deleted_at?: string | null
           intake_data?: Json
           is_paid?: boolean
+          session_path_background_url?: string | null
           therapist_user_id?: string | null
           updated_at?: string
           user_id: string
@@ -167,6 +169,7 @@ export type Database = {
           deleted_at?: string | null
           intake_data?: Json
           is_paid?: boolean
+          session_path_background_url?: string | null
           therapist_user_id?: string | null
           updated_at?: string
           user_id?: string

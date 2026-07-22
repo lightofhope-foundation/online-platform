@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TherapySessionsWorkspace } from "@/components/therapy/TherapySessionsWorkspace";
+import { SessionPathHero } from "@/components/therapy/SessionPathHero";
 import { checkTherapistAccess } from "@/lib/authRoles";
 import {
   assertTherapistOwnsClient,
@@ -11,6 +12,7 @@ import {
   isValidClientIdFormat,
   normalizeClientIdForUrl,
 } from "@/lib/clientId";
+import { LOH_SESSION_PATH_DEFAULT_BG } from "@/lib/branding";
 import { loadTherapySessionsWithNotes } from "@/lib/therapySessions";
 
 export const dynamic = "force-dynamic";
@@ -51,32 +53,44 @@ export default async function TherapistClientSitzungenPage({
 
     const boundClientId = resolved.clientId;
 
+    const { data: clientRow } = await supabase
+      .from("clients")
+      .select("session_path_background_url")
+      .eq("user_id", resolved.userId)
+      .maybeSingle();
+
+    const backgroundUrl =
+      clientRow?.session_path_background_url?.trim() || LOH_SESSION_PATH_DEFAULT_BG;
+
     return (
-      <div className="space-y-8">
-        <div>
+      <SessionPathHero
+        title="DEINE SITZUNGSÜBERSICHT"
+        backgroundUrl={backgroundUrl}
+        backLink={
           <Link
             href={`/therapist/clients/${resolved.clientId.toLowerCase()}`}
             className="text-sm text-[#63eca9] hover:underline"
           >
             ← Zurück zur Klienten-Akte
           </Link>
-          <h1 className="mt-2 text-2xl font-semibold">Sitzungsakte</h1>
-          <p className="mt-1 text-sm text-white/60">
-            {displayName} · Nutzer-ID{" "}
-            <span className="font-mono text-white/80">{resolved.clientId}</span>
-          </p>
-          <p className="mt-1 text-xs text-white/40">
+        }
+        subtitle={
+          <>
+            <span className="text-white/80">{displayName}</span>
+            {" · Nutzer-ID "}
+            <span className="font-mono text-white/70">{resolved.clientId}</span>
+            <br />
             Registriert: {formatGermanDateTime(resolved.profile.created_at)} · Letzter Login:{" "}
             {formatGermanDateTime(authUser.last_sign_in_at)}
-          </p>
-        </div>
-
+          </>
+        }
+      >
         <TherapySessionsWorkspace
           sessions={sessions}
           mode="therapist"
           clientId={boundClientId}
         />
-      </div>
+      </SessionPathHero>
     );
   } catch {
     notFound();

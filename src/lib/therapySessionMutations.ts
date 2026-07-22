@@ -188,7 +188,7 @@ export async function insertSpecialTherapySession(
       session_number: nextSpecialNumber,
       path_order: afterPathOrder + 1,
       is_special: true,
-      topic: "Sondersitzung",
+      topic: "Notsitzung",
       released_to_client: false,
       created_at: now,
       updated_at: now,
@@ -197,7 +197,7 @@ export async function insertSpecialTherapySession(
     .single();
 
   if (insertError || !inserted) {
-    throw new Error(insertError?.message ?? "Sondersitzung konnte nicht erstellt werden");
+    throw new Error(insertError?.message ?? "Notsitzung konnte nicht erstellt werden");
   }
 
   return { id: inserted.id };
@@ -217,7 +217,7 @@ export async function deleteSpecialTherapySession(
 
   if (loadError) throw new Error(loadError.message);
   if (!session?.is_special) {
-    throw new Error("Nur Sondersitzungen können entfernt werden");
+    throw new Error("Nur Notsitzungen können entfernt werden");
   }
 
   const removedOrder = session.path_order;

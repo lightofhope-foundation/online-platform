@@ -80,7 +80,10 @@ export function AppShellLegacy({
               </nav>
             </aside>
 
-            <section className="rounded-[24px] border border-white/10 bg-white/[0.02] p-8 backdrop-blur-sm">
+            <section
+              data-shell-content-panel
+              className="rounded-[24px] border border-white/10 bg-white/[0.02] p-8 backdrop-blur-sm"
+            >
               {children}
             </section>
           </div>

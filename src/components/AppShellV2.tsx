@@ -34,7 +34,11 @@ export function AppShellV2({
         <div className="shell-v2-main">
           <div className={innerClass}>
             <TopBar />
-            <GlassPanel className="p-6 md:p-8" as="section">
+            <GlassPanel
+              className="p-6 md:p-8"
+              as="section"
+              data-shell-content-panel
+            >
               {children}
             </GlassPanel>
           </div>

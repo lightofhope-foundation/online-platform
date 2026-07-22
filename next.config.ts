@@ -4,6 +4,12 @@ const nextConfig: NextConfig = {
   output: "standalone",
   trailingSlash: false,
   transpilePackages: ["three"],
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "lightofhope.b-cdn.net", pathname: "/**" },
+      { protocol: "https", hostname: "vz-f7a686f2-d74.b-cdn.net", pathname: "/**" },
+    ],
+  },
   async headers() {
     return [
       {

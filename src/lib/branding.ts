@@ -3,6 +3,16 @@ export const LOH_LOGO_SRC =
 
 export const LOH_ACCENT = "#63eca9";
 
+/** Default Sitzungsakte hero landscape (Bunny CDN) */
+export const LOH_SESSION_PATH_DEFAULT_BG =
+  "https://lightofhope.b-cdn.net/session-path-default-landscape.png";
+
+export const LOH_SESSION_PATH_TAGLINE =
+  "Gemeinsam Schritt für Schritt zu deinem besten Ich.";
+
+export const LOH_SESSION_PATH_FOOTER =
+  "Jede Sitzung bringt dich näher zu deinem Licht.";
+
 /** Silk background base color (React Bits Silk) */
 export const LOH_SILK_COLOR = "#076356";
 
