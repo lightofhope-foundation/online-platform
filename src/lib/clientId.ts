@@ -34,7 +34,8 @@ export function normalizeClientIdForUrl(clientId: string): string {
 }
 
 export function isValidClientIdFormat(clientId: string): boolean {
-  return /^[0-9]{2}[a-z]{4}[0-9]{3}$/i.test(clientId.trim());
+  // Allow Unicode letters (e.g. ö in generated IDs from German names)
+  return /^[0-9]{2}\p{L}{4}[0-9]{3}$/iu.test(clientId.trim());
 }
 
 /** German 24h display for unlock dates etc. */

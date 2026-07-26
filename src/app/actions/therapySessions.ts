@@ -264,6 +264,30 @@ export async function adminUpdateSessionNote(
   return { ok: true as const };
 }
 
+export async function adminInsertSpecialSession(
+  clientId: string,
+  afterPathOrder: number
+) {
+  const { supabase, userId, clientId: resolvedClientId } =
+    await checkAdminClientAccess(clientId);
+  const { id } = await insertSpecialTherapySession(supabase, userId, afterPathOrder);
+  revalidateTherapySessionPaths(resolvedClientId);
+  revalidatePath(`/admin/users/${resolvedClientId.toLowerCase()}/sitzungen`);
+  return { ok: true as const, sessionId: id };
+}
+
+export async function adminDeleteSpecialSession(
+  clientId: string,
+  sessionId: string
+) {
+  const { supabase, userId, clientId: resolvedClientId } =
+    await checkAdminClientAccess(clientId);
+  await deleteSpecialTherapySession(supabase, userId, sessionId);
+  revalidateTherapySessionPaths(resolvedClientId);
+  revalidatePath(`/admin/users/${resolvedClientId.toLowerCase()}/sitzungen`);
+  return { ok: true as const };
+}
+
 // ——— Klient ———
 
 export async function clientAddSessionNote(sessionId: string, clientBody: string) {

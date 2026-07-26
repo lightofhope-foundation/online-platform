@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   adminAddSessionNote,
+  adminDeleteSpecialSession,
+  adminInsertSpecialSession,
   adminSetSessionReleased,
   adminUpdateSessionMeta,
   adminUpdateSessionNote,
@@ -206,9 +208,12 @@ export function TherapySessionsWorkspace({
   };
 
   const handleAddSpecial = (afterPathOrder: number) => {
-    if (!clientId || mode !== "therapist") return;
+    if (!clientId || (mode !== "therapist" && mode !== "admin")) return;
     startTransition(async () => {
-      const result = await therapistInsertSpecialSession(clientId, afterPathOrder);
+      const result =
+        mode === "admin"
+          ? await adminInsertSpecialSession(clientId, afterPathOrder)
+          : await therapistInsertSpecialSession(clientId, afterPathOrder);
       if (result.sessionId) {
         setHighlightSessionId(result.sessionId);
         setSelectedSessionId(result.sessionId);
@@ -220,18 +225,26 @@ export function TherapySessionsWorkspace({
   };
 
   const handleDeleteSpecial = () => {
-    if (!clientId || mode !== "therapist" || !selected?.is_special) return;
+    if (!clientId || (mode !== "therapist" && mode !== "admin") || !selected?.is_special)
+      return;
     if (!window.confirm("Notsitzung wirklich entfernen?")) return;
     const fallbackId =
       sessions.find((s) => !s.is_special && s.session_number === 1)?.id ??
       sessions.find((s) => !s.is_special)?.id ??
       null;
     startTransition(async () => {
-      await therapistDeleteSpecialSession(clientId, selected.id);
+      if (mode === "admin") {
+        await adminDeleteSpecialSession(clientId, selected.id);
+      } else {
+        await therapistDeleteSpecialSession(clientId, selected.id);
+      }
       setSelectedSessionId(fallbackId);
       router.refresh();
     });
   };
+
+  const canAddSpecial = canManage && Boolean(clientId);
+  const onAddSpecial = canAddSpecial ? handleAddSpecial : undefined;
 
   if (!selected) {
     return (
@@ -244,6 +257,8 @@ export function TherapySessionsWorkspace({
               onSelect={handleSelect}
               clientView={false}
               therapistName={therapistName}
+              canAddSpecial={canAddSpecial}
+              onAddSpecial={onAddSpecial}
               pathChrome={pathChrome}
               adminLayout
             />
@@ -255,6 +270,8 @@ export function TherapySessionsWorkspace({
             onSelect={handleSelect}
             clientView={mode === "client"}
             therapistName={therapistName}
+            canAddSpecial={canAddSpecial}
+            onAddSpecial={onAddSpecial}
             pathChrome={pathChrome}
           />
         )}
@@ -334,6 +351,8 @@ export function TherapySessionsWorkspace({
             onSelect={handleSelect}
             clientView={false}
             therapistName={therapistName}
+            canAddSpecial={canAddSpecial}
+            onAddSpecial={onAddSpecial}
             highlightSessionId={highlightSessionId}
             pathChrome={pathChrome}
             adminLayout
@@ -346,8 +365,8 @@ export function TherapySessionsWorkspace({
           onSelect={handleSelect}
           clientView={mode === "client"}
           therapistName={therapistName}
-          canAddSpecial={mode === "therapist" && Boolean(clientId)}
-          onAddSpecial={mode === "therapist" && clientId ? handleAddSpecial : undefined}
+          canAddSpecial={canAddSpecial}
+          onAddSpecial={onAddSpecial}
           highlightSessionId={highlightSessionId}
           pathChrome={pathChrome}
         />
@@ -398,7 +417,7 @@ export function TherapySessionsWorkspace({
                 variant={selected.is_special ? "special" : "default"}
                 onChange={(released) => onSetReleased(selected.id, released)}
               />
-              {mode === "therapist" && selected.is_special && (
+              {canManage && selected.is_special && (
                 <button
                   type="button"
                   disabled={pending}

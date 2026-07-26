@@ -22,5 +22,5 @@ export default async function TherapistLayout({ children }: { children: ReactNod
     redirect("/");
   }
 
-  return <AppShell>{children}</AppShell>;
+  return <AppShell contentWidth="wide">{children}</AppShell>;
 }

@@ -51,7 +51,7 @@ export const MobileNav: React.FC = () => {
             <li className="flex items-center justify-center">
               <NavPressLink
                 href="/therapist/clients"
-                aria-label="Klient:innen"
+                aria-label="Klientenakte"
                 className={pathname.startsWith("/therapist/clients") ? active : ""}
                 spinnerClassName={mobileSpinnerClass}
               >

@@ -116,7 +116,7 @@ export default async function TherapistHomePage() {
   const therapistName = formatFullName(profile?.first_name ?? null, profile?.last_name ?? null);
 
   return (
-    <div className="mx-auto w-[90%] max-w-[90vw] space-y-8">
+    <div className="space-y-8">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Therapeut-Bereich</h1>

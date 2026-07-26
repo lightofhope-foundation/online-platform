@@ -143,6 +143,7 @@ export type Database = {
       clients: {
         Row: {
           access_revoked: boolean
+          archived_at: string | null
           created_at: string
           deleted_at: string | null
           intake_data: Json
@@ -154,6 +155,7 @@ export type Database = {
         }
         Insert: {
           access_revoked?: boolean
+          archived_at?: string | null
           created_at?: string
           deleted_at?: string | null
           intake_data?: Json
@@ -165,6 +167,7 @@ export type Database = {
         }
         Update: {
           access_revoked?: boolean
+          archived_at?: string | null
           created_at?: string
           deleted_at?: string | null
           intake_data?: Json
@@ -175,6 +178,62 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      lead_vault_boards: {
+        Row: {
+          id: string
+          parent_id: string | null
+          title: string
+          kind: string
+          accent: string
+          icon_key: string | null
+          pos_x: number
+          pos_y: number
+          sort_order: number
+          client_user_id: string | null
+          meta: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          parent_id?: string | null
+          title: string
+          kind?: string
+          accent?: string
+          icon_key?: string | null
+          pos_x?: number
+          pos_y?: number
+          sort_order?: number
+          client_user_id?: string | null
+          meta?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          parent_id?: string | null
+          title?: string
+          kind?: string
+          accent?: string
+          icon_key?: string | null
+          pos_x?: number
+          pos_y?: number
+          sort_order?: number
+          client_user_id?: string | null
+          meta?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_vault_boards_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "lead_vault_boards"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       courses: {
         Row: {

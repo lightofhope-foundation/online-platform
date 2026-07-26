@@ -210,60 +210,22 @@ export function SessionPathBubbles({
             );
           })}
 
+          {/* Hit-area unter den Bubbles — Hover entlang der Linie */}
           {canAddSpecial &&
             onAddSpecial &&
             segments.map((segment, idx) => (
-              <g
-                key={`insert-${segment.fromIndex}-${segment.toIndex}`}
+              <path
+                key={`insert-hit-${segment.fromIndex}-${segment.toIndex}`}
+                d={segment.d}
+                fill="none"
+                stroke="transparent"
+                strokeWidth={4.5}
+                strokeLinecap="round"
+                className="cursor-pointer"
                 onMouseEnter={() => setHoveredSegment(idx)}
                 onMouseLeave={() => setHoveredSegment(null)}
-              >
-                <path
-                  d={segment.d}
-                  fill="none"
-                  stroke="transparent"
-                  strokeWidth={4}
-                  strokeLinecap="round"
-                  className="cursor-pointer"
-                  onClick={() => handleAddSpecial(segment.afterPathOrder)}
-                />
-                {hoveredSegment === idx && (
-                  <g
-                    className="session-path-add-special cursor-pointer"
-                    transform={`translate(${segment.mid.x} ${segment.mid.y})`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleAddSpecial(segment.afterPathOrder);
-                    }}
-                  >
-                    <circle
-                      r={1.9}
-                      fill="rgba(190,40,40,0.92)"
-                      stroke="rgba(255,180,180,0.9)"
-                      strokeWidth={0.22}
-                      className="session-path-add-pulse"
-                    />
-                    <line
-                      x1={-0.8}
-                      y1={0}
-                      x2={0.8}
-                      y2={0}
-                      stroke="#fff"
-                      strokeWidth={0.35}
-                      strokeLinecap="round"
-                    />
-                    <line
-                      x1={0}
-                      y1={-0.8}
-                      x2={0}
-                      y2={0.8}
-                      stroke="#fff"
-                      strokeWidth={0.35}
-                      strokeLinecap="round"
-                    />
-                  </g>
-                )}
-              </g>
+                onClick={() => handleAddSpecial(segment.afterPathOrder)}
+              />
             ))}
 
           {nodes.map((session, index) => {
@@ -403,6 +365,52 @@ export function SessionPathBubbles({
               </g>
             );
           })}
+
+          {canAddSpecial &&
+            onAddSpecial &&
+            segments.map((segment, idx) => (
+              <g
+                key={`insert-${segment.fromIndex}-${segment.toIndex}`}
+                className="session-path-add-special cursor-pointer"
+                transform={`translate(${segment.mid.x} ${segment.mid.y})`}
+                opacity={hoveredSegment === idx ? 1 : 0.4}
+                onMouseEnter={() => setHoveredSegment(idx)}
+                onMouseLeave={() => setHoveredSegment(null)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddSpecial(segment.afterPathOrder);
+                }}
+              >
+                <circle r={2.4} fill="transparent" />
+                <circle
+                  r={hoveredSegment === idx ? 1.9 : 1.35}
+                  fill="rgba(190,40,40,0.92)"
+                  stroke="rgba(255,180,180,0.9)"
+                  strokeWidth={0.22}
+                  className={
+                    hoveredSegment === idx ? "session-path-add-pulse" : undefined
+                  }
+                />
+                <line
+                  x1={-0.7}
+                  y1={0}
+                  x2={0.7}
+                  y2={0}
+                  stroke="#fff"
+                  strokeWidth={0.32}
+                  strokeLinecap="round"
+                />
+                <line
+                  x1={0}
+                  y1={-0.7}
+                  x2={0}
+                  y2={0.7}
+                  stroke="#fff"
+                  strokeWidth={0.32}
+                  strokeLinecap="round"
+                />
+              </g>
+            ))}
         </svg>
 
         {clientView ? (
