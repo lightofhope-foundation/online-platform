@@ -13,7 +13,7 @@ export function TopBar({ title }: TopBarProps) {
   return (
     <header className="mb-6 flex items-center justify-between gap-4">
       {title ? (
-        <h1 className="text-xl font-semibold text-white lg:text-2xl">{title}</h1>
+        <h1 className="typo-topbar-title font-semibold text-white">{title}</h1>
       ) : (
         <div className="flex-1" />
       )}

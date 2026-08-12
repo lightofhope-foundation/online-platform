@@ -114,7 +114,7 @@ export function LeadVaultCanvas({ area, boards, title }: LeadVaultCanvasProps) {
       <div className="flex items-end justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.18em] text-white/45">Klientenakte</p>
-          <h1 className="mt-1 font-serif text-3xl text-white md:text-4xl">{title}</h1>
+          <h1 className="mt-1 typo-board-title text-white">{title}</h1>
         </div>
         <p className="hidden text-sm text-white/45 sm:block">
           Klicken = öffnen · Ziehen = verschieben

@@ -50,7 +50,7 @@ export function TherapistClientsBoard({ active, archived }: Props) {
     <div className="space-y-6">
       <div>
         <p className="text-xs uppercase tracking-[0.18em] text-white/45">Klientenakte</p>
-        <h1 className="mt-1 font-serif text-3xl text-white md:text-4xl">Meine Klient:innen</h1>
+        <h1 className="mt-1 typo-clients-heading text-white">Meine Klient:innen</h1>
         <p className="mt-2 text-sm text-white/50">
           Aktuelle und archivierte Klient:innen — Klick öffnet die Akte.
         </p>

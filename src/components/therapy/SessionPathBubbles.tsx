@@ -115,7 +115,7 @@ export function SessionPathBubbles({
                   className="h-[4.75rem] w-auto max-w-[300px] object-contain opacity-95 sm:h-24 sm:max-w-[340px]"
                 />
               </div>
-              <h1 className="font-serif text-2xl font-semibold tracking-[0.12em] text-white sm:text-3xl md:text-[2rem]">
+              <h1 className="typo-session-hero font-semibold tracking-[0.12em] text-white">
                 {pathChrome.title}
               </h1>
               <p className="mt-3 text-sm text-white/75 sm:text-base">

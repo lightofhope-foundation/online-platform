@@ -62,6 +62,21 @@ export async function setterCreateClient(
       if (!assign.ok) {
         return { ok: false, error: assign.error };
       }
+    } else {
+      // Offener Lead: clients-Zeile ohne Therapeut
+      const now = new Date().toISOString();
+      const { error: clientError } = await supabase.from("clients").insert({
+        user_id: userId,
+        therapist_user_id: null,
+        is_paid: false,
+        access_revoked: false,
+        intake_data: {},
+        created_at: now,
+        updated_at: now,
+      });
+      if (clientError) {
+        return { ok: false, error: clientError.message };
+      }
     }
 
     await ensureTherapySessionsSeeded(supabase, userId);
@@ -188,7 +203,7 @@ export async function setterSaveIntake(
 
     const { data: clientProfile } = await supabase
       .from("profiles")
-      .select("user_id, role")
+      .select("user_id, role, client_id")
       .eq("user_id", clientUserId)
       .maybeSingle();
 
@@ -234,7 +249,36 @@ export async function setterSaveIntake(
     });
 
     revalidatePath("/setter/users");
+    if (clientProfile.client_id) {
+      revalidatePath(`/setter/users/${clientProfile.client_id.toLowerCase()}`);
+    }
     return { ok: true };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Speichern fehlgeschlagen",
+    };
+  }
+}
+
+/** Save intake by public client_id (for LeadDetailCards). */
+export async function setterSaveClientIntake(
+  clientId: string,
+  intake: ClientIntakeData
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const { supabase } = await checkSetterAccess();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("user_id, role")
+      .eq("client_id", clientId)
+      .maybeSingle();
+
+    if (!profile?.user_id || profile.role !== "client") {
+      return { ok: false, error: "Ungültiger Klient." };
+    }
+
+    return setterSaveIntake(profile.user_id, intake);
   } catch (e) {
     return {
       ok: false,

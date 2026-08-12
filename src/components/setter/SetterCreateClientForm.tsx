@@ -12,7 +12,7 @@ type SetterCreateClientFormProps = {
 export function SetterCreateClientForm({ therapists }: SetterCreateClientFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [password, setPassword] = useState("Hallo123!");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [therapistUserId, setTherapistUserId] = useState("");
@@ -28,6 +28,7 @@ export function SetterCreateClientForm({ therapists }: SetterCreateClientFormPro
         password,
         firstName,
         lastName,
+        // Standard: ohne Therapeut → erscheint in Setter-Pipeline
         therapistUserId: therapistUserId || null,
       });
       if (!result.ok) {
@@ -44,6 +45,10 @@ export function SetterCreateClientForm({ therapists }: SetterCreateClientFormPro
 
   return (
     <form onSubmit={onSubmit} className="mx-auto max-w-lg space-y-4">
+      <p className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/60">
+        Neue Klienten starten <strong className="text-white/80">ohne Therapeut</strong> und
+        erscheinen in „Offene Leads“. Therapeut optional schon jetzt oder später zuweisen.
+      </p>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="mb-1.5 block text-xs text-white/50">Vorname</label>
@@ -77,7 +82,7 @@ export function SetterCreateClientForm({ therapists }: SetterCreateClientFormPro
       <div>
         <label className="mb-1.5 block text-xs text-white/50">Start-Passwort</label>
         <input
-          type="password"
+          type="text"
           required
           minLength={8}
           value={password}
@@ -86,13 +91,15 @@ export function SetterCreateClientForm({ therapists }: SetterCreateClientFormPro
         />
       </div>
       <div>
-        <label className="mb-1.5 block text-xs text-white/50">Therapeut (optional)</label>
+        <label className="mb-1.5 block text-xs text-white/50">
+          Therapeut (optional — sonst offener Lead)
+        </label>
         <select
           value={therapistUserId}
           onChange={(e) => setTherapistUserId(e.target.value)}
           className="w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-white"
         >
-          <option value="">— Später zuweisen —</option>
+          <option value="">— Noch nicht zuordnen —</option>
           {therapists.map((t) => (
             <option key={t.user_id} value={t.user_id}>
               {t.label}

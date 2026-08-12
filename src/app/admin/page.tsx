@@ -22,14 +22,15 @@ export default async function AdminHome() {
     if (authUser) {
       const { data: adminProfile } = await supabase
         .from("profiles")
-        .select("first_name, last_name")
+        .select("first_name, last_name, display_alias")
         .eq("user_id", authUser.id)
         .maybeSingle();
 
       adminLabel = buildAdminDashboardLabel(
         adminProfile?.first_name ?? null,
         adminProfile?.last_name ?? null,
-        authUser.email
+        authUser.email,
+        adminProfile?.display_alias ?? null
       );
     }
 

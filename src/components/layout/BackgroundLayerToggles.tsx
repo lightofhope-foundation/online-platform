@@ -6,7 +6,6 @@ import {
 } from "@/components/BackgroundLayersProvider";
 
 const TOGGLES: { key: keyof BackgroundLayers; label: string }[] = [
-  { key: "silk", label: "Silk" },
   { key: "galaxy", label: "Galaxy" },
   { key: "lightRays", label: "Strahlen" },
 ];

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ClientIntakeForm } from "@/components/setter/ClientIntakeForm";
+import { LeadDetailCards } from "@/components/lead-vault/LeadDetailCards";
 import { SetterClientTherapistAssignment } from "@/components/setter/SetterClientTherapistAssignment";
 import { checkSetterAccess } from "@/lib/checkSetterAccess";
 import {
@@ -8,8 +8,8 @@ import {
   fetchTherapistOptions,
 } from "@/lib/adminTherapistData";
 import { isValidClientIdFormat, normalizeClientIdForUrl } from "@/lib/clientId";
+import { parseIntake } from "@/lib/leadVault";
 import { resolvePersonLabel } from "@/lib/formatDisplayName";
-import type { ClientIntakeData } from "@/app/setter/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -39,11 +39,15 @@ export default async function SetterClientDetailPage({
 
   const { data: clientRow } = await supabase
     .from("clients")
-    .select("intake_data")
+    .select("intake_data, access_revoked, therapist_user_id")
     .eq("user_id", profile.user_id)
     .maybeSingle();
 
-  const intake = (clientRow?.intake_data ?? {}) as ClientIntakeData;
+  const intake = parseIntake(clientRow?.intake_data);
+  if (!intake.email && authUser.user?.email) {
+    intake.email = authUser.user.email;
+  }
+
   const label = resolvePersonLabel(
     profile.first_name,
     profile.last_name,
@@ -51,34 +55,46 @@ export default async function SetterClientDetailPage({
     profile.display_alias
   );
 
+  const alreadyAssigned = Boolean(clientRow?.therapist_user_id ?? assigned?.therapist_user_id);
+
   return (
     <div className="space-y-8">
-      <div>
-        <Link href="/setter/users" className="text-sm text-[#63eca9] hover:underline">
-          ← Zurück zur Liste
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold">{label}</h1>
-        <p className="mt-1 text-sm text-white/55">
-          {profile.client_id} · {authUser.user?.email ?? "—"}
+      <Link href="/setter/users" className="text-sm text-[#63eca9] hover:underline">
+        ← Offene Leads
+      </Link>
+
+      {alreadyAssigned ? (
+        <p className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100/90">
+          Dieser Klient hat bereits einen Therapeuten und gehört nicht mehr zur offenen
+          Setter-Pipeline. Du kannst die Akte noch einsehen.
         </p>
-      </div>
+      ) : null}
+
+      <LeadDetailCards
+        name={label}
+        clientId={profile.client_id}
+        accessRevoked={clientRow?.access_revoked ?? false}
+        intake={intake}
+        eyebrow="Lead"
+        statusHint={alreadyAssigned ? "bereits zugewiesen" : "offener Lead"}
+        editable
+        saveVia="setter"
+      />
+
+      <div className="mx-1 border-t border-white/10" role="separator" aria-hidden />
 
       <section className="rounded-[20px] border border-white/12 bg-white/[0.03] p-5">
-        <h2 className="mb-4 text-lg font-medium">Therapeut zuweisen</h2>
+        <h2 className="mb-1 text-lg font-medium text-white">Therapeut zuweisen</h2>
+        <p className="mb-4 text-sm text-white/50">
+          Nach der Zuweisung verschwindet der Lead aus „Offene Leads“ und erscheint in der
+          Klientenakte des Therapeuten.
+        </p>
         <SetterClientTherapistAssignment
           clientUserId={profile.user_id}
           currentTherapistUserId={assigned?.therapist_user_id ?? null}
           currentTherapistLabel={assigned?.label ?? null}
           therapists={therapists}
         />
-      </section>
-
-      <section>
-        <h2 className="mb-4 text-lg font-medium">Klienten-Akte (Erstgespräch)</h2>
-        <p className="mb-6 text-sm text-white/50">
-          Ersatz für Milanote — strukturierte Aufnahme nach dem Closer-Gespräch.
-        </p>
-        <ClientIntakeForm clientUserId={profile.user_id} initial={intake} />
       </section>
     </div>
   );

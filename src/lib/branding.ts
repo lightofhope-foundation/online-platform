@@ -3,6 +3,9 @@ export const LOH_LOGO_SRC =
 
 export const LOH_ACCENT = "#63eca9";
 
+/** RGB tuple for React Bits glow effects (no rgba wrapper) */
+export const LOH_GLOW_RGB = "99, 236, 169";
+
 /** Default Sitzungsakte hero landscape (Bunny CDN) */
 export const LOH_SESSION_PATH_DEFAULT_BG =
   "https://lightofhope.b-cdn.net/session-path-default-landscape.png";

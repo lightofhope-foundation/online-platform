@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { NavPressLink } from "@/components/ui/NavPressLink";
+import { MagicBentoTileGrid } from "@/components/dashboard/MagicBentoTileGrid";
 import { VideosIcon, UsersIcon, FeedbackIcon, CalendarIcon } from "@/components/icons/Icons";
 
 type Tile = {
@@ -16,42 +16,6 @@ type AdminUserTilesProps = {
   clientId: string;
   role: string;
 };
-
-function TileCard({ tile }: { tile: Tile }) {
-  const tileClass =
-    "group relative flex flex-col gap-3 rounded-[20px] border border-white/15 bg-white/[0.03] p-6 backdrop-blur-sm hover:border-white/25 hover:bg-white/[0.06]";
-
-  const inner = (
-    <>
-      <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] text-[#63eca9]">
-        {tile.icon}
-      </div>
-      <div>
-        <h3 className="font-medium text-white">{tile.title}</h3>
-        <p className="mt-1 text-sm text-white/60">{tile.description}</p>
-      </div>
-    </>
-  );
-
-  if (tile.disabled || !tile.href) {
-    return (
-      <div className={`${tileClass} cursor-not-allowed opacity-50`} aria-disabled>
-        {inner}
-      </div>
-    );
-  }
-
-  return (
-    <NavPressLink
-      href={tile.href}
-      className={tileClass}
-      innerClassName="flex-col items-stretch gap-3"
-      spinnerClassName="absolute top-4 right-4"
-    >
-      {inner}
-    </NavPressLink>
-  );
-}
 
 export function AdminUserTiles({ clientId, role }: AdminUserTilesProps) {
   if (role !== "client") {
@@ -88,10 +52,16 @@ export function AdminUserTiles({ clientId, role }: AdminUserTilesProps) {
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {tiles.map((tile) => (
-        <TileCard key={tile.title} tile={tile} />
-      ))}
-    </div>
+    <MagicBentoTileGrid
+      columns={3}
+      tiles={tiles.map((tile) => ({
+        key: tile.title,
+        title: tile.title,
+        description: tile.description,
+        href: tile.href,
+        icon: tile.icon,
+        disabled: tile.disabled,
+      }))}
+    />
   );
 }

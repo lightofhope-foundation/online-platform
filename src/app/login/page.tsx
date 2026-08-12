@@ -183,7 +183,7 @@ function LoginForm() {
   return (
     <main className="min-h-screen flex items-center justify-center text-white px-6 relative z-10">
       <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.06] p-6 backdrop-blur">
-        <h1 className="text-2xl font-semibold mb-4">Login</h1>
+        <h1 className="typo-page-title font-semibold mb-4">Login</h1>
         {registered && (
           <div className="mb-4 rounded-lg border border-[#63eca9]/30 bg-[#63eca9]/10 px-3 py-2 text-sm text-[#63eca9]">
             Registrierung erfolgreich. Sie können sich jetzt anmelden.

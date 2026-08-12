@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { DashboardQuickTile } from "@/components/dashboard/DashboardQuickTile";
+import { MagicBentoTileGrid } from "@/components/dashboard/MagicBentoTileGrid";
 import {
   CoursesManageIcon,
   FeedbackIcon,
@@ -23,7 +23,7 @@ export function AdminDashboardOverview({ stats }: { stats: AdminDashboardStats }
   return (
     <div className="space-y-10">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold text-[#63eca9] md:text-3xl">
+        <h1 className="typo-greeting font-normal text-[#63eca9]">
           Willkommen zurück, {stats.adminLabel}
         </h1>
         <p className="max-w-3xl text-sm text-white/60">
@@ -40,51 +40,63 @@ export function AdminDashboardOverview({ stats }: { stats: AdminDashboardStats }
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-lg font-medium text-white">Bereiche</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <DashboardQuickTile
-            title="Kurse verwalten"
-            subtitle="CMS & Videos"
-            description="Kurse, Kapitel und Videos bearbeiten, veröffentlichen und sortieren."
-            href="/admin/videos"
-            stat={stats.courseCount}
-            icon={<CoursesManageIcon size={20} />}
-          />
-          <DashboardQuickTile
-            title="Nutzer"
-            subtitle="Klient:innen & Fortschritt"
-            description="Nutzerliste, Zugangsstufen, Video-Fortschritt und Klienten-Akten."
-            href="/admin/users"
-            stat={stats.clientCount}
-            icon={<UsersIcon size={20} />}
-          />
-          <DashboardQuickTile
-            title="Therapeuten"
-            subtitle="Zuweisungen & Struktur"
-            description="Therapeuten verwalten, Klient:innen zuweisen, Strukturbaum und Übersicht."
-            href="/admin/therapists"
-            stat={stats.therapistCount}
-            icon={<TherapyIcon size={20} />}
-          />
-          <DashboardQuickTile
-            title="Feedback"
-            subtitle="Demnächst"
-            description="Feedback und Kommunikation mit Klient:innen — wird ausgebaut."
-            href="/admin/userfeedback"
-            icon={<FeedbackIcon size={20} />}
-          />
-          <DashboardQuickTile
-            title="Einstellungen"
-            subtitle="Plattform-Richtlinien"
-            description="Video-Freischaltung, Registrierung, Klienten-Stufen und Invite-Codes."
-            href="/admin/einstellungen"
-            icon={<SettingsIcon size={20} />}
-          />
-        </div>
+        <h2 className="typo-section font-normal text-white">Bereiche</h2>
+        <MagicBentoTileGrid
+          columns={3}
+          tiles={[
+            {
+              key: "videos",
+              title: "Kurse verwalten",
+              label: "CMS & Videos",
+              description:
+                "Kurse, Kapitel und Videos bearbeiten, veröffentlichen und sortieren.",
+              href: "/admin/videos",
+              stat: stats.courseCount,
+              icon: <CoursesManageIcon size={20} />,
+            },
+            {
+              key: "users",
+              title: "Nutzer",
+              label: "Klient:innen & Fortschritt",
+              description:
+                "Nutzerliste, Zugangsstufen, Video-Fortschritt und Klienten-Akten.",
+              href: "/admin/users",
+              stat: stats.clientCount,
+              icon: <UsersIcon size={20} />,
+            },
+            {
+              key: "therapists",
+              title: "Therapeuten",
+              label: "Zuweisungen & Struktur",
+              description:
+                "Therapeuten verwalten, Klient:innen zuweisen, Strukturbaum, Übersicht und Orbit.",
+              href: "/admin/therapists",
+              stat: stats.therapistCount,
+              icon: <TherapyIcon size={20} />,
+            },
+            {
+              key: "feedback",
+              title: "Feedback",
+              label: "Demnächst",
+              description: "Feedback und Kommunikation mit Klient:innen — wird ausgebaut.",
+              href: "/admin/userfeedback",
+              icon: <FeedbackIcon size={20} />,
+            },
+            {
+              key: "settings",
+              title: "Einstellungen",
+              label: "Plattform-Richtlinien",
+              description:
+                "Video-Freischaltung, Registrierung, Klienten-Stufen und Invite-Codes.",
+              href: "/admin/einstellungen",
+              icon: <SettingsIcon size={20} />,
+            },
+          ]}
+        />
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-lg font-medium text-white">Schnellzugriff</h2>
+        <h2 className="typo-section font-normal text-white">Schnellzugriff</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <QuickLink
             href="/admin/therapists/tree"
@@ -93,6 +105,10 @@ export function AdminDashboardOverview({ stats }: { stats: AdminDashboardStats }
           <QuickLink
             href="/admin/therapists/board"
             title="Therapeuten — Übersicht"
+          />
+          <QuickLink
+            href="/admin/therapists/orbit"
+            title="Therapeuten — Orbit"
           />
           <QuickLink
             href="/admin/einstellungen/videos"
@@ -108,7 +124,7 @@ export function AdminDashboardOverview({ stats }: { stats: AdminDashboardStats }
 
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-medium text-white">Aktuelle Kurse</h2>
+          <h2 className="typo-section font-normal text-white">Aktuelle Kurse</h2>
           <span className="text-xs text-white/45">
             {stats.progressCount} Fortschritt-Einträge
           </span>
@@ -165,9 +181,15 @@ function QuickLink({ href, title }: { href: string; title: string }) {
 export function buildAdminDashboardLabel(
   firstName: string | null,
   lastName: string | null,
-  email: string | null | undefined
+  email: string | null | undefined,
+  displayAlias?: string | null
 ) {
-  const label = resolvePersonLabel(firstName, lastName, email ?? null, null);
+  const label = resolvePersonLabel(
+    firstName,
+    lastName,
+    email ?? null,
+    displayAlias ?? null
+  );
   if (label !== "—") return label.split(" ")[0] ?? label;
   return email?.split("@")[0] ?? "Admin";
 }

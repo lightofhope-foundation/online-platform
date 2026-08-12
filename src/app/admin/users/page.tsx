@@ -97,7 +97,7 @@ export default async function AdminUsers() {
     return (
       <div className="space-y-8">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">Nutzer & Fortschritt</h1>
+          <h1 className="typo-page-title font-semibold">Nutzer & Fortschritt</h1>
           <Link href="/admin" className="text-sm text-[#63eca9] hover:underline">
             Zurück zum Dashboard
           </Link>
@@ -134,7 +134,7 @@ export default async function AdminUsers() {
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Nutzer & Fortschritt</h1>
+        <h1 className="typo-page-title font-semibold">Nutzer & Fortschritt</h1>
         <Link href="/admin" className="text-sm text-[#63eca9] hover:underline">
           Zurück zum Dashboard
         </Link>

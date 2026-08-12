@@ -18,5 +18,5 @@ export default async function SetterLayout({ children }: { children: ReactNode }
     }
   }
 
-  return <AppShell>{children}</AppShell>;
+  return <AppShell contentWidth="wide">{children}</AppShell>;
 }

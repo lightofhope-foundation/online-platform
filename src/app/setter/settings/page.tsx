@@ -6,7 +6,7 @@ export default function SetterSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Einstellungen</h1>
+        <h1 className="typo-page-title font-semibold">Einstellungen</h1>
         <p className="mt-1 text-sm text-white/60">
           Profil, Zoom-Link und Calendly für Setter & Closer.
         </p>

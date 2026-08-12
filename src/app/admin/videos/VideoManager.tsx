@@ -529,7 +529,7 @@ export default function VideoManager({
     return (
       <div className="space-y-8">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">Videos &amp; Kurse verwalten</h1>
+          <h1 className="typo-page-title font-semibold">Videos &amp; Kurse verwalten</h1>
           <a href="/admin" className="text-sm text-[#63eca9] hover:underline">
             Zurück zum Dashboard
           </a>
@@ -549,7 +549,7 @@ export default function VideoManager({
       <div className="space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">Videos &amp; Kurse verwalten</h1>
+          <h1 className="typo-page-title font-semibold">Videos &amp; Kurse verwalten</h1>
           <div className="flex items-center gap-3">
             {isSavingOrder && (
               <span className="text-sm text-white/50">Speichert Reihenfolge…</span>

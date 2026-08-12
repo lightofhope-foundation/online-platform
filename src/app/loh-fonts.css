@@ -1,0 +1,111 @@
+/* Typography tokens — faces via next/font (lohLocalFonts.ts) */
+
+:root {
+  --typo-greeting-font: var(--font-chalkboy), sans-serif;
+  --typo-greeting-size: 30px;
+  --typo-section-font: var(--font-doublefinger), sans-serif;
+  --typo-section-size: 20px;
+  --typo-body-font: var(--font-rns-sanz), var(--font-geist-sans), ui-sans-serif,
+    system-ui, sans-serif;
+  --typo-body-size: 16px;
+  --typo-menu-font: var(--font-rns-sanz), var(--font-geist-sans), ui-sans-serif,
+    system-ui, sans-serif;
+  --typo-menu-size: 15px;
+  --typo-clients-heading-font: var(--font-libre-baskerville), serif;
+  --typo-clients-heading-size: 36px;
+  --typo-page-title-font: var(--font-rns-sanz), sans-serif;
+  --typo-page-title-size: 24px;
+  --typo-person-name-font: var(--font-libre-baskerville), serif;
+  --typo-person-name-size: 36px;
+  --typo-board-title-font: var(--font-libre-baskerville), serif;
+  --typo-board-title-size: 36px;
+  --typo-session-hero-font: var(--font-libre-baskerville), serif;
+  --typo-session-hero-size: 32px;
+  --typo-course-title-font: var(--font-rns-sanz), sans-serif;
+  --typo-course-title-size: 36px;
+  --typo-topbar-title-font: var(--font-rns-sanz), sans-serif;
+  --typo-topbar-title-size: 20px;
+
+  /* legacy aliases */
+  --font-loh-headline: var(--typo-greeting-font);
+  --font-loh-section: var(--typo-section-font);
+  --font-loh-body: var(--typo-body-font);
+  --font-loh-menu: var(--typo-menu-font);
+  --font-loh-headline-size: var(--typo-greeting-size);
+  --font-loh-section-size: var(--typo-section-size);
+  --font-loh-body-size: var(--typo-body-size);
+  --font-loh-menu-size: var(--typo-menu-size);
+}
+
+.typo-greeting,
+.font-loh-headline {
+  font-family: var(--typo-greeting-font);
+  font-size: var(--typo-greeting-size);
+  line-height: 1.2;
+}
+
+.typo-section,
+.font-loh-section {
+  font-family: var(--typo-section-font);
+  font-size: var(--typo-section-size);
+  line-height: 1.25;
+}
+
+.typo-body,
+.font-loh-body {
+  font-family: var(--typo-body-font);
+  font-size: var(--typo-body-size);
+}
+
+.typo-menu,
+.font-loh-menu {
+  font-family: var(--typo-menu-font);
+  font-size: var(--typo-menu-size);
+}
+
+.typo-clients-heading {
+  font-family: var(--typo-clients-heading-font);
+  font-size: var(--typo-clients-heading-size);
+  line-height: 1.2;
+}
+
+.typo-page-title {
+  font-family: var(--typo-page-title-font);
+  font-size: var(--typo-page-title-size);
+  line-height: 1.25;
+}
+
+.typo-person-name {
+  font-family: var(--typo-person-name-font);
+  font-size: var(--typo-person-name-size);
+  line-height: 1.2;
+}
+
+.typo-board-title {
+  font-family: var(--typo-board-title-font);
+  font-size: var(--typo-board-title-size);
+  line-height: 1.2;
+}
+
+.typo-session-hero {
+  font-family: var(--typo-session-hero-font);
+  font-size: var(--typo-session-hero-size);
+  line-height: 1.2;
+}
+
+.typo-course-title {
+  font-family: var(--typo-course-title-font);
+  font-size: var(--typo-course-title-size);
+  line-height: 1.2;
+}
+
+.typo-topbar-title {
+  font-family: var(--typo-topbar-title-font);
+  font-size: var(--typo-topbar-title-size);
+  line-height: 1.25;
+}
+
+.sidebar-nav-content {
+  font-family: var(--typo-menu-font);
+  font-size: var(--typo-menu-size);
+}

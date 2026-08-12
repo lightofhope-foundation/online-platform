@@ -36,7 +36,7 @@ export const MobileNav: React.FC = () => {
   if (navArea === "therapist") {
     return (
       <nav className="fixed bottom-0 left-0 right-0 z-20 mx-auto max-w-3xl md:hidden">
-        <div className="mx-4 mb-4 rounded-2xl border border-white/10 bg-white/5 backdrop-blur">
+        <div className="typo-menu mx-4 mb-4 rounded-2xl border border-white/10 bg-white/5 backdrop-blur">
           <ul className="grid grid-cols-2 items-center justify-between px-6 py-3 text-white">
             <li className="flex items-center justify-center">
               <NavPressLink
@@ -68,7 +68,7 @@ export const MobileNav: React.FC = () => {
     <>
       {/* Bottom icon-only navbar */}
       <nav className="fixed bottom-0 left-0 right-0 z-20 mx-auto max-w-3xl md:hidden">
-        <div className="mx-4 mb-4 rounded-2xl bg-white/5 backdrop-blur border border-white/10">
+        <div className="typo-menu mx-4 mb-4 rounded-2xl bg-white/5 backdrop-blur border border-white/10">
           <ul className="grid grid-cols-5 items-center justify-between px-6 py-3 text-white">
             <li className="flex items-center justify-center">
               <NavPressLink

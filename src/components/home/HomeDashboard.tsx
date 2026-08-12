@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 import { DashboardOverallProgress } from "@/components/dashboard/DashboardOverallProgress";
-import { DashboardQuickTile } from "@/components/dashboard/DashboardQuickTile";
+import { MagicBentoTileGrid } from "@/components/dashboard/MagicBentoTileGrid";
 import { VideoThumbnailPreview } from "@/components/dashboard/VideoThumbnailPreview";
 import { GlassPanel } from "@/components/layout/GlassPanel";
 import { VideosIcon, RecordingsIcon, TherapyIcon } from "@/components/icons/Icons";
@@ -159,7 +159,7 @@ export function HomeDashboard() {
 
       {continueWatching?.lastVideoId && (
         <GlassPanel className="mb-8 p-6">
-          <h2 className="mb-4 text-xl font-semibold text-white">
+          <h2 className="typo-section mb-4 font-normal text-white">
             Weiter schauen
           </h2>
           <GlassPanel className="flex items-center gap-4 p-4">
@@ -207,26 +207,32 @@ export function HomeDashboard() {
         </GlassPanel>
       )}
 
-      <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3">
-        <DashboardQuickTile
-          title="Video-Section"
-          subtitle="Zum Kurs"
-          href={videoSectionHref}
-          icon={<VideosIcon size={20} />}
-        />
-        <DashboardQuickTile
-          title="Sitzungsaufnahmen"
-          subtitle="Demnächst"
-          href="/sitzungsaufnahmen"
-          icon={<RecordingsIcon size={20} />}
-        />
-        <DashboardQuickTile
-          title="Sitzungen"
-          subtitle="Demnächst"
-          href="/sitzungen"
-          icon={<TherapyIcon size={20} />}
-        />
-      </div>
+      <MagicBentoTileGrid
+        columns={3}
+        tiles={[
+          {
+            key: "videos",
+            title: "Video-Section",
+            label: "Zum Kurs",
+            href: videoSectionHref,
+            icon: <VideosIcon size={20} />,
+          },
+          {
+            key: "recordings",
+            title: "Sitzungsaufnahmen",
+            label: "Demnächst",
+            href: "/sitzungsaufnahmen",
+            icon: <RecordingsIcon size={20} />,
+          },
+          {
+            key: "sessions",
+            title: "Sitzungen",
+            label: "Demnächst",
+            href: "/sitzungen",
+            icon: <TherapyIcon size={20} />,
+          },
+        ]}
+      />
     </>
   );
 }

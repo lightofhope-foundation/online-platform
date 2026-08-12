@@ -59,12 +59,13 @@ export const adminNavItems: NavItem[] = [
 export const therapistNavItems: NavItem[] = [
   { name: "Überblick", icon: <OverviewIcon size={18} />, href: "/therapist" },
   { name: "Klientenakte", icon: <UsersIcon size={18} />, href: "/therapist/clients" },
+  { name: "Orbit", icon: <TherapyIcon size={18} />, href: "/therapist/orbit" },
   { name: "Einstellungen", icon: <SettingsIcon size={18} />, href: "/therapist/settings" },
 ];
 
 export const setterNavItems: NavItem[] = [
   { name: "Überblick", icon: <OverviewIcon size={18} />, href: "/setter" },
-  { name: "Klient:innen", icon: <UsersIcon size={18} />, href: "/setter/users" },
+  { name: "Offene Leads", icon: <UsersIcon size={18} />, href: "/setter/users" },
   { name: "Neuer Klient", icon: <UsersIcon size={18} />, href: "/setter/users/new" },
   { name: "Einstellungen", icon: <SettingsIcon size={18} />, href: "/setter/settings" },
 ];

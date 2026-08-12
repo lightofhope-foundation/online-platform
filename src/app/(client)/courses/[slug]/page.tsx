@@ -173,7 +173,7 @@ export default function CourseDetailPage({ params }: PageProps) {
         </nav>
 
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-white">{course?.title}</h1>
+          <h1 className="typo-course-title font-bold text-white">{course?.title}</h1>
           <div className="mt-4 p-4 rounded-lg border border-white/10 bg-white/[0.02] max-w-md mx-auto">
             <div className="flex items-center justify-between mb-2">
               <span className="text-white/70 text-sm">Kursfortschritt</span>

@@ -1,45 +1,20 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { NavPressLink } from "@/components/ui/NavPressLink";
+import { MagicBentoTileGrid } from "@/components/dashboard/MagicBentoTileGrid";
 import { TherapyIcon, VideosIcon, UsersIcon, SettingsIcon } from "@/components/icons/Icons";
-
-type Tile = {
-  title: string;
-  description: string;
-  href: string;
-  icon: ReactNode;
-};
-
-function TileCard({ tile }: { tile: Tile }) {
-  return (
-    <NavPressLink
-      href={tile.href}
-      className="group relative flex flex-col gap-3 rounded-[20px] border border-white/15 bg-white/[0.03] p-6 backdrop-blur-sm hover:border-[#63eca9]/30 hover:bg-white/[0.06]"
-      innerClassName="flex-col items-stretch gap-3"
-      spinnerClassName="absolute top-4 right-4"
-    >
-      <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] text-[#63eca9]">
-        {tile.icon}
-      </div>
-      <div>
-        <h3 className="font-medium text-white">{tile.title}</h3>
-        <p className="mt-1 text-sm text-white/60">{tile.description}</p>
-      </div>
-    </NavPressLink>
-  );
-}
 
 export function AdminSettingsTiles() {
   const base = "/admin/einstellungen";
-  const tiles: Tile[] = [
+  const tiles = [
     {
+      key: "profil",
       title: "Mein Profil",
-      description: "Anzeigename und Handynummer für Ihr Admin-Konto.",
+      description: "Anzeigename, Handynummer, E-Mail und Passwort für Ihr Admin-Konto.",
       href: `${base}/profil`,
       icon: <UsersIcon size={24} />,
     },
     {
+      key: "videos",
       title: "Videokurseinstellungen",
       description:
         "Standard-Freischaltung für alle Klienten, Stufe 0–5 und Einzelpersonen.",
@@ -47,18 +22,29 @@ export function AdminSettingsTiles() {
       icon: <VideosIcon size={24} />,
     },
     {
+      key: "registrierung",
       title: "Nutzereinstellungen",
       description: "Pflichtfelder und zusätzliche Angaben bei der Registrierung.",
       href: `${base}/registrierung`,
       icon: <UsersIcon size={24} />,
     },
     {
+      key: "therapie",
       title: "Therapie & Sitzungsakte",
       description: "Anzahl Standard-Sitzungen pro Klient (z. B. 18).",
       href: `${base}/therapie`,
       icon: <TherapyIcon size={24} />,
     },
     {
+      key: "schriftarten",
+      title: "Schriftarten",
+      description:
+        "Große Überschriften, Abschnitte, Fließtext und Menü — LoH-Website-Fonts oder Default.",
+      href: `${base}/schriftarten`,
+      icon: <SettingsIcon size={24} />,
+    },
+    {
+      key: "levels",
       title: "Klienten-Stufen",
       description: "Bedeutung der Zugangsstufen 0–5 (Stufe 0 = Standard).",
       href: `${base}/levels`,
@@ -66,11 +52,5 @@ export function AdminSettingsTiles() {
     },
   ];
 
-  return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {tiles.map((tile) => (
-        <TileCard key={tile.href} tile={tile} />
-      ))}
-    </div>
-  );
+  return <MagicBentoTileGrid columns={3} tiles={tiles} />;
 }

@@ -4,6 +4,8 @@ import { useState, useTransition, type ReactNode } from "react";
 import type { LeadIntakeView } from "@/lib/leadVault";
 import { PencilIcon } from "@/components/icons/Icons";
 import { therapistSaveClientIntake } from "@/app/therapist/clients/[slug]/actions";
+import { setterSaveClientIntake } from "@/app/setter/actions";
+import type { ClientIntakeData } from "@/app/setter/actions";
 
 type CardKey =
   | "daten"
@@ -89,8 +91,10 @@ type Props = {
   eyebrow?: string;
   statusHint?: string | null;
   showTitle?: boolean;
-  /** Therapist (and later Setter) can edit intake cards */
+  /** Therapist (and Setter) can edit intake cards */
   editable?: boolean;
+  /** Who persists the intake */
+  saveVia?: "therapist" | "setter";
 };
 
 export function LeadDetailCards({
@@ -102,6 +106,7 @@ export function LeadDetailCards({
   statusHint,
   showTitle = true,
   editable = false,
+  saveVia = "therapist",
 }: Props) {
   const [data, setData] = useState<LeadIntakeView>(initial);
   const [editing, setEditing] = useState<CardKey | null>(null);
@@ -123,7 +128,11 @@ export function LeadDetailCards({
   const save = () => {
     if (!clientId || !editable) return;
     startTransition(async () => {
-      const result = await therapistSaveClientIntake(clientId, draft);
+      const payload = draft as ClientIntakeData;
+      const result =
+        saveVia === "setter"
+          ? await setterSaveClientIntake(clientId, payload)
+          : await therapistSaveClientIntake(clientId, draft);
       if (result.ok) {
         setData(draft);
         setEditing(null);
@@ -190,7 +199,7 @@ export function LeadDetailCards({
       {showTitle ? (
         <div>
           <p className="text-xs uppercase tracking-[0.18em] text-white/45">{eyebrow}</p>
-          <h1 className="mt-1 font-serif text-3xl text-white md:text-4xl">{name}</h1>
+          <h1 className="mt-1 typo-person-name text-white">{name}</h1>
           <p className="mt-1 text-sm text-white/45">
             {clientId ? `ID ${clientId}` : "ohne Client-ID"}
             {accessRevoked ? " · kein Plattform-Zugang" : ""}

@@ -9,7 +9,7 @@ export function DashboardGreeting({ firstName }: DashboardGreetingProps) {
 
   return (
     <div className="mb-8 text-center px-2">
-      <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-[#63eca9] truncate max-w-full mx-auto">
+      <h1 className="typo-greeting font-normal tracking-tight text-[#63eca9] truncate max-w-full mx-auto">
         {label}
       </h1>
     </div>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 type TherapistViewTabsProps = {
-  active: "list" | "tree" | "board";
+  active: "list" | "tree" | "board" | "orbit";
 };
 
 export function TherapistViewTabs({ active }: TherapistViewTabsProps) {
@@ -11,6 +11,7 @@ export function TherapistViewTabs({ active }: TherapistViewTabsProps) {
     { id: "list" as const, label: "Liste", href: "/admin/therapists" },
     { id: "tree" as const, label: "Strukturbaum", href: "/admin/therapists/tree" },
     { id: "board" as const, label: "Übersicht (3)", href: "/admin/therapists/board" },
+    { id: "orbit" as const, label: "Orbit", href: "/admin/therapists/orbit" },
   ];
 
   return (

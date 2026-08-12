@@ -37,7 +37,7 @@ export function DashboardOverallProgress({
     <div className="mb-6 rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,30%)_minmax(0,70%)] sm:gap-x-5">
         <div className="flex flex-col justify-center sm:pr-2">
-          <h2 className="text-lg font-semibold text-white">Gesamtfortschritt</h2>
+          <h2 className="typo-section font-normal text-white">Gesamtfortschritt</h2>
           <p className="mt-1 text-xs text-white/50">
             {completedVideos} von {totalVideos} Videos abgeschlossen
           </p>

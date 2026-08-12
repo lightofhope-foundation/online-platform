@@ -7,28 +7,21 @@ import Silk from "./Silk";
 import { useBackgroundLayers } from "@/components/BackgroundLayersProvider";
 import { LOH_ACCENT, LOH_GALAXY_HUE, LOH_SILK_COLOR } from "@/lib/branding";
 
-function usePrefersReducedMotion() {
+function useClientMounted() {
   const [mounted, setMounted] = useState(false);
-  const [reduceMotion, setReduceMotion] = useState(false);
-
   useEffect(() => {
     setMounted(true);
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduceMotion(mq.matches);
-    const handler = () => setReduceMotion(mq.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
   }, []);
-
-  return { mounted, reduceMotion };
+  return mounted;
 }
 
 function SilkBackground() {
-  const { mounted, reduceMotion } = usePrefersReducedMotion();
+  const mounted = useClientMounted();
 
   return (
     <div className="page-silk" aria-hidden>
-      {mounted && !reduceMotion ? (
+      {/* Explicit Silk toggle overrides prefers-reduced-motion */}
+      {mounted ? (
         <Silk
           speed={5}
           scale={0.8}
@@ -42,11 +35,11 @@ function SilkBackground() {
 }
 
 function GalaxyBackground() {
-  const { mounted, reduceMotion } = usePrefersReducedMotion();
+  const mounted = useClientMounted();
 
   return (
     <div className="page-galaxy" aria-hidden>
-      {mounted && !reduceMotion ? (
+      {mounted ? (
         <Galaxy
           mouseRepulsion={false}
           mouseInteraction={false}

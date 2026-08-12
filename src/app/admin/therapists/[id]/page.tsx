@@ -66,6 +66,14 @@ export default async function AdminTherapistDetailPage({
         </Link>
         <h1 className="mt-2 text-2xl font-semibold">{label}</h1>
         <p className="text-sm text-white/60">{authUser.email}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            href={`/admin/therapists/${profile.user_id}/orbit`}
+            className="rounded-full border border-[#63eca9]/50 bg-[#63eca9]/10 px-4 py-2 text-sm text-[#63eca9] transition hover:bg-[#63eca9]/20"
+          >
+            Orbit öffnen
+          </Link>
+        </div>
       </div>
 
       <TherapistViewTabs active="list" />

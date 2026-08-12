@@ -68,7 +68,7 @@ export default async function AdminTherapistsPage() {
           <Link href="/admin" className="text-sm text-[#63eca9] hover:underline">
             ← Zurück zum Überblick
           </Link>
-          <h1 className="mt-2 text-xl font-semibold">Therapeuten</h1>
+          <h1 className="mt-2 typo-page-title font-semibold">Therapeuten</h1>
           <p className="text-sm text-white/60">
             Verwaltung aller Therapeuten inkl. Klient-Zuweisungen.
           </p>

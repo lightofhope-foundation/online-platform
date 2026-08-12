@@ -61,7 +61,7 @@ export default async function SitzungsaufnahmenPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold">Sitzungsaufnahmen</h1>
+        <h1 className="typo-page-title font-semibold">Sitzungsaufnahmen</h1>
         <p className="mt-2 text-sm text-white/60">
           {availableCount > 0
             ? `${availableCount} Aufnahme${availableCount === 1 ? "" : "n"} verfügbar — nur für freigegebene Sitzungen.`

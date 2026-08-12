@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { setterAssignTherapist } from "@/app/setter/actions";
 import type { TherapistOption } from "@/lib/adminTherapistData";
 
@@ -9,6 +10,8 @@ type SetterClientTherapistAssignmentProps = {
   currentTherapistUserId: string | null;
   currentTherapistLabel: string | null;
   therapists: TherapistOption[];
+  /** After assigning a therapist, leave the open-leads list */
+  redirectOnAssign?: string;
 };
 
 export function SetterClientTherapistAssignment({
@@ -16,7 +19,9 @@ export function SetterClientTherapistAssignment({
   currentTherapistUserId,
   currentTherapistLabel,
   therapists,
+  redirectOnAssign = "/setter/users",
 }: SetterClientTherapistAssignmentProps) {
+  const router = useRouter();
   const [selected, setSelected] = useState(currentTherapistUserId ?? "");
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -26,13 +31,18 @@ export function SetterClientTherapistAssignment({
     const therapistUserId = selected.length > 0 ? selected : null;
     startTransition(async () => {
       const result = await setterAssignTherapist(clientUserId, therapistUserId);
-      setMessage(
-        result.ok
-          ? therapistUserId
-            ? "Therapeut zugewiesen."
-            : "Zuweisung entfernt."
-          : result.error
-      );
+      if (!result.ok) {
+        setMessage(result.error);
+        return;
+      }
+      if (therapistUserId) {
+        setMessage("Zugewiesen — Lead verlässt die offenen Leads …");
+        router.push(redirectOnAssign);
+        router.refresh();
+        return;
+      }
+      setMessage("Zuweisung entfernt.");
+      router.refresh();
     });
   };
 
@@ -41,7 +51,9 @@ export function SetterClientTherapistAssignment({
       {currentTherapistUserId && currentTherapistLabel ? (
         <p className="text-sm text-white/70">Aktuell: {currentTherapistLabel}</p>
       ) : (
-        <p className="text-sm text-white/50">Noch kein Therapeut zugewiesen.</p>
+        <p className="text-sm text-white/50">
+          Noch kein Therapeut — Lead bleibt in der Setter-Pipeline, bis du zuweist.
+        </p>
       )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -52,7 +64,7 @@ export function SetterClientTherapistAssignment({
             onChange={(e) => setSelected(e.target.value)}
             className="w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-white"
           >
-            <option value="">— Kein Therapeut —</option>
+            <option value="">— Noch nicht zuordnen —</option>
             {therapists.map((t) => (
               <option key={t.user_id} value={t.user_id}>
                 {t.label}
@@ -66,14 +78,14 @@ export function SetterClientTherapistAssignment({
           onClick={onSave}
           className="rounded-full bg-[#63eca9] px-5 py-2 text-sm font-medium text-black disabled:opacity-50"
         >
-          {pending ? "Speichern …" : "Zuweisen"}
+          {pending ? "Speichern …" : "Therapeut zuweisen"}
         </button>
       </div>
 
       {message ? (
         <p
           className={`text-sm ${
-            message.includes("fehlgeschlagen") || message.includes("Ungültig")
+            message.toLowerCase().includes("fehl") || message.toLowerCase().includes("ungültig")
               ? "text-red-400"
               : "text-[#63eca9]"
           }`}

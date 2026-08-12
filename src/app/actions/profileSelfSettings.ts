@@ -70,6 +70,7 @@ export async function updateProfileSelfSettings(input: ProfileSelfSettingsInput)
 
   revalidatePath("/settings");
   revalidatePath("/therapist/settings");
+  revalidatePath("/admin");
   revalidatePath("/admin/einstellungen/profil");
   revalidatePath("/admin/users");
   revalidatePath("/admin/therapists");

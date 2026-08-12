@@ -17,7 +17,7 @@ export default async function SetterNewClientPage() {
         </Link>
         <h1 className="mt-2 text-2xl font-semibold">Neuen Klienten anlegen</h1>
         <p className="mt-1 text-sm text-white/60">
-          Nach dem Erstgespräch — Zugangsdaten und optionale Therapeut-Zuweisung.
+          Lead für die Setter-Pipeline — ohne Therapeut bleibt er unter „Offene Leads“.
         </p>
       </div>
       <SetterCreateClientForm therapists={therapists} />

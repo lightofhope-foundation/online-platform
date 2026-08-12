@@ -420,6 +420,54 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_font_settings: {
+        Row: {
+          id: number
+          headline_font: string
+          section_font: string
+          body_font: string
+          menu_font: string
+          headline_size_px: number
+          section_size_px: number
+          body_size_px: number
+          menu_size_px: number
+          pinned_tokens: string[]
+          token_styles: Record<string, unknown>
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: number
+          headline_font?: string
+          section_font?: string
+          body_font?: string
+          menu_font?: string
+          headline_size_px?: number
+          section_size_px?: number
+          body_size_px?: number
+          menu_size_px?: number
+          pinned_tokens?: string[]
+          token_styles?: Record<string, unknown>
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: number
+          headline_font?: string
+          section_font?: string
+          body_font?: string
+          menu_font?: string
+          headline_size_px?: number
+          section_size_px?: number
+          body_size_px?: number
+          menu_size_px?: number
+          pinned_tokens?: string[]
+          token_styles?: Record<string, unknown>
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       profile_extra_roles: {
         Row: {
           user_id: string
@@ -627,6 +675,36 @@ export type Database = {
           note_id?: string
           therapist_body_after?: string | null
           therapist_body_before?: string | null
+        }
+        Relationships: []
+      }
+      therapist_orbit_layout: {
+        Row: {
+          id: string
+          therapist_user_id: string
+          client_user_id: string
+          pos_y: number
+          side: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          therapist_user_id: string
+          client_user_id: string
+          pos_y?: number
+          side?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          therapist_user_id?: string
+          client_user_id?: string
+          pos_y?: number
+          side?: string
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }

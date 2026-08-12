@@ -11,29 +11,31 @@ const SidebarPillar = dynamic(
   { ssr: false, loading: () => null }
 );
 
+/** Inline backdrop override — LightningCSS strips `backdrop-filter: none` from CSS. */
+const SIDEBAR_PANEL_STYLE = {
+  background: "transparent",
+  backdropFilter: "blur(0px)",
+  WebkitBackdropFilter: "blur(0px)",
+} as const;
+
 export function SidebarMenuPanel() {
   const [mounted, setMounted] = useState(false);
-  const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduceMotion(mq.matches);
-    const handler = () => setReduceMotion(mq.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
   }, []);
 
   return (
     <GlassPanel
       className="shell-sidebar-panel relative flex h-full flex-col overflow-hidden p-0"
+      style={SIDEBAR_PANEL_STYLE}
       as="div"
     >
-      {mounted && !reduceMotion && (
+      {mounted ? (
         <div className="sidebar-light-pillar" aria-hidden>
           <SidebarPillar quality="high" />
         </div>
-      )}
+      ) : null}
       <div className="relative z-10 flex h-full flex-col p-6 sidebar-nav-content">
         <SidebarNav />
       </div>

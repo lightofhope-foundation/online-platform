@@ -119,7 +119,7 @@ export default async function TherapistHomePage() {
     <div className="space-y-8">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Therapeut-Bereich</h1>
+          <h1 className="typo-section font-normal">Therapeut-Bereich</h1>
           <p className="text-sm text-white/60">
             Willkommen{therapistName !== "—" ? `, ${therapistName}` : ""}. Als Therapeut sehen Sie nur Ihre zugewiesenen Klient:innen — kein Zugriff auf den Admin-Bereich.
           </p>
@@ -141,7 +141,7 @@ export default async function TherapistHomePage() {
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-medium">Meine Klient:innen</h2>
+          <h2 className="typo-clients-heading font-normal">Meine Klient:innen</h2>
           <Link href="/therapist/clients" className="text-sm text-[#63eca9] hover:underline">
             Vollständige Liste
           </Link>

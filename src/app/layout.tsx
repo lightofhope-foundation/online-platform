@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import "./globals.css";
+import "./loh-fonts.css";
 import { Providers } from "./providers";
+import { lohFontVariableClassName } from "@/lib/lohLocalFonts";
 import { UI_SHELL_COOKIE, parseUiShellVersion } from "@/lib/uiShell";
 
 const geistSans = Geist({
@@ -34,16 +36,17 @@ export default async function RootLayout({
   );
 
   return (
-    <html lang="de">
+    <html
+      lang="de"
+      className={`${geistSans.variable} ${geistMono.variable} ${lohFontVariableClassName}`}
+    >
       <head>
         <meta
           httpEquiv="Content-Security-Policy"
-          content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://assets.mediadelivery.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self' data:; object-src 'none'; media-src 'self' blob: data: https://vz-f7a686f2-d74.b-cdn.net https://*.b-cdn.net; frame-src 'self' https://iframe.mediadelivery.net;"
+          content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://assets.mediadelivery.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self' data: https://lightofhope.b-cdn.net; object-src 'none'; media-src 'self' blob: data: https://vz-f7a686f2-d74.b-cdn.net https://*.b-cdn.net; frame-src 'self' https://iframe.mediadelivery.net;"
         />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className="font-sans antialiased">
         <Providers initialUiShell={initialUiShell}>{children}</Providers>
       </body>
     </html>
