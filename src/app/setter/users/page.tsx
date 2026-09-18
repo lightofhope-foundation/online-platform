@@ -93,12 +93,24 @@ export default async function SetterUsersPage() {
       </div>
 
       {rows.length === 0 ? (
-        <p className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center text-sm text-white/50">
-          Keine offenen Leads.{" "}
-          <Link href="/setter/users/new" className="text-[#63eca9] hover:underline">
+        <div className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center">
+          <p className="text-sm text-white/60">
+            Keine offenen LOH-Leads — alle Plattform-Klienten haben bereits einen Therapeuten.
+          </p>
+          <p className="text-sm text-white/45">
+            Notion-Pipeline-Leads siehst du im{" "}
+            <Link href="/setter/leadboard" className="text-[#63eca9] hover:underline">
+              Notion Leadboard
+            </Link>
+            . Neue LOH-Accounts legst du hier an:
+          </p>
+          <Link
+            href="/setter/users/new"
+            className="inline-flex rounded-full bg-[#63eca9] px-5 py-2 text-sm font-medium text-black"
+          >
             Neuen Klienten anlegen
           </Link>
-        </p>
+        </div>
       ) : (
         <AdminUsersTable rows={rows} accessLevels={accessLevels} />
       )}

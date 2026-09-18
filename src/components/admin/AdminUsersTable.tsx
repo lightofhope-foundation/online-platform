@@ -27,13 +27,33 @@ type AdminUsersTableProps = {
   accessLevels: AccessLevelOption[];
 };
 
+type RoleFilter = "all" | "client" | "staff" | string;
+type SortKey =
+  | "client_id"
+  | "email"
+  | "name"
+  | "role"
+  | "therapist_label"
+  | "access_level"
+  | "video_progress"
+  | "created_at"
+  | "last_login";
+type SortDir = "asc" | "desc";
+
 const thClass =
   "whitespace-nowrap border-b border-r border-white/10 px-3 py-2.5 font-medium text-white/70 last:border-r-0";
 const tdClass =
   "whitespace-nowrap border-b border-r border-white/[0.08] px-3 py-2.5 last:border-r-0 align-middle";
 
+function cmpStr(a: string, b: string) {
+  return a.localeCompare(b, "de", { sensitivity: "base", numeric: true });
+}
+
 export function AdminUsersTable({ rows, accessLevels }: AdminUsersTableProps) {
   const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
+  const [sortKey, setSortKey] = useState<SortKey>("created_at");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [bulkMode, setBulkMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkLevel, setBulkLevel] = useState(
@@ -42,27 +62,121 @@ export function AdminUsersTable({ rows, accessLevels }: AdminUsersTableProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const roleOptions = useMemo(() => {
+    const set = new Set(rows.map((r) => r.role));
+    return [...set].sort((a, b) =>
+      formatProfileRole(a).localeCompare(formatProfileRole(b), "de")
+    );
+  }, [rows]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) => {
-      const hay = [
-        r.client_id,
-        r.email,
-        r.name,
-        r.role,
-        r.therapist_label,
-        formatAccessLevelLabel(r.access_level, accessLevels),
-      ]
-        .join(" ")
-        .toLowerCase();
-      return hay.includes(q);
+    let list = rows;
+
+    if (roleFilter === "client") {
+      list = list.filter((r) => r.role === "client");
+    } else if (roleFilter === "staff") {
+      list = list.filter((r) => r.role !== "client");
+    } else if (roleFilter !== "all") {
+      list = list.filter((r) => r.role === roleFilter);
+    }
+
+    if (q) {
+      list = list.filter((r) => {
+        const hay = [
+          r.client_id,
+          r.email,
+          r.name,
+          r.role,
+          formatProfileRole(r.role),
+          r.therapist_label,
+          formatAccessLevelLabel(r.access_level, accessLevels),
+        ]
+          .join(" ")
+          .toLowerCase();
+        return hay.includes(q);
+      });
+    }
+
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...list].sort((a, b) => {
+      let res = 0;
+      switch (sortKey) {
+        case "client_id":
+          res = cmpStr(a.client_id ?? "", b.client_id ?? "");
+          break;
+        case "email":
+          res = cmpStr(a.email, b.email);
+          break;
+        case "name":
+          res = cmpStr(a.name, b.name);
+          break;
+        case "role":
+          res = cmpStr(formatProfileRole(a.role), formatProfileRole(b.role));
+          break;
+        case "therapist_label":
+          res = cmpStr(a.therapist_label ?? "", b.therapist_label ?? "");
+          break;
+        case "access_level":
+          res = a.access_level - b.access_level;
+          break;
+        case "video_progress":
+          res = (a.video_progress ?? -1) - (b.video_progress ?? -1);
+          break;
+        case "created_at":
+          res = cmpStr(a.created_at, b.created_at);
+          break;
+        case "last_login":
+          res = cmpStr(a.last_login, b.last_login);
+          break;
+      }
+      if (res === 0) res = cmpStr(a.email, b.email);
+      return res * dir;
     });
-  }, [rows, search, accessLevels]);
+  }, [rows, search, roleFilter, sortKey, sortDir, accessLevels]);
 
   const clientRows = filtered.filter((r) => r.role === "client");
   const allClientsSelected =
     clientRows.length > 0 && clientRows.every((r) => selected.has(r.user_id));
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "created_at" || key === "last_login" ? "desc" : "asc");
+    }
+  };
+
+  const SortTh = ({
+    label,
+    column,
+    className = thClass,
+  }: {
+    label: string;
+    column: SortKey;
+    className?: string;
+  }) => {
+    const active = sortKey === column;
+    return (
+      <th className={className}>
+        <button
+          type="button"
+          onClick={() => toggleSort(column)}
+          className={[
+            "inline-flex items-center gap-1 transition-colors",
+            active ? "text-[#63eca9]" : "hover:text-white",
+          ].join(" ")}
+          title={`${label} sortieren`}
+        >
+          {label}
+          <span className="text-[10px] opacity-80" aria-hidden>
+            {active ? (sortDir === "asc" ? "▲" : "▼") : "↕"}
+          </span>
+        </button>
+      </th>
+    );
+  };
 
   const toggleBulkMode = () => {
     setBulkMode((v) => !v);
@@ -94,7 +208,9 @@ export function AdminUsersTable({ rows, accessLevels }: AdminUsersTableProps) {
       setMessage(null);
       const result = await bulkUpdateUserAccessLevel([...selected], level);
       if (result.ok) {
-        setMessage(`${result.updated} Klient(en) auf ${formatAccessLevelLabel(level, accessLevels)} gesetzt.`);
+        setMessage(
+          `${result.updated} Klient(en) auf ${formatAccessLevelLabel(level, accessLevels)} gesetzt.`
+        );
         setSelected(new Set());
         setBulkMode(false);
       } else {
@@ -105,25 +221,47 @@ export function AdminUsersTable({ rows, accessLevels }: AdminUsersTableProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Suchen (Nutzer-ID, E-Mail, Name, Therapeut, Stufe …)"
-          className="w-full max-w-md rounded-lg border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder:text-white/40 focus:border-[#63eca9]/50 focus:outline-none"
-        />
-        <button
-          type="button"
-          onClick={toggleBulkMode}
-          className={`shrink-0 rounded-full border px-4 py-2 text-sm transition-colors ${
-            bulkMode
-              ? "border-[#63eca9]/60 bg-[#63eca9]/15 text-[#63eca9]"
-              : "border-white/15 bg-white/[0.04] text-white hover:border-white/25"
-          }`}
-        >
-          {bulkMode ? "Mehrfache Bearbeitung beenden" : "Mehrfache Bearbeitung"}
-        </button>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Suchen (Nutzer-ID, E-Mail, Name, Therapeut, Stufe …)"
+            className="w-full max-w-md rounded-lg border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder:text-white/40 focus:border-[#63eca9]/50 focus:outline-none"
+          />
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value as RoleFilter)}
+            className="rounded-lg border border-white/15 bg-black/40 px-3 py-2.5 text-sm text-white"
+            aria-label="Rollenfilter"
+          >
+            <option value="all">Alle Nutzer</option>
+            <option value="client">Nur Klienten</option>
+            <option value="staff">Nur Team (ohne Klienten)</option>
+            {roleOptions.map((role) => (
+              <option key={role} value={role}>
+                Rolle: {formatProfileRole(role)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-white/40">
+            {filtered.length} von {rows.length}
+          </span>
+          <button
+            type="button"
+            onClick={toggleBulkMode}
+            className={`shrink-0 rounded-full border px-4 py-2 text-sm transition-colors ${
+              bulkMode
+                ? "border-[#63eca9]/60 bg-[#63eca9]/15 text-[#63eca9]"
+                : "border-white/15 bg-white/[0.04] text-white hover:border-white/25"
+            }`}
+          >
+            {bulkMode ? "Mehrfache Bearbeitung beenden" : "Mehrfache Bearbeitung"}
+          </button>
+        </div>
       </div>
 
       {bulkMode && (
@@ -135,9 +273,7 @@ export function AdminUsersTable({ rows, accessLevels }: AdminUsersTableProps) {
           >
             {allClientsSelected ? "Auswahl aufheben" : "Alle Klienten wählen"}
           </button>
-          <span className="text-sm text-white/50">
-            {selected.size} ausgewählt
-          </span>
+          <span className="text-sm text-white/50">{selected.size} ausgewählt</span>
           <label className="flex items-center gap-2 text-sm text-white/70">
             Stufe
             <select
@@ -165,7 +301,13 @@ export function AdminUsersTable({ rows, accessLevels }: AdminUsersTableProps) {
 
       {message && (
         <p
-          className={`text-sm ${message.includes("fehlgeschlagen") || message.includes("Ungültig") || message.includes("Keine") ? "text-red-400" : "text-[#63eca9]"}`}
+          className={`text-sm ${
+            message.includes("fehlgeschlagen") ||
+            message.includes("Ungültig") ||
+            message.includes("Keine")
+              ? "text-red-400"
+              : "text-[#63eca9]"
+          }`}
         >
           {message}
         </p>
@@ -179,18 +321,16 @@ export function AdminUsersTable({ rows, accessLevels }: AdminUsersTableProps) {
         >
           <thead className="bg-white/[0.04] text-left">
             <tr>
-              {bulkMode && (
-                <th className={`${thClass} w-10`} aria-label="Auswahl" />
-              )}
-              <th className={thClass}>Nutzer-ID</th>
-              <th className={thClass}>E-Mail</th>
-              <th className={thClass}>Name</th>
-              <th className={thClass}>Rolle</th>
-              <th className={thClass}>Therapeut</th>
-              <th className={thClass}>Stufe</th>
-              <th className={thClass}>Video-Fortschritt</th>
-              <th className={thClass}>Erstellt</th>
-              <th className={thClass}>Letzter Login</th>
+              {bulkMode && <th className={`${thClass} w-10`} aria-label="Auswahl" />}
+              <SortTh label="Nutzer-ID" column="client_id" />
+              <SortTh label="E-Mail" column="email" />
+              <SortTh label="Name" column="name" />
+              <SortTh label="Rolle" column="role" />
+              <SortTh label="Therapeut" column="therapist_label" />
+              <SortTh label="Stufe" column="access_level" />
+              <SortTh label="Video-Fortschritt" column="video_progress" />
+              <SortTh label="Erstellt" column="created_at" />
+              <SortTh label="Letzter Login" column="last_login" />
             </tr>
           </thead>
           <tbody>
@@ -229,8 +369,6 @@ export function AdminUsersTable({ rows, accessLevels }: AdminUsersTableProps) {
                     >
                       {r.therapist_label}
                     </Link>
-                  ) : r.role === "client" ? (
-                    <span className="text-white/40">—</span>
                   ) : (
                     <span className="text-white/40">—</span>
                   )}
