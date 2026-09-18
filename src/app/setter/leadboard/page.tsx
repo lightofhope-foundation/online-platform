@@ -1,25 +1,52 @@
 import { checkSetterAccess } from "@/lib/checkSetterAccess";
 import { fetchMetaLeads } from "@/lib/notion/metaLeads";
 import { NotionLeadboardBoard } from "@/components/setter/NotionLeadboardBoard";
+import { resolvePersonLabel } from "@/lib/formatDisplayName";
 
 export const dynamic = "force-dynamic";
 
 export default async function SetterLeadboardPage() {
-  await checkSetterAccess();
-  const { leads, error, fetchedAt } = await fetchMetaLeads(80);
+  const { user, supabase } = await checkSetterAccess();
+  const { leads, error, fetchedAt } = await fetchMetaLeads(150);
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("first_name, last_name, display_alias")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const label = resolvePersonLabel(
+    profile?.first_name,
+    profile?.last_name,
+    user.email,
+    profile?.display_alias
+  );
+
+  const viewerAliases = [
+    profile?.display_alias,
+    profile?.first_name,
+    [profile?.first_name, profile?.last_name].filter(Boolean).join(" "),
+    label,
+    user.email?.split("@")[0],
+  ].filter((v): v is string => Boolean(v && v.trim()));
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="typo-section font-normal text-white">Notion Leadboard</h1>
         <p className="mt-1 max-w-3xl text-sm text-white/60">
-          Live-Lesezugriff auf die Notion-DB <span className="text-white/80">Meta</span> —
-          Kartenansicht nach Status SET (nur Anzeige). Funnel-KPIs folgen, sobald die Regeln mit
-          Dincer festliegen.
+          Live-Pipeline aus Notion <span className="text-white/80">Meta</span> — Suche, Filter und
+          Karten nach Status. Nur Lesen; Funnel-KPIs folgen nach den Mapping-Regeln mit Dincer.
         </p>
       </div>
 
-      <NotionLeadboardBoard leads={leads} error={error} fetchedAt={fetchedAt} groupBy="statusSet" />
+      <NotionLeadboardBoard
+        leads={leads}
+        error={error}
+        fetchedAt={fetchedAt}
+        viewerAliases={viewerAliases}
+        defaultGroupBy="statusSet"
+      />
     </div>
   );
 }

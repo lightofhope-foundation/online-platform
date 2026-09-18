@@ -1,5 +1,5 @@
 /**
- * Read-only Notion Meta DB → LOH Setter Leadboard (demo).
+ * Read-only Notion Meta DB → LOH Setter Leadboard.
  * Never writes to Notion. Token only server-side.
  */
 
@@ -18,6 +18,7 @@ export type NotionMetaLead = {
   rp: boolean | null;
   rpSelect: string | null;
   terminatedAt: string | null;
+  lastEdited: string | null;
   url: string | null;
 };
 
@@ -60,6 +61,7 @@ function statusName(prop: NotionProp | undefined): string | null {
 function mapPage(page: {
   id: string;
   url?: string;
+  last_edited_time?: string;
   properties?: Record<string, NotionProp>;
 }): NotionMetaLead {
   const props = page.properties ?? {};
@@ -82,11 +84,23 @@ function mapPage(page: {
       props.Terminiert?.type === "date"
         ? props.Terminiert.date?.start ?? null
         : null,
+    lastEdited: page.last_edited_time ?? null,
     url: page.url ?? null,
   };
 }
 
-export async function fetchMetaLeads(limit = 40): Promise<{
+type NotionQueryResult = {
+  results?: {
+    id: string;
+    url?: string;
+    last_edited_time?: string;
+    properties?: Record<string, NotionProp>;
+  }[];
+  has_more?: boolean;
+  next_cursor?: string | null;
+};
+
+export async function fetchMetaLeads(limit = 100): Promise<{
   leads: NotionMetaLead[];
   error: string | null;
   fetchedAt: string;
@@ -101,50 +115,50 @@ export async function fetchMetaLeads(limit = 40): Promise<{
     };
   }
 
-  try {
-    const res = await fetch(
-      `https://api.notion.com/v1/databases/${NOTION_META_DATABASE_ID}/query`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Notion-Version": NOTION_VERSION,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          page_size: Math.min(Math.max(limit, 1), 100),
-          sorts: [{ timestamp: "last_edited_time", direction: "descending" }],
-        }),
-        // Demo: immer frisch; später Cache/Sync-Tabelle
-        cache: "no-store",
-      }
-    );
+  const target = Math.min(Math.max(limit, 1), 200);
+  const leads: NotionMetaLead[] = [];
+  let cursor: string | null = null;
 
-    if (!res.ok) {
-      const body = await res.text();
-      return {
-        leads: [],
-        error: `Notion API ${res.status}: ${body.slice(0, 280)}`,
-        fetchedAt,
-      };
+  try {
+    while (leads.length < target) {
+      const pageSize = Math.min(100, target - leads.length);
+      const res = await fetch(
+        `https://api.notion.com/v1/databases/${NOTION_META_DATABASE_ID}/query`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Notion-Version": NOTION_VERSION,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            page_size: pageSize,
+            start_cursor: cursor ?? undefined,
+            sorts: [{ timestamp: "last_edited_time", direction: "descending" }],
+          }),
+          cache: "no-store",
+        }
+      );
+
+      if (!res.ok) {
+        const body = await res.text();
+        return {
+          leads,
+          error: `Notion API ${res.status}: ${body.slice(0, 280)}`,
+          fetchedAt,
+        };
+      }
+
+      const json = (await res.json()) as NotionQueryResult;
+      leads.push(...(json.results ?? []).map(mapPage));
+      if (!json.has_more || !json.next_cursor) break;
+      cursor = json.next_cursor;
     }
 
-    const json = (await res.json()) as {
-      results?: {
-        id: string;
-        url?: string;
-        properties?: Record<string, NotionProp>;
-      }[];
-    };
-
-    return {
-      leads: (json.results ?? []).map(mapPage),
-      error: null,
-      fetchedAt,
-    };
+    return { leads, error: null, fetchedAt };
   } catch (e) {
     return {
-      leads: [],
+      leads,
       error: e instanceof Error ? e.message : "Unbekannter Notion-Fehler",
       fetchedAt,
     };
