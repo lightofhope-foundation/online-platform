@@ -1,7 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
-import type { NotionMetaLead } from "@/lib/notion/metaLeads";
+
+import { NotionLeadDetailModal } from "@/components/setter/NotionLeadDetailModal";
+import {
+  notionLeadDetailPath,
+  type NotionMetaLead,
+} from "@/lib/notion/metaLeads";
 
 function fmtWhen(iso: string) {
   try {
@@ -125,6 +131,10 @@ export function NotionLeadboardBoard({
   const [rpFilter, setRpFilter] = useState<RpFilter>("all");
   const [setterFilter, setSetterFilter] = useState("all");
   const [egFilter, setEgFilter] = useState("all");
+  const [openLead, setOpenLead] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const setters = useMemo(() => {
     const s = new Set<string>();
@@ -360,10 +370,10 @@ export function NotionLeadboardBoard({
 
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-white/40">
           <span>
-            Stand Abruf: {fmtWhen(fetchedAt)} · {stats.visible} von {stats.total} ·{" "}
-            {stats.columns} Spalten · RP sichtbar: {stats.rpYes}
+            Stand Abruf: {fmtWhen(fetchedAt)} · {stats.visible} von {stats.total}{" "}
+            geladen · {stats.columns} Spalten · RP sichtbar: {stats.rpYes}
           </span>
-          <span>Nur Lesen · Notion Meta</span>
+          <span>Nur Lesen · Pipeline Pro / Meta · Klick öffnet Popup</span>
         </div>
       </div>
 
@@ -379,7 +389,7 @@ export function NotionLeadboardBoard({
         </div>
       ) : null}
 
-      <div className="flex gap-3 overflow-x-auto pb-2">
+      <div className="loh-scroll flex gap-3 overflow-x-auto pb-2">
         {columns.map((col) => {
           const items = buckets.get(col) ?? [];
           return (
@@ -393,85 +403,129 @@ export function NotionLeadboardBoard({
                   {items.length}
                 </span>
               </header>
-              <ul className="max-h-[58vh] space-y-2 overflow-y-auto p-2">
-                {items.map((lead) => (
-                  <li key={lead.id}>
-                    <article className="rounded-xl border border-white/10 bg-black/40 p-3 transition hover:border-[#63eca9]/4 hover:bg-black/55">
-                      <div className="flex items-start justify-between gap-2">
-                        {lead.url ? (
-                          <a
-                            href={lead.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="min-w-0 flex-1 text-sm font-medium text-[#63eca9] hover:underline"
+              <ul className="loh-scroll max-h-[58vh] space-y-2 overflow-y-auto p-2">
+                {items.map((lead) => {
+                  const href = notionLeadDetailPath(lead.id);
+                  return (
+                    <li key={lead.id}>
+                      <article className="group relative rounded-xl border border-white/10 bg-black/40 p-3 transition hover:border-[#63eca9]/4 hover:bg-black/55">
+                        <button
+                          type="button"
+                          className="absolute inset-0 z-0 rounded-xl"
+                          aria-label={`${lead.name} öffnen`}
+                          onClick={() =>
+                            setOpenLead({ id: lead.id, name: lead.name })
+                          }
+                        />
+                        <Link
+                          href={href}
+                          target="_blank"
+                          rel="noreferrer"
+                          title="Als Seite in neuem Tab"
+                          aria-label={`${lead.name} in neuem Tab öffnen`}
+                          className="absolute right-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-black/70 text-white/55 opacity-0 shadow-lg transition hover:border-[#63eca9]/5 hover:text-[#63eca9] group-hover:opacity-100"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            aria-hidden
                           >
-                            {lead.name}
-                          </a>
-                        ) : (
-                          <p className="min-w-0 flex-1 text-sm font-medium text-white">
-                            {lead.name}
-                          </p>
-                        )}
-                        {lead.rp === true || /yes|ja|bezahlt/i.test(lead.rpSelect ?? "") ? (
-                          <span className="shrink-0 rounded-md bg-[#63eca9]/18 px-1.5 py-0.5 text-[10px] font-semibold text-[#63eca9]">
-                            RP
-                          </span>
-                        ) : null}
-                      </div>
-                      <dl className="mt-2 space-y-1 text-[11px] text-white/50">
-                        {groupBy !== "status" && lead.status ? (
-                          <div className="flex justify-between gap-2">
-                            <dt>Status</dt>
-                            <dd className="text-right text-white/75">{lead.status}</dd>
+                            <path
+                              d="M7 17L17 7M10 7h7v7"
+                              stroke="currentColor"
+                              strokeWidth="1.7"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </Link>
+                        <div className="relative z-10 pointer-events-none">
+                          <div className="flex items-start justify-between gap-2 pr-8">
+                            <p className="min-w-0 flex-1 text-sm font-medium text-[#63eca9]">
+                              {lead.name}
+                            </p>
+                            {lead.rp === true ||
+                            /yes|ja|bezahlt/i.test(lead.rpSelect ?? "") ? (
+                              <span className="shrink-0 rounded-md bg-[#63eca9]/18 px-1.5 py-0.5 text-[10px] font-semibold text-[#63eca9]">
+                                RP
+                              </span>
+                            ) : null}
                           </div>
-                        ) : null}
-                        {groupBy !== "statusSet" && lead.statusSet ? (
-                          <div className="flex justify-between gap-2">
-                            <dt>SET</dt>
-                            <dd className="text-right text-white/75">{lead.statusSet}</dd>
-                          </div>
-                        ) : null}
-                        {groupBy !== "statusEg" && lead.statusEg ? (
-                          <div className="flex justify-between gap-2">
-                            <dt>EG-Status</dt>
-                            <dd className="text-right text-white/75">{lead.statusEg}</dd>
-                          </div>
-                        ) : null}
-                        {lead.setter ? (
-                          <div className="flex justify-between gap-2">
-                            <dt>Setter</dt>
-                            <dd className="text-right text-white/75">{lead.setter}</dd>
-                          </div>
-                        ) : null}
-                        {lead.eg ? (
-                          <div className="flex justify-between gap-2">
-                            <dt>EG</dt>
-                            <dd className="text-right text-white/75">{lead.eg}</dd>
-                          </div>
-                        ) : null}
-                        {lead.therapist ? (
-                          <div className="flex justify-between gap-2">
-                            <dt>Therapeut</dt>
-                            <dd className="text-right text-white/75">{lead.therapist}</dd>
-                          </div>
-                        ) : null}
-                        {lead.terminatedAt ? (
-                          <div className="flex justify-between gap-2">
-                            <dt>Termin</dt>
-                            <dd className="text-right text-white/75">
-                              {fmtDay(lead.terminatedAt)}
-                            </dd>
-                          </div>
-                        ) : null}
-                      </dl>
-                    </article>
-                  </li>
-                ))}
+                          <dl className="mt-2 space-y-1 text-[11px] text-white/50">
+                            {groupBy !== "status" && lead.status ? (
+                              <div className="flex justify-between gap-2">
+                                <dt>Status</dt>
+                                <dd className="text-right text-white/75">
+                                  {lead.status}
+                                </dd>
+                              </div>
+                            ) : null}
+                            {groupBy !== "statusSet" && lead.statusSet ? (
+                              <div className="flex justify-between gap-2">
+                                <dt>SET</dt>
+                                <dd className="text-right text-white/75">
+                                  {lead.statusSet}
+                                </dd>
+                              </div>
+                            ) : null}
+                            {groupBy !== "statusEg" && lead.statusEg ? (
+                              <div className="flex justify-between gap-2">
+                                <dt>EG-Status</dt>
+                                <dd className="text-right text-white/75">
+                                  {lead.statusEg}
+                                </dd>
+                              </div>
+                            ) : null}
+                            {lead.setter ? (
+                              <div className="flex justify-between gap-2">
+                                <dt>Setter</dt>
+                                <dd className="text-right text-white/75">
+                                  {lead.setter}
+                                </dd>
+                              </div>
+                            ) : null}
+                            {lead.eg ? (
+                              <div className="flex justify-between gap-2">
+                                <dt>EG</dt>
+                                <dd className="text-right text-white/75">{lead.eg}</dd>
+                              </div>
+                            ) : null}
+                            {lead.therapist ? (
+                              <div className="flex justify-between gap-2">
+                                <dt>Therapeut</dt>
+                                <dd className="text-right text-white/75">
+                                  {lead.therapist}
+                                </dd>
+                              </div>
+                            ) : null}
+                            {lead.terminatedAt ? (
+                              <div className="flex justify-between gap-2">
+                                <dt>Termin</dt>
+                                <dd className="text-right text-white/75">
+                                  {fmtDay(lead.terminatedAt)}
+                                </dd>
+                              </div>
+                            ) : null}
+                          </dl>
+                        </div>
+                      </article>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           );
         })}
       </div>
+
+      <NotionLeadDetailModal
+        leadId={openLead?.id ?? null}
+        leadName={openLead?.name ?? null}
+        onClose={() => setOpenLead(null)}
+      />
     </div>
   );
 }

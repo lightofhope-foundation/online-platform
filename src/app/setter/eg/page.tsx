@@ -5,10 +5,11 @@ import { NotionLeadboardBoard } from "@/components/setter/NotionLeadboardBoard";
 import { resolvePersonLabel } from "@/lib/formatDisplayName";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export default async function ErstgespraechlerHomePage() {
   const { user, supabase } = await checkSetterAccess();
-  const { leads, error, fetchedAt } = await fetchMetaLeads(150);
+  const { leads, error, fetchedAt } = await fetchMetaLeads("all");
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -39,7 +40,8 @@ export default async function ErstgespraechlerHomePage() {
         </p>
         <h1 className="typo-section mt-1 font-normal text-white">Erstgespräche</h1>
         <p className="mt-1 max-w-3xl text-sm text-white/60">
-          Pipeline nach Status EG — Filter „Meine EG“ zeigt deine zugewiesenen Gespräche.
+          Pipeline nach Status EG (Pipeline Pro / Meta) — Filter „Meine EG“ zeigt deine
+          Gespräche. Klick auf eine Karte öffnet die Kundenkarte in der Plattform.
         </p>
       </div>
 
@@ -54,7 +56,7 @@ export default async function ErstgespraechlerHomePage() {
           href="/setter/users"
           className="rounded-full border border-white/15 bg-white/[0.04] px-4 py-2 text-sm text-white/70 hover:border-white/25 hover:text-white"
         >
-          Offene LOH-Leads
+          Offene Leads
         </Link>
       </div>
 

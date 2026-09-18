@@ -345,32 +345,38 @@ html, body {
   visibility: visible !important;
 }
 
-/* Admin tables — dark, thin scrollbars (horizontal + vertical) */
+/* Shared LOH dark scrollbars (boards, tables, modals) */
+.loh-scroll,
 .admin-table-scroll {
   scrollbar-width: thin;
   scrollbar-color: rgba(99, 236, 169, 0.38) rgba(255, 255, 255, 0.05);
 }
 
+.loh-scroll::-webkit-scrollbar,
 .admin-table-scroll::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
+.loh-scroll::-webkit-scrollbar-track,
 .admin-table-scroll::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.04);
   border-radius: 6px;
 }
 
+.loh-scroll::-webkit-scrollbar-thumb,
 .admin-table-scroll::-webkit-scrollbar-thumb {
   background: rgba(99, 236, 169, 0.32);
   border-radius: 6px;
   border: 1px solid rgba(0, 0, 0, 0.25);
 }
 
+.loh-scroll::-webkit-scrollbar-thumb:hover,
 .admin-table-scroll::-webkit-scrollbar-thumb:hover {
   background: rgba(99, 236, 169, 0.5);
 }
 
+.loh-scroll::-webkit-scrollbar-corner,
 .admin-table-scroll::-webkit-scrollbar-corner {
   background: transparent;
 }

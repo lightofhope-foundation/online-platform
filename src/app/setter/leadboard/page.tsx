@@ -4,10 +4,11 @@ import { NotionLeadboardBoard } from "@/components/setter/NotionLeadboardBoard";
 import { resolvePersonLabel } from "@/lib/formatDisplayName";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export default async function SetterLeadboardPage() {
   const { user, supabase } = await checkSetterAccess();
-  const { leads, error, fetchedAt } = await fetchMetaLeads(150);
+  const { leads, error, fetchedAt, truncated } = await fetchMetaLeads("all");
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -35,8 +36,11 @@ export default async function SetterLeadboardPage() {
       <div>
         <h1 className="typo-section font-normal text-white">Notion Leadboard</h1>
         <p className="mt-1 max-w-3xl text-sm text-white/60">
-          Live-Pipeline aus Notion <span className="text-white/80">Meta</span> — Suche, Filter und
-          Karten nach Status. Nur Lesen; Funnel-KPIs folgen nach den Mapping-Regeln mit Dincer.
+          Komplette Live-Pipeline aus Notion{" "}
+          <span className="text-white/80">Pipeline Pro / Meta</span>
+          {leads.length ? ` — ${leads.length} Kontakte geladen` : ""}.
+          {truncated ? " (Abruf-Limit erreicht, ggf. unvollständig.)" : ""} Klick öffnet
+          die Kundenkarte als Popup (nur Lesen).
         </p>
       </div>
 

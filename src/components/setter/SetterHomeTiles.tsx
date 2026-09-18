@@ -16,7 +16,7 @@ export function SetterHomeTiles() {
         {
           key: "open-leads",
           title: "Offene Leads",
-          description: "Nur noch nicht zugeordnete Klienten — Akte öffnen",
+          description: "Unberührt Notion + LOH ohne Therapeut",
           href: "/setter/users",
         },
         {
