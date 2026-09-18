@@ -45,6 +45,24 @@ export function AdminDashboardOverview({ stats }: { stats: AdminDashboardStats }
           columns={3}
           tiles={[
             {
+              key: "leadboard",
+              title: "Notion Leadboard",
+              label: "Vertrieb · Meta",
+              description:
+                "Live-Pipeline aus Notion: Suche, Filter, Karten nach Status (nur Lesen).",
+              href: "/setter/leadboard",
+              icon: <UsersIcon size={20} />,
+            },
+            {
+              key: "open-leads",
+              title: "Offene Leads",
+              label: "Ohne Therapeut",
+              description:
+                "LOH-Leads ohne Therapeut-Zuweisung — Akte öffnen und zuweisen.",
+              href: "/setter/users",
+              icon: <UsersIcon size={20} />,
+            },
+            {
               key: "videos",
               title: "Kurse verwalten",
               label: "CMS & Videos",
@@ -56,8 +74,8 @@ export function AdminDashboardOverview({ stats }: { stats: AdminDashboardStats }
             },
             {
               key: "users",
-              title: "Nutzer",
-              label: "Klient:innen & Fortschritt",
+              title: "Nutzer / Klienten",
+              label: "Alle Accounts",
               description:
                 "Nutzerliste, Zugangsstufen, Video-Fortschritt und Klienten-Akten.",
               href: "/admin/users",

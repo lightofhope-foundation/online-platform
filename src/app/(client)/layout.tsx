@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
-import { getProfileRole, isAdminEmail } from "@/lib/authRoles";
+import { resolvePostLoginPath } from "@/lib/authRoles";
 import { getAuthUserFromCookie } from "@/lib/supabaseServer";
 
 export const dynamic = "force-dynamic";
@@ -11,19 +11,8 @@ export default async function ClientAreaLayout({ children }: { children: ReactNo
   const user = await getAuthUserFromCookie();
   if (!user) redirect("/login");
 
-  if (!isAdminEmail(user.email)) {
-    const role = await getProfileRole(user.id);
-    if (role === "therapist") redirect("/therapist");
-    if (role === "teamlead") redirect("/teamlead");
-    if (
-      role === "setter" ||
-      role === "erstgespraechler" ||
-      role === "setter_closer"
-    ) {
-      redirect("/setter");
-    }
-    if (role === "admin") redirect("/admin");
-  }
+  const dest = await resolvePostLoginPath(user.id, user.email ?? "");
+  if (dest !== "/") redirect(dest);
 
   return <AppShell>{children}</AppShell>;
 }

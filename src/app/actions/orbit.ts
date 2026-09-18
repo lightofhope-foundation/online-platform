@@ -17,8 +17,7 @@ async function assertOrbitWriteAccess(therapistUserId: string) {
   if (!user) throw new Error("Nicht autorisiert");
 
   const roles = await getUserPortalRoles(user.id);
-  const isAdmin =
-    userHasPortalRole(roles, "admin") || user.email === "info@oag-media.com";
+  const isAdmin = userHasPortalRole(roles, "admin");
   const isOwnTherapist =
     userHasPortalRole(roles, "therapist") && user.id === therapistUserId;
 

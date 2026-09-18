@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
+import { userIsAdmin } from "@/lib/checkAdminAccess";
 import { getAuthUserFromCookie } from "@/lib/supabaseServer";
-import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 const BUNNY_API_BASE = "https://video.bunnycdn.com";
 
@@ -16,18 +16,7 @@ function getBunnyConfig() {
 async function ensureAdmin() {
   const user = await getAuthUserFromCookie();
   if (!user) throw new Error("Unauthorized");
-
-  const emailWhitelisted = user.email === "info@oag-media.com";
-  if (emailWhitelisted) return;
-
-  const supabase = getSupabaseAdminClient();
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (profile?.role !== "admin") {
+  if (!(await userIsAdmin(user.id))) {
     throw new Error("Unauthorized");
   }
 }

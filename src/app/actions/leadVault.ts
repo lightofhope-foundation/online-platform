@@ -15,8 +15,7 @@ async function requireLeadVaultAccess(): Promise<{
   if (!user) throw new Error("Nicht angemeldet");
 
   const roles = await getUserPortalRoles(user.id);
-  const isAdmin =
-    userHasPortalRole(roles, "admin") || user.email === "info@oag-media.com";
+  const isAdmin = userHasPortalRole(roles, "admin");
   // Teamlead: später userHasPortalRole(roles, "teamlead") — gleicher Vault-Zugang
   if (!isAdmin) {
     throw new Error("Klientenakte (Schachteln) nur für Admin / Teamlead");

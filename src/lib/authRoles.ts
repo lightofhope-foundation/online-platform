@@ -5,10 +5,9 @@ import { getUserPortalRoles, userHasPortalRole } from "@/lib/userRoles";
 
 export type { UserRole } from "@/lib/profileRole";
 
-const ADMIN_EMAIL_WHITELIST = "info@oag-media.com";
-
-export function isAdminEmail(email: string | null | undefined): boolean {
-  return (email ?? "").toLowerCase() === ADMIN_EMAIL_WHITELIST;
+/** @deprecated Email whitelist removed — admin is profile-based only. */
+export function isAdminEmail(_email: string | null | undefined): boolean {
+  return false;
 }
 
 export async function getProfileRole(userId: string): Promise<UserRole | null> {
@@ -24,10 +23,8 @@ export async function getProfileRole(userId: string): Promise<UserRole | null> {
 
 export async function resolvePostLoginPath(
   userId: string,
-  email: string
+  _email: string
 ): Promise<string> {
-  if (isAdminEmail(email)) return "/admin";
-
   const roles = await getUserPortalRoles(userId);
   if (userHasPortalRole(roles, "admin")) return "/admin";
   if (userHasPortalRole(roles, "teamlead")) return "/teamlead";
@@ -47,7 +44,7 @@ export async function checkTherapistAccess() {
   if (!user) throw new Error("Nicht autorisiert");
 
   const roles = await getUserPortalRoles(user.id);
-  if (!userHasPortalRole(roles, "therapist")) {
+  if (!userHasPortalRole(roles, "therapist") && !userHasPortalRole(roles, "admin")) {
     throw new Error("Nicht autorisiert");
   }
 

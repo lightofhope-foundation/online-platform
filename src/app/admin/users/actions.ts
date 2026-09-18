@@ -1,26 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getAuthUserFromCookie } from "@/lib/supabaseServer";
+import { checkAdminAccess } from "@/lib/checkAdminAccess";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
-
-async function checkAdminAccess() {
-  const user = await getAuthUserFromCookie();
-  if (!user) throw new Error("Nicht autorisiert");
-
-  const supabase = getSupabaseAdminClient();
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  const emailWhitelisted = user.email === "info@oag-media.com";
-  const isAdmin = profile?.role === "admin" || emailWhitelisted;
-  if (!isAdmin) throw new Error("Nicht autorisiert");
-
-  return { user, supabase };
-}
 
 async function assertAccessLevelExists(supabase: ReturnType<typeof getSupabaseAdminClient>, level: number) {
   const { data } = await supabase

@@ -48,10 +48,12 @@ export const clientNavItems: NavItem[] = [
 
 export const adminNavItems: NavItem[] = [
   { name: "Überblick", icon: <OverviewIcon size={18} />, href: "/admin" },
-  { name: "Kurse verwalten", icon: <CoursesManageIcon size={18} />, href: "/admin/videos" },
-  { name: "Nutzer", icon: <UsersIcon size={18} />, href: "/admin/users" },
+  { name: "Notion Leadboard", icon: <UsersIcon size={18} />, href: "/setter/leadboard" },
+  { name: "Offene Leads", icon: <UsersIcon size={18} />, href: "/setter/users" },
+  { name: "Nutzer / Klienten", icon: <UsersIcon size={18} />, href: "/admin/users" },
   { name: "Therapeuten", icon: <TherapyIcon size={18} />, href: "/admin/therapists" },
   { name: "Klientenakte", icon: <UsersIcon size={18} />, href: "/admin/lead-vault" },
+  { name: "Kurse verwalten", icon: <CoursesManageIcon size={18} />, href: "/admin/videos" },
   { name: "Feedback", icon: <FeedbackIcon size={18} />, href: "/admin/userfeedback" },
   { name: "Einstellungen", icon: <SettingsIcon size={18} />, href: "/admin/einstellungen" },
 ];
@@ -100,6 +102,12 @@ export function isNavItemActive(
 
   if (area === "admin") {
     if (href === "/admin") return pathname === "/admin";
+    if (href === "/setter/leadboard") return pathname.startsWith("/setter/leadboard");
+    if (href === "/setter/users") {
+      return (
+        pathname.startsWith("/setter/users") && pathname !== "/setter/users/new"
+      );
+    }
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getAuthUserFromCookie } from "@/lib/supabaseServer";
+import { checkAdminAccess } from "@/lib/checkAdminAccess";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 export type UnlockDefaultsInput = {
@@ -9,24 +9,6 @@ export type UnlockDefaultsInput = {
   first_unlock_offset_days: number;
   subsequent_unlock_interval_days: number;
 };
-
-async function checkAdminAccess() {
-  const user = await getAuthUserFromCookie();
-  if (!user) throw new Error("Nicht autorisiert");
-
-  const supabase = getSupabaseAdminClient();
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  const emailWhitelisted = user.email === "info@oag-media.com";
-  const isAdmin = profile?.role === "admin" || emailWhitelisted;
-  if (!isAdmin) throw new Error("Nicht autorisiert");
-
-  return { user, supabase };
-}
 
 function parseDefaults(input: UnlockDefaultsInput): UnlockDefaultsInput {
   const first_gated_video_position = Math.max(1, Math.floor(input.first_gated_video_position));

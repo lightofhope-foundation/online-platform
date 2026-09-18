@@ -1,8 +1,8 @@
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
-import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import { getAuthUserFromCookie } from "@/lib/supabaseServer";
+import { userIsAdmin } from "@/lib/checkAdminAccess";
 
 export const dynamic = "force-dynamic";
 
@@ -12,33 +12,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     redirect("/login");
   }
 
-  const emailWhitelisted = user.email === "info@oag-media.com";
-
-  let isAdmin = emailWhitelisted;
-  let profileRole: string | null = null;
-
-  if (!isAdmin) {
-    try {
-      const admin = getSupabaseAdminClient();
-      const { data: profile } = await admin
-        .from("profiles")
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      profileRole = profile?.role ?? null;
-      if (profile?.role === "admin") {
-        isAdmin = true;
-      }
-    } catch (e) {
-      console.error("AdminLayout profile check failed:", e);
-    }
-  }
-
-  if (!isAdmin) {
-    if (profileRole === "therapist") {
-      redirect("/therapist");
-    }
+  if (!(await userIsAdmin(user.id))) {
     redirect("/");
   }
 

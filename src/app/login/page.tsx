@@ -144,32 +144,44 @@ function LoginForm() {
       failedAttempts.delete(emailKey);
       
       if (data.session) {
-        const userId = data.session.user.id;
-        const userEmail = (data.session.user.email ?? "").toLowerCase();
-        if (userEmail === "info@oag-media.com") {
-          router.replace("/admin");
-          return;
+        try {
+          const res = await fetch("/api/me/portal-roles");
+          if (res.ok) {
+            const payload = (await res.json()) as {
+              roles?: string[];
+              views?: { href: string }[];
+            };
+            const roles = payload.roles ?? [];
+            if (roles.includes("admin")) {
+              router.replace("/admin");
+              return;
+            }
+            if (roles.includes("teamlead")) {
+              router.replace("/teamlead");
+              return;
+            }
+            if (roles.includes("therapist")) {
+              router.replace("/therapist");
+              return;
+            }
+            if (
+              roles.includes("setter") ||
+              roles.includes("erstgespraechler") ||
+              roles.includes("setter_closer")
+            ) {
+              router.replace("/setter");
+              return;
+            }
+            if (payload.views?.[0]?.href) {
+              router.replace(payload.views[0].href);
+              return;
+            }
+          }
+        } catch {
+          /* fall through */
         }
-        const { data: prof } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("user_id", userId)
-          .maybeSingle();
-        if (prof?.role === "admin") {
-          router.replace("/admin");
-        } else if (prof?.role === "teamlead") {
-          router.replace("/teamlead");
-        } else if (prof?.role === "therapist") {
-          router.replace("/therapist");
-        } else if (
-          prof?.role === "setter" ||
-          prof?.role === "erstgespraechler" ||
-          prof?.role === "setter_closer"
-        ) {
-          router.replace("/setter");
-        } else {
-          router.replace("/");
-        }
+        router.replace("/");
+        return;
       } else {
         setError("Login fehlgeschlagen. Bitte erneut versuchen.");
         setLoading(false);

@@ -1,35 +1,9 @@
 "use server";
 
-import { getAuthUserFromCookie } from "@/lib/supabaseServer";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import { revalidatePath } from "next/cache";
 import { createBunnyVideo, deleteBunnyVideo } from "@/lib/bunnyCDN";
-
-// Helper to check admin access
-async function checkAdminAccess() {
-  const user = await getAuthUserFromCookie();
-
-  if (!user) {
-    throw new Error("Unauthorized");
-  }
-
-  const supabase = getSupabaseAdminClient();
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  const emailWhitelisted = ["info@oag-media.com"].includes(user.email);
-  const isAdmin = (profile?.role === "admin") || emailWhitelisted;
-
-  if (!isAdmin) {
-    throw new Error("Unauthorized");
-  }
-
-  return { user, supabase };
-}
+import { checkAdminAccess } from "@/lib/checkAdminAccess";
 
 // Generate slug from title
 function generateSlug(title: string, videoIdSuffix: string = ""): string {
