@@ -6,6 +6,7 @@ import { MobileNav } from "./MobileNav";
 import { LogoutButton } from "./LogoutButton";
 import { LogoutIcon } from "./icons/Icons";
 import { NavPressLink } from "@/components/ui/NavPressLink";
+import { GlobalClientSearch } from "@/components/layout/GlobalClientSearch";
 import {
   adminNavItems,
   clientNavItems,
@@ -47,8 +48,14 @@ export function AppShellLegacy({
 
       <main className="relative z-10 min-h-screen text-white">
         <div className={`mx-auto ${mainMaxWidth} px-6 py-10`}>
+          <div className="mb-4 lg:hidden">
+            <GlobalClientSearch />
+          </div>
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[300px_1fr]">
             <aside className="sticky top-6 hidden self-start rounded-[24px] border border-white/10 bg-white/[0.02] p-6 backdrop-blur-sm lg:block">
+              <div className="mb-4">
+                <GlobalClientSearch />
+              </div>
               <nav className="space-y-4 text-white/90">
                 {desktopNavItems.map((item) => {
                   const isActive = isNavItemActive(

@@ -1,11 +1,21 @@
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import type { UserRole } from "@/lib/profileRole";
 
-export type PortalRole = "admin" | "therapist" | "setter_closer" | "client" | "teamlead";
+/** Portal roles per Dincer-Konzept (Mehrfachrollen möglich). */
+export type PortalRole =
+  | "admin"
+  | "therapist"
+  | "setter"
+  | "erstgespraechler"
+  | "setter_closer"
+  | "teamlead"
+  | "client";
 
 const PORTAL_ROLES: PortalRole[] = [
   "admin",
   "therapist",
+  "setter",
+  "erstgespraechler",
   "setter_closer",
   "teamlead",
   "client",
@@ -39,11 +49,32 @@ export async function getUserPortalRoles(userId: string): Promise<PortalRole[]> 
     if (r) roles.add(r);
   });
 
+  // Legacy: setter_closer zählt als Setter + Erstgesprächler
+  if (roles.has("setter_closer")) {
+    roles.add("setter");
+    roles.add("erstgespraechler");
+  }
+
   return [...roles];
 }
 
 export function userHasPortalRole(roles: PortalRole[], role: PortalRole): boolean {
-  return roles.includes(role);
+  if (roles.includes(role)) return true;
+  if (
+    (role === "setter" || role === "erstgespraechler") &&
+    roles.includes("setter_closer")
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export function userHasSalesAccess(roles: PortalRole[]): boolean {
+  return (
+    userHasPortalRole(roles, "setter") ||
+    userHasPortalRole(roles, "erstgespraechler") ||
+    userHasPortalRole(roles, "setter_closer")
+  );
 }
 
 export async function userHasPortalRoleById(
@@ -62,10 +93,31 @@ export type RoleViewOption = {
 
 export function resolveRoleViewOptions(roles: PortalRole[]): RoleViewOption[] {
   const options: RoleViewOption[] = [];
+  if (userHasPortalRole(roles, "admin")) {
+    options.push({ id: "admin", label: "Admin", href: "/admin" });
+  }
+  if (userHasPortalRole(roles, "teamlead")) {
+    options.push({ id: "teamlead", label: "Teamleitung", href: "/teamlead" });
+  }
   if (userHasPortalRole(roles, "therapist")) {
     options.push({ id: "therapist", label: "Therapeut", href: "/therapist" });
   }
-  if (userHasPortalRole(roles, "setter_closer")) {
+  if (userHasPortalRole(roles, "setter")) {
+    options.push({ id: "setter", label: "Setter", href: "/setter" });
+  }
+  if (userHasPortalRole(roles, "erstgespraechler")) {
+    options.push({
+      id: "erstgespraechler",
+      label: "Erstgesprächler",
+      href: "/setter/eg",
+    });
+  }
+  // Legacy-only ohne getrennte Rollen
+  if (
+    userHasPortalRole(roles, "setter_closer") &&
+    !userHasPortalRole(roles, "setter") &&
+    !userHasPortalRole(roles, "erstgespraechler")
+  ) {
     options.push({
       id: "setter_closer",
       label: "Setter & Closer",
@@ -77,7 +129,10 @@ export function resolveRoleViewOptions(roles: PortalRole[]): RoleViewOption[] {
 
 export async function setUserExtraRole(
   userId: string,
-  role: Extract<UserRole, "therapist" | "setter_closer" | "teamlead">,
+  role: Extract<
+    UserRole,
+    "therapist" | "setter" | "erstgespraechler" | "setter_closer" | "teamlead"
+  >,
   enabled: boolean
 ): Promise<void> {
   const supabase = getSupabaseAdminClient();

@@ -11,18 +11,16 @@ import {
 } from "react";
 
 export type BackgroundLayers = {
-  silk: boolean;
   galaxy: boolean;
   lightRays: boolean;
 };
 
 const DEFAULT_LAYERS: BackgroundLayers = {
-  silk: true,
   galaxy: true,
   lightRays: true,
 };
 
-const STORAGE_KEY = "loh-bg-layers";
+const STORAGE_KEY = "loh-bg-layers-v2";
 
 type BackgroundLayersContextValue = {
   layers: BackgroundLayers;
@@ -41,7 +39,6 @@ function readStoredLayers(): BackgroundLayers {
     if (!raw) return DEFAULT_LAYERS;
     const parsed = JSON.parse(raw) as Partial<BackgroundLayers>;
     return {
-      silk: typeof parsed.silk === "boolean" ? parsed.silk : DEFAULT_LAYERS.silk,
       galaxy:
         typeof parsed.galaxy === "boolean" ? parsed.galaxy : DEFAULT_LAYERS.galaxy,
       lightRays:
@@ -55,7 +52,7 @@ function readStoredLayers(): BackgroundLayers {
 }
 
 export function BackgroundLayersProvider({ children }: { children: ReactNode }) {
-  const [layers, setLayers] = useState<BackgroundLayers>(DEFAULT_LAYERS);
+  const [layers, setLayers] = useState<BackgroundLayers>(() => readStoredLayers());
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {

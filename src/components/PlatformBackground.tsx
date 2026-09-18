@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import Galaxy from "./Galaxy";
 import LightRays from "./LightRays";
-import Silk from "./Silk";
 import { useBackgroundLayers } from "@/components/BackgroundLayersProvider";
-import { LOH_ACCENT, LOH_GALAXY_HUE, LOH_SILK_COLOR } from "@/lib/branding";
+import { LOH_ACCENT, LOH_GALAXY_HUE } from "@/lib/branding";
 
 function useClientMounted() {
   const [mounted, setMounted] = useState(false);
@@ -13,25 +12,6 @@ function useClientMounted() {
     setMounted(true);
   }, []);
   return mounted;
-}
-
-function SilkBackground() {
-  const mounted = useClientMounted();
-
-  return (
-    <div className="page-silk" aria-hidden>
-      {/* Explicit Silk toggle overrides prefers-reduced-motion */}
-      {mounted ? (
-        <Silk
-          speed={5}
-          scale={0.8}
-          color={LOH_SILK_COLOR}
-          noiseIntensity={0}
-          rotation={0}
-        />
-      ) : null}
-    </div>
-  );
 }
 
 function GalaxyBackground() {
@@ -60,22 +40,19 @@ function GalaxyBackground() {
   );
 }
 
-/** Single app-wide background: silk + galaxy + light rays (mounted once in Providers). */
+/** Single app-wide background: galaxy + light rays (mounted once in Providers). */
 export function PlatformBackground() {
   const { layers } = useBackgroundLayers();
 
   return (
     <>
-      {layers.silk ? <SilkBackground /> : null}
       {layers.galaxy ? <GalaxyBackground /> : null}
       {layers.lightRays ? (
         <div className="page-light-rays" aria-hidden>
           <LightRays raysColor={LOH_ACCENT} />
         </div>
       ) : null}
-      {!layers.silk && !layers.galaxy ? (
-        <div className="page-bg-fallback" aria-hidden />
-      ) : null}
+      {!layers.galaxy ? <div className="page-bg-fallback" aria-hidden /> : null}
     </>
   );
 }

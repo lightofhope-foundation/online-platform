@@ -14,7 +14,14 @@ export default async function ClientAreaLayout({ children }: { children: ReactNo
   if (!isAdminEmail(user.email)) {
     const role = await getProfileRole(user.id);
     if (role === "therapist") redirect("/therapist");
-    if (role === "setter_closer") redirect("/setter");
+    if (role === "teamlead") redirect("/teamlead");
+    if (
+      role === "setter" ||
+      role === "erstgespraechler" ||
+      role === "setter_closer"
+    ) {
+      redirect("/setter");
+    }
     if (role === "admin") redirect("/admin");
   }
 

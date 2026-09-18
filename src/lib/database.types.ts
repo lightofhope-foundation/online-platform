@@ -1056,7 +1056,7 @@ export type Database = {
     }
     Enums: {
       unlock_schedule_source: "default" | "manual" | "override"
-      user_role: "admin" | "therapist" | "setter_closer" | "teamlead" | "patient" | "client"
+      user_role: "admin" | "therapist" | "setter" | "erstgespraechler" | "setter_closer" | "teamlead" | "patient" | "client"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1185,7 +1185,7 @@ export const Constants = {
   public: {
     Enums: {
       unlock_schedule_source: ["default", "manual", "override"],
-      user_role: ["admin", "therapist", "setter_closer", "teamlead", "patient", "client"],
+      user_role: ["admin", "therapist", "setter", "erstgespraechler", "setter_closer", "teamlead", "patient", "client"],
     },
   },
 } as const

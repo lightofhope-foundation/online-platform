@@ -8,6 +8,12 @@ export function SetterHomeTiles() {
       columns={2}
       tiles={[
         {
+          key: "notion-leadboard",
+          title: "Notion Leadboard",
+          description: "Live-Anzeige Meta-Pipeline (nur Lesen)",
+          href: "/setter/leadboard",
+        },
+        {
           key: "open-leads",
           title: "Offene Leads",
           description: "Nur noch nicht zugeordnete Klienten — Akte öffnen",

@@ -5,6 +5,7 @@ import type { LeadIntakeView } from "@/lib/leadVault";
 import { PencilIcon } from "@/components/icons/Icons";
 import { therapistSaveClientIntake } from "@/app/therapist/clients/[slug]/actions";
 import { setterSaveClientIntake } from "@/app/setter/actions";
+import { adminSaveClientIntake } from "@/app/admin/users/[slug]/info/actions";
 import type { ClientIntakeData } from "@/app/setter/actions";
 
 type CardKey =
@@ -94,7 +95,7 @@ type Props = {
   /** Therapist (and Setter) can edit intake cards */
   editable?: boolean;
   /** Who persists the intake */
-  saveVia?: "therapist" | "setter";
+  saveVia?: "therapist" | "setter" | "admin";
 };
 
 export function LeadDetailCards({
@@ -132,7 +133,9 @@ export function LeadDetailCards({
       const result =
         saveVia === "setter"
           ? await setterSaveClientIntake(clientId, payload)
-          : await therapistSaveClientIntake(clientId, draft);
+          : saveVia === "admin"
+            ? await adminSaveClientIntake(clientId, draft)
+            : await therapistSaveClientIntake(clientId, draft);
       if (result.ok) {
         setData(draft);
         setEditing(null);

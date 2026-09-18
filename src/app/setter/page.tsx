@@ -37,13 +37,13 @@ export default async function SetterHomePage() {
       <div>
         <h1 className="typo-section font-normal text-white">Setter & Closer</h1>
         <p className="mt-1 text-sm text-white/60">
-          Offene Leads anlegen und Erstkontakt (grüne Daten) pflegen — ohne Schachtel-Vault.
-          Mehrfachrollen möglich: als Therapeut wechselt du oben rechts in die Therapeuten-Ansicht.
+          Notion-Pipeline live anzeigen (Leadboard) sowie offene LOH-Leads anlegen und Erstkontakt
+          pflegen. Mehrfachrollen: als Therapeut wechselt du oben rechts in die Therapeuten-Ansicht.
         </p>
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4">
-        <div className="text-sm text-white/50">Offene Leads (ohne Therapeut)</div>
+      <div className="rounded-2xl border border-white/12 bg-gradient-to-br from-white/[0.07] to-white/[0.02] px-5 py-4 shadow-[0_0_40px_rgba(99,236,169,0.06)]">
+        <div className="text-sm text-white/55">Offene Leads (ohne Therapeut)</div>
         <div className="mt-1 text-3xl font-semibold text-white">{openLeads}</div>
       </div>
 

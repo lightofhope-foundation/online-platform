@@ -157,9 +157,15 @@ function LoginForm() {
           .maybeSingle();
         if (prof?.role === "admin") {
           router.replace("/admin");
+        } else if (prof?.role === "teamlead") {
+          router.replace("/teamlead");
         } else if (prof?.role === "therapist") {
           router.replace("/therapist");
-        } else if (prof?.role === "setter_closer") {
+        } else if (
+          prof?.role === "setter" ||
+          prof?.role === "erstgespraechler" ||
+          prof?.role === "setter_closer"
+        ) {
           router.replace("/setter");
         } else {
           router.replace("/");

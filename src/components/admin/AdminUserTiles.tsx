@@ -41,7 +41,6 @@ export function AdminUserTiles({ clientId, role }: AdminUserTilesProps) {
       description: "Stammdaten des Klienten / der Patientin.",
       href: `${base}/info`,
       icon: <UsersIcon size={24} />,
-      disabled: true,
     },
     {
       title: "Chat / Nachrichten",

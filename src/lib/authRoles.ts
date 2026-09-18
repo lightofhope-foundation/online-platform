@@ -30,8 +30,15 @@ export async function resolvePostLoginPath(
 
   const roles = await getUserPortalRoles(userId);
   if (userHasPortalRole(roles, "admin")) return "/admin";
+  if (userHasPortalRole(roles, "teamlead")) return "/teamlead";
   if (userHasPortalRole(roles, "therapist")) return "/therapist";
-  if (userHasPortalRole(roles, "setter_closer")) return "/setter";
+  if (
+    userHasPortalRole(roles, "setter") ||
+    userHasPortalRole(roles, "erstgespraechler") ||
+    userHasPortalRole(roles, "setter_closer")
+  ) {
+    return "/setter";
+  }
   return "/";
 }
 

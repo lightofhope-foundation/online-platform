@@ -1,6 +1,8 @@
 export type UserRole =
   | "admin"
   | "therapist"
+  | "setter"
+  | "erstgespraechler"
   | "setter_closer"
   | "teamlead"
   | "patient"
@@ -9,8 +11,10 @@ export type UserRole =
 const ROLE_LABELS: Record<string, string> = {
   admin: "Admin",
   therapist: "Therapeut",
+  setter: "Setter",
+  erstgespraechler: "Erstgesprächler",
   setter_closer: "Setter & Closer",
-  teamlead: "Teamlead",
+  teamlead: "Teamleitung",
   client: "Klient",
   patient: "Klient",
 };

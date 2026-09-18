@@ -16,9 +16,6 @@ export const LOH_SESSION_PATH_TAGLINE =
 export const LOH_SESSION_PATH_FOOTER =
   "Jede Sitzung bringt dich näher zu deinem Licht.";
 
-/** Silk background base color (React Bits Silk) */
-export const LOH_SILK_COLOR = "#076356";
-
 /** Galaxy star hue (degrees) — matches LOH_ACCENT #63eca9 */
 export const LOH_GALAXY_HUE = 152;
 

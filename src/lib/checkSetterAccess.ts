@@ -1,7 +1,7 @@
 import { getAuthUserFromCookie } from "@/lib/supabaseServer";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import { isAdminEmail } from "@/lib/authRoles";
-import { getUserPortalRoles, userHasPortalRole } from "@/lib/userRoles";
+import { getUserPortalRoles, userHasSalesAccess } from "@/lib/userRoles";
 
 export async function checkSetterAccess() {
   const user = await getAuthUserFromCookie();
@@ -13,7 +13,7 @@ export async function checkSetterAccess() {
   }
 
   const roles = await getUserPortalRoles(user.id);
-  if (!userHasPortalRole(roles, "setter_closer")) {
+  if (!userHasSalesAccess(roles)) {
     throw new Error("Nicht autorisiert");
   }
 
