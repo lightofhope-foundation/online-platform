@@ -1,8 +1,9 @@
 /**
- * Reset demo staff accounts from Notion Mitarbeiter + keep Admin/Andreas.
+ * Seed LOH staff accounts (Light of Hope Team only).
  * Usage: cd web && npx tsx scripts/seed-staff-from-notion.ts
  *
  * Destructive: deletes all auth users except keep-list, then creates staff.
+ * Admin = Dincer only. No oag-media / Andreas G.
  */
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync, writeFileSync } from "fs";
@@ -29,31 +30,22 @@ type StaffSeed = {
   email: string;
   firstName: string;
   lastName: string;
-  displayAlias: string;
+  displayAlias: string | null;
   primary: StaffRole;
   extras: StaffRole[];
   note: string;
 };
 
-/** Notion Mitarbeiter + Admin/Teamleitung. Demo-Mails wo Notion keine E-Mail hat. */
+/** Nur LOH Team / Freelancer. Einziger Admin: Dincer. */
 const STAFF: StaffSeed[] = [
   {
-    email: "info@oag-media.com",
-    firstName: "Admin",
-    lastName: "LOH",
-    displayAlias: "Admin",
+    email: "dincerb15@gmail.com",
+    firstName: "Dincer",
+    lastName: "Berberoglu",
+    displayAlias: null,
     primary: "admin",
-    extras: [],
-    note: "behalten / Passwort gesetzt",
-  },
-  {
-    email: "gretzinger.a@gmail.com",
-    firstName: "Andreas",
-    lastName: "Gretzinger",
-    displayAlias: "Andreas G.",
-    primary: "therapist",
-    extras: [],
-    note: "behalten",
+    extras: ["therapist", "teamlead", "setter", "erstgespraechler"],
+    note: "einziger Admin",
   },
   {
     email: "teamleitung@demo.lightofhope.local",
@@ -62,16 +54,7 @@ const STAFF: StaffSeed[] = [
     displayAlias: "Teamleitung",
     primary: "teamlead",
     extras: [],
-    note: "neue Rolle Teamleitung (Demo)",
-  },
-  {
-    email: "dincerb15@gmail.com",
-    firstName: "Dincer",
-    lastName: "Berberoglu",
-    displayAlias: "Dincer",
-    primary: "therapist",
-    extras: ["teamlead"],
-    note: "Notion Mitarbeiter: Therapeut (+ Teamleitung extra)",
+    note: "Demo Teamleitung",
   },
   {
     email: "nathalie.siedka@gmail.com",
@@ -89,7 +72,7 @@ const STAFF: StaffSeed[] = [
     displayAlias: "Enisa",
     primary: "therapist",
     extras: [],
-    note: "Notion: Therapeut (keine Workspace-E-Mail → Demo-Mail)",
+    note: "Notion: Therapeut",
   },
   {
     email: "elena@demo.lightofhope.local",
@@ -134,7 +117,7 @@ const STAFF: StaffSeed[] = [
     displayAlias: "Boris",
     primary: "therapist",
     extras: ["setter", "erstgespraechler", "teamlead"],
-    note: "Notion: Therapeut+EG; alle Rollen außer Admin",
+    note: "alle Rollen außer Admin",
   },
 ];
 
@@ -238,7 +221,7 @@ async function main() {
       .replace(/[^a-z0-9]+/gi, "_")
       .toUpperCase();
     blockLines.push(
-      `LOH_LOGIN_${key}=${s.email} # ${s.displayAlias} | primary=${s.primary}` +
+      `LOH_LOGIN_${key}=${s.email} # ${s.displayAlias ?? s.firstName} | primary=${s.primary}` +
         (s.extras.length ? ` extras=${s.extras.join("+")}` : "") +
         ` | ${s.note}`
     );

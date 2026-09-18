@@ -1,3 +1,6 @@
+/**
+ * Ensure Dincer is the sole admin (first_name Dincer for dashboard greeting).
+ */
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "fs";
 
@@ -12,59 +15,37 @@ const env = Object.fromEntries(
 );
 
 const DINCER = "dincerb15@gmail.com";
-const OAG = "info@oag-media.com";
 
 async function main() {
   const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL!, env.SUPABASE_SERVICE_ROLE_KEY!, {
     auth: { persistSession: false },
   });
   const { data } = await admin.auth.admin.listUsers({ perPage: 1000 });
-  const users = data?.users ?? [];
-
-  const dincer = users.find((u) => (u.email || "").toLowerCase() === DINCER);
-  const oag = users.find((u) => (u.email || "").toLowerCase() === OAG);
-
+  const dincer = data?.users?.find((u) => (u.email || "").toLowerCase() === DINCER);
   if (!dincer) throw new Error("Dincer not found");
-  if (!oag) throw new Error("oag-media not found");
 
-  // Dincer → primary admin; keep therapist + teamlead as extras; add setter+eg for demos
-  await admin.from("profiles").update({ role: "admin" }).eq("user_id", dincer.id);
+  await admin
+    .from("profiles")
+    .update({
+      role: "admin",
+      first_name: "Dincer",
+      last_name: "Berberoglu",
+      display_alias: null,
+    })
+    .eq("user_id", dincer.id);
+
   for (const role of ["therapist", "teamlead", "setter", "erstgespraechler"] as const) {
-    await admin.from("profile_extra_roles").upsert({
-      user_id: dincer.id,
-      role,
-    });
+    await admin.from("profile_extra_roles").upsert({ user_id: dincer.id, role });
   }
 
-  // oag-media → no longer admin (demote to therapist, no extras)
-  await admin.from("profiles").update({ role: "therapist" }).eq("user_id", oag.id);
-  await admin.from("profile_extra_roles").delete().eq("user_id", oag.id);
-
-  const { data: dP } = await admin
+  const { data: admins } = await admin
     .from("profiles")
-    .select("role")
-    .eq("user_id", dincer.id)
-    .single();
-  const { data: dX } = await admin
-    .from("profile_extra_roles")
-    .select("role")
-    .eq("user_id", dincer.id);
-  const { data: oP } = await admin
-    .from("profiles")
-    .select("role")
-    .eq("user_id", oag.id)
-    .single();
-
-  console.log(
-    JSON.stringify(
-      {
-        dincer: { email: DINCER, role: dP?.role, extras: dX?.map((x) => x.role) },
-        oag: { email: OAG, role: oP?.role },
-      },
-      null,
-      2
-    )
-  );
+    .select("user_id, first_name, role")
+    .eq("role", "admin");
+  for (const a of admins ?? []) {
+    const { data: au } = await admin.auth.admin.getUserById(a.user_id);
+    console.log("admin", au.user?.email, a.first_name);
+  }
 }
 
 main().catch((e) => {

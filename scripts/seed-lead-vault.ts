@@ -42,7 +42,7 @@ const supabase = createClient(url, serviceKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-const THERAPIST_EMAIL = "gretzinger.a@gmail.com";
+const THERAPIST_EMAIL = "boris@demo.lightofhope.local";
 
 type LeadSeed = {
   firstName: string;
