@@ -35,9 +35,12 @@ async function main() {
     // Unassign clients
     const { count } = await admin
       .from("clients")
+      .select("*", { count: "exact", head: true })
+      .eq("therapist_user_id", u.id);
+    await admin
+      .from("clients")
       .update({ therapist_user_id: null, updated_at: new Date().toISOString() })
-      .eq("therapist_user_id", u.id)
-      .select("*", { count: "exact", head: true });
+      .eq("therapist_user_id", u.id);
     console.log(email, "unassigned clients", count);
 
     await admin.from("profile_extra_roles").delete().eq("user_id", u.id);
