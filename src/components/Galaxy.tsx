@@ -221,19 +221,19 @@ export default function Galaxy({
     if (!ctnDom.current) return;
     const ctn = ctnDom.current;
     let animateId = 0;
-    let renderer: Renderer | null = null;
-    let gl: WebGLRenderingContext | null = null;
+    let renderer: Renderer;
 
     try {
       renderer = new Renderer({
         alpha: transparent,
         premultipliedAlpha: false,
       });
-      gl = renderer.gl;
     } catch (e) {
       console.warn("[Galaxy] WebGL unavailable", e);
       return;
     }
+
+    const gl = renderer.gl;
 
     if (transparent) {
       gl.enable(gl.BLEND);
@@ -290,7 +290,6 @@ export default function Galaxy({
     }
 
     function resize() {
-      if (!renderer || !gl || !program) return;
       const scale = 1;
       renderer.setSize(ctn.offsetWidth * scale, ctn.offsetHeight * scale);
       program.uniforms.uResolution.value = new Color(
@@ -303,7 +302,6 @@ export default function Galaxy({
     resize();
 
     function update(t: number) {
-      if (!renderer || !program || !mesh) return;
       animateId = requestAnimationFrame(update);
       if (!disableAnimation) {
         program.uniforms.uTime.value = t * 0.001;
@@ -356,10 +354,10 @@ export default function Galaxy({
         ctn.removeEventListener("mousemove", handleMouseMove);
         ctn.removeEventListener("mouseleave", handleMouseLeave);
       }
-      if (gl?.canvas && gl.canvas.parentNode === ctn) {
+      if (gl.canvas.parentNode === ctn) {
         ctn.removeChild(gl.canvas);
       }
-      gl?.getExtension("WEBGL_lose_context")?.loseContext();
+      gl.getExtension("WEBGL_lose_context")?.loseContext();
     };
   }, [
     focal,
