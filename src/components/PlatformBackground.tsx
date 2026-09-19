@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Galaxy from "./Galaxy";
 import LightRays from "./LightRays";
+import { BackgroundErrorBoundary } from "@/components/BackgroundErrorBoundary";
 import { useBackgroundLayers } from "@/components/BackgroundLayersProvider";
 import { LOH_ACCENT, LOH_GALAXY_HUE } from "@/lib/branding";
 
@@ -12,6 +13,19 @@ function useClientMounted() {
     setMounted(true);
   }, []);
   return mounted;
+}
+
+/** iPhone/iPad Safari often crashes with dual WebGL canvases — use CSS fallback there. */
+function useLiteBackground() {
+  const [lite, setLite] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 900px), (pointer: coarse)");
+    const sync = () => setLite(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return lite;
 }
 
 function GalaxyBackground() {
@@ -43,17 +57,24 @@ function GalaxyBackground() {
 /** Single app-wide background: galaxy + light rays (mounted once in Providers). */
 export function PlatformBackground() {
   const { layers } = useBackgroundLayers();
+  const lite = useLiteBackground();
+  const mounted = useClientMounted();
+
+  // Mobile / touch: no WebGL — dual ogl contexts crash iOS Safari (black screen + client error).
+  if (lite) {
+    return <div className="page-bg-fallback" aria-hidden />;
+  }
 
   return (
-    <>
+    <BackgroundErrorBoundary>
       {layers.galaxy ? <GalaxyBackground /> : null}
-      {layers.lightRays ? (
+      {layers.lightRays && mounted ? (
         <div className="page-light-rays" aria-hidden>
           <LightRays raysColor={LOH_ACCENT} />
         </div>
       ) : null}
       {!layers.galaxy ? <div className="page-bg-fallback" aria-hidden /> : null}
-    </>
+    </BackgroundErrorBoundary>
   );
 }
 

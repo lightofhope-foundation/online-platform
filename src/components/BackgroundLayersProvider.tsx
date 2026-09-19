@@ -52,7 +52,8 @@ function readStoredLayers(): BackgroundLayers {
 }
 
 export function BackgroundLayersProvider({ children }: { children: ReactNode }) {
-  const [layers, setLayers] = useState<BackgroundLayers>(() => readStoredLayers());
+  // Always start with defaults so SSR + first client paint match (no localStorage in useState).
+  const [layers, setLayers] = useState<BackgroundLayers>(DEFAULT_LAYERS);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
