@@ -284,7 +284,10 @@ html, body {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: #050807;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(99, 236, 169, 0.12), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(20, 80, 60, 0.35), transparent 50%),
+    #050807;
 }
 
 /* Animated galaxy — behind light rays */
