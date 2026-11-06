@@ -347,7 +347,8 @@ export async function therapistSaveSessionRecording(
   bunnyVideoId: string,
   title: string
 ) {
-  const { supabase, clientId: resolvedClientId } = await checkTherapistClientAccess(clientId);
+  const { supabase, clientId: resolvedClientId, userId, user } =
+    await checkTherapistClientAccess(clientId);
   const raw = bunnyVideoId.trim();
   if (!raw) throw new Error("Ungültige Video-Referenz");
 
@@ -359,6 +360,20 @@ export async function therapistSaveSessionRecording(
   if (!stored) throw new Error("Ungültige Bunny Video-ID / Storage-URL");
 
   await setTherapySessionRecording(supabase, sessionId, stored, title.trim());
+
+  try {
+    const { notifyClientOfTherapistSessionRecording } = await import(
+      "@/lib/staffNotifications"
+    );
+    await notifyClientOfTherapistSessionRecording(supabase, {
+      clientUserId: userId,
+      actorUserId: user.id,
+      sessionId,
+    });
+  } catch (e) {
+    console.error("[therapistSaveSessionRecording] notify failed", e);
+  }
+
   revalidateTherapySessionPaths(resolvedClientId);
   return { ok: true as const };
 }

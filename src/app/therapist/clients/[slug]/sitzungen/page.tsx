@@ -74,7 +74,7 @@ export default async function TherapistClientSitzungenPage({
 
     return (
       <SessionPathHero
-        title="DEINE SITZUNGSÜBERSICHT"
+        title={`SITZUNGSÜBERSICHT FÜR ${displayName.toUpperCase()}`}
         backgroundUrl={backgroundUrl}
         backLink={
           <Link
@@ -86,10 +86,6 @@ export default async function TherapistClientSitzungenPage({
         }
         subtitle={
           <>
-            <span className="text-white/80">{displayName}</span>
-            {" · Nutzer-ID "}
-            <span className="font-mono text-white/70">{resolved.clientId}</span>
-            <br />
             Registriert: {formatGermanDateTime(resolved.profile.created_at)} · Letzter Login:{" "}
             {formatGermanDateTime(authUser.last_sign_in_at)}
           </>

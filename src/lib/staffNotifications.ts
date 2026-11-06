@@ -6,7 +6,8 @@ export type StaffNotificationKind =
   | "session_comment"
   | "session_reaction"
   | "therapist_session_comment"
-  | "therapist_session_reaction";
+  | "therapist_session_reaction"
+  | "therapist_session_recording";
 
 type AdminClient = SupabaseClient;
 
@@ -196,5 +197,47 @@ export async function notifyClientOfTherapistSessionActivity(
     client_user_id: opts.clientUserId,
     session_id: opts.sessionId,
     note_id: opts.noteId ?? null,
+  });
+}
+
+/** Notify client when therapist/admin uploads or links a session recording. */
+export async function notifyClientOfTherapistSessionRecording(
+  supabase: AdminClient,
+  opts: {
+    clientUserId: string;
+    actorUserId: string;
+    sessionId: string;
+  }
+): Promise<void> {
+  if (!opts.clientUserId || opts.clientUserId === opts.actorUserId) return;
+
+  const { data: session } = await supabase
+    .from("therapy_sessions")
+    .select("id, session_number, is_special, path_order, client_user_id")
+    .eq("id", opts.sessionId)
+    .maybeSingle();
+
+  if (!session || session.client_user_id !== opts.clientUserId) return;
+
+  const { data: allSessions } = await supabase
+    .from("therapy_sessions")
+    .select("id, session_number, is_special, path_order")
+    .eq("client_user_id", opts.clientUserId);
+
+  const { buildClientSessionOrdinal } = await import(
+    "@/lib/sessionRecordingStorage"
+  );
+  const ordinal = buildClientSessionOrdinal(session, allSessions ?? [session]);
+  const text = `Sitzungsaufnahme für Sitzung ${ordinal} wurde hochgeladen`;
+
+  await insertNotification(supabase, {
+    recipient_user_id: opts.clientUserId,
+    actor_user_id: opts.actorUserId,
+    kind: "therapist_session_recording",
+    title: text,
+    body: text,
+    href: `/sitzungen?session=${opts.sessionId}`,
+    client_user_id: opts.clientUserId,
+    session_id: opts.sessionId,
   });
 }

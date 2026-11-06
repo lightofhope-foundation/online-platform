@@ -42,6 +42,12 @@ export default async function AdminUserSitzungenPage({
 
   const sessions = await loadTherapySessionsWithNotes(admin, profile.user_id);
   const boundClientId = profile.client_id;
+  const displayName = resolvePersonLabel(
+    profile.first_name,
+    profile.last_name,
+    authUser.email,
+    profile.display_alias
+  );
 
   const { data: clientRow } = await admin
     .from("clients")
@@ -54,7 +60,7 @@ export default async function AdminUserSitzungenPage({
 
   return (
     <SessionPathHero
-      title="DEINE SITZUNGSÜBERSICHT"
+      title={`SITZUNGSÜBERSICHT FÜR ${displayName.toUpperCase()}`}
       backgroundUrl={backgroundUrl}
       canEditBackground
       clientUserId={profile.user_id}
@@ -66,17 +72,6 @@ export default async function AdminUserSitzungenPage({
         >
           ← Zurück zur Nutzer-Akte
         </Link>
-      }
-      subtitle={
-        <>
-          {resolvePersonLabel(
-            profile.first_name,
-            profile.last_name,
-            authUser.email,
-            profile.display_alias
-          )}{" "}
-          · Nutzer-ID <span className="font-mono text-white/70">{boundClientId}</span>
-        </>
       }
     >
       <TherapySessionsWorkspace

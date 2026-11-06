@@ -53,15 +53,15 @@ export function buildClientRecordingFolderSlug(opts: {
 }
 
 /**
- * Standard: `1-sitzung`
- * Notsitzung after Sitzung N: `1.1-notsitzung`, `1.2-notsitzung`, …
+ * Client-facing ordinal: `1` (standard) or `1.1` / `3.2` (Notsitzung after Sitzung N).
+ * Never uses the word „Notsitzung“ — path index only.
  */
-export function buildSessionRecordingFileBase(
+export function buildClientSessionOrdinal(
   session: SessionPathBits,
   allSessions: SessionPathBits[]
 ): string {
   if (!session.is_special) {
-    return `${session.session_number}-sitzung`;
+    return String(session.session_number);
   }
 
   const ordered = sortByPathOrder(allSessions);
@@ -82,7 +82,21 @@ export function buildSessionRecordingFileBase(
   }
   const n = prevStandard > 0 ? prevStandard : 0;
   const sub = specialIndex > 0 ? specialIndex : 1;
-  return `${n}.${sub}-notsitzung`;
+  return `${n}.${sub}`;
+}
+
+/**
+ * Standard: `1-sitzung`
+ * Notsitzung after Sitzung N: `1.1-notsitzung`, `1.2-notsitzung`, …
+ */
+export function buildSessionRecordingFileBase(
+  session: SessionPathBits,
+  allSessions: SessionPathBits[]
+): string {
+  if (!session.is_special) {
+    return `${session.session_number}-sitzung`;
+  }
+  return `${buildClientSessionOrdinal(session, allSessions)}-notsitzung`;
 }
 
 export function buildSessionRecordingStoragePath(opts: {
