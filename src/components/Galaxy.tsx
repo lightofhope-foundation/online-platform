@@ -2,6 +2,7 @@
 
 import { Renderer, Program, Mesh, Color, Triangle } from "ogl";
 import { useEffect, useRef } from "react";
+import { bindVisibilityPause, webglRenderScale } from "@/lib/webglPerf";
 import "./Galaxy.css";
 
 const vertexShader = `
@@ -290,7 +291,8 @@ export default function Galaxy({
     }
 
     function resize() {
-      const scale = 1;
+      // Internal buffer << CSS size on Retina — canvas still stretched to 100%.
+      const scale = webglRenderScale(1.25);
       renderer.setSize(ctn.offsetWidth * scale, ctn.offsetHeight * scale);
       program.uniforms.uResolution.value = new Color(
         gl.canvas.width,
@@ -302,6 +304,10 @@ export default function Galaxy({
     resize();
 
     function update(t: number) {
+      if (document.hidden) {
+        animateId = 0;
+        return;
+      }
       animateId = requestAnimationFrame(update);
       if (!disableAnimation) {
         program.uniforms.uTime.value = t * 0.001;
@@ -327,7 +333,21 @@ export default function Galaxy({
         /* ignore frame errors */
       }
     }
-    animateId = requestAnimationFrame(update);
+    function startLoop() {
+      if (animateId || document.hidden) return;
+      animateId = requestAnimationFrame(update);
+    }
+    function stopLoop() {
+      if (!animateId) return;
+      cancelAnimationFrame(animateId);
+      animateId = 0;
+    }
+    const unbindVisibility = bindVisibilityPause({
+      isRunning: () => animateId !== 0,
+      start: startLoop,
+      stop: stopLoop,
+    });
+    startLoop();
     ctn.appendChild(gl.canvas);
 
     function handleMouseMove(e: MouseEvent) {
@@ -348,7 +368,8 @@ export default function Galaxy({
     }
 
     return () => {
-      cancelAnimationFrame(animateId);
+      unbindVisibility();
+      stopLoop();
       window.removeEventListener("resize", resize);
       if (mouseInteraction) {
         ctn.removeEventListener("mousemove", handleMouseMove);

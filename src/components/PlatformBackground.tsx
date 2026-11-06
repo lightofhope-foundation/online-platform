@@ -37,7 +37,7 @@ function GalaxyBackground() {
         <Galaxy
           mouseRepulsion={false}
           mouseInteraction={false}
-          density={2}
+          density={1}
           glowIntensity={0.18}
           saturation={0.5}
           hueShift={LOH_GALAXY_HUE}

@@ -3,6 +3,7 @@
 
 import { useRef, useEffect, useState } from "react";
 import { Renderer, Program, Triangle, Mesh } from "ogl";
+import { bindVisibilityPause } from "@/lib/webglPerf";
 import "./LightRays.css";
 
 export type RaysOrigin =
@@ -134,8 +135,9 @@ const LightRays: React.FC<LightRaysProps> = ({
 
       let renderer: Renderer;
       try {
+        // Cap DPR — Retina @2x full-screen shaders easily peg the GPU.
         renderer = new Renderer({
-          dpr: Math.min(window.devicePixelRatio, 2),
+          dpr: Math.min(window.devicePixelRatio || 1, 1),
           alpha: true,
         });
       } catch (e) {
@@ -308,6 +310,10 @@ void main() {
         if (!rendererRef.current || !uniformsRef.current || !meshRef.current) {
           return;
         }
+        if (document.hidden) {
+          animationIdRef.current = null;
+          return;
+        }
 
         uniforms.iTime.value = t * 0.001;
 
@@ -336,15 +342,28 @@ void main() {
         }
       };
 
+      const startLoop = () => {
+        if (animationIdRef.current || document.hidden) return;
+        animationIdRef.current = requestAnimationFrame(loop);
+      };
+      const stopLoop = () => {
+        if (animationIdRef.current == null) return;
+        cancelAnimationFrame(animationIdRef.current);
+        animationIdRef.current = null;
+      };
+      const unbindVisibility = bindVisibilityPause({
+        isRunning: () => animationIdRef.current != null,
+        start: startLoop,
+        stop: stopLoop,
+      });
+
       window.addEventListener("resize", updatePlacement);
       updatePlacement();
-      animationIdRef.current = requestAnimationFrame(loop);
+      startLoop();
 
       cleanupFunctionRef.current = () => {
-        if (animationIdRef.current) {
-          cancelAnimationFrame(animationIdRef.current);
-          animationIdRef.current = null;
-        }
+        unbindVisibility();
+        stopLoop();
 
         window.removeEventListener("resize", updatePlacement);
 

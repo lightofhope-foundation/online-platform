@@ -17,10 +17,11 @@ export type BackgroundLayers = {
 
 const DEFAULT_LAYERS: BackgroundLayers = {
   galaxy: true,
-  lightRays: true,
+  // Second full-screen WebGL shader is the main GPU hog — off by default.
+  lightRays: false,
 };
 
-const STORAGE_KEY = "loh-bg-layers-v2";
+const STORAGE_KEY = "loh-bg-layers-v3";
 
 type BackgroundLayersContextValue = {
   layers: BackgroundLayers;
