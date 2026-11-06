@@ -62,14 +62,19 @@ export async function createTherapySessionNote(
     throw new Error("Mindestens ein Notizfeld muss ausgefüllt sein");
   }
 
-  const { error } = await supabase.from("therapy_session_notes").insert({
-    session_id: sessionId,
-    author_id: authorId,
-    therapist_body: therapist,
-    client_body: client,
-  });
+  const { data, error } = await supabase
+    .from("therapy_session_notes")
+    .insert({
+      session_id: sessionId,
+      author_id: authorId,
+      therapist_body: therapist,
+      client_body: client,
+    })
+    .select("id")
+    .single();
 
   if (error) throw new Error(error.message);
+  return { id: data.id as string };
 }
 
 export async function updateTherapySessionNote(

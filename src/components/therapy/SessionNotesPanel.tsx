@@ -1,12 +1,16 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import type { TherapySessionNoteRow } from "@/lib/therapySessions";
 import { formatGermanDateTime } from "@/lib/clientId";
 import { SimpleRichTextEditor } from "@/components/ui/SimpleRichTextEditor";
 
-const REACTION_EMOJIS = ["👍", "❤️", "😂", "🙏", "🔥"];
+const REACTION_EMOJIS = ["👍", "❤️", "😂", "🙏", "🔥", "👏", "😮", "😢"];
+const INPUT_EMOJIS = [
+  "😊", "😂", "❤️", "👍", "🙏", "🔥", "👏", "😍",
+  "😢", "😮", "🎉", "💪", "✨", "🙌", "🤔", "✅",
+];
 
 type Mode = "therapist" | "admin" | "client";
 
@@ -25,6 +29,20 @@ function stripHtml(html: string) {
   return html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
 }
 
+function toggleLocalReaction(
+  reactions: Record<string, string[]> | undefined,
+  emoji: string,
+  userId: string
+): Record<string, string[]> {
+  const next: Record<string, string[]> = { ...(reactions ?? {}) };
+  const set = new Set(next[emoji] ?? []);
+  if (set.has(userId)) set.delete(userId);
+  else set.add(userId);
+  if (set.size === 0) delete next[emoji];
+  else next[emoji] = [...set];
+  return next;
+}
+
 export function SessionNotesPanel({
   notes,
   mode,
@@ -35,27 +53,72 @@ export function SessionNotesPanel({
   onToggleReaction,
   locked = false,
 }: Props) {
-  const router = useRouter();
   const [tab, setTab] = useState<"feedback" | "notes">("feedback");
   const [draftChat, setDraftChat] = useState("");
   const [draftNoteHtml, setDraftNoteHtml] = useState("");
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
   const [pickerFor, setPickerFor] = useState<string | null>(null);
+  const [pickerPos, setPickerPos] = useState<{ top: number; left: number } | null>(null);
+  const [inputEmojiOpen, setInputEmojiOpen] = useState(false);
+  const [plusMenuOpen, setPlusMenuOpen] = useState(false);
+  const [localNotes, setLocalNotes] = useState(notes);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const inputBarRef = useRef<HTMLDivElement>(null);
+  const reactionBtnRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+
+  useEffect(() => {
+    setLocalNotes(notes);
+  }, [notes]);
+
+  useEffect(() => {
+    function onDoc(e: MouseEvent) {
+      const target = e.target as Node;
+      if (!inputBarRef.current?.contains(target)) {
+        setInputEmojiOpen(false);
+        setPlusMenuOpen(false);
+      }
+      const pickerEl = document.getElementById("session-reaction-picker");
+      if (pickerEl && !pickerEl.contains(target)) {
+        const isTrigger = [...reactionBtnRefs.current.values()].some((b) =>
+          b.contains(target)
+        );
+        if (!isTrigger) setPickerFor(null);
+      }
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!pickerFor) {
+      setPickerPos(null);
+      return;
+    }
+    const btn = reactionBtnRefs.current.get(pickerFor);
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    const width = 220;
+    const left = Math.min(
+      Math.max(8, rect.right - width),
+      window.innerWidth - width - 8
+    );
+    const top = Math.max(8, rect.top - 8);
+    setPickerPos({ top, left });
+  }, [pickerFor]);
 
   const feedbackNotes = useMemo(
-    () => notes.filter((n) => (n.client_body?.trim() ?? "").length > 0),
-    [notes]
+    () => localNotes.filter((n) => (n.client_body?.trim() ?? "").length > 0),
+    [localNotes]
   );
   const privateNotes = useMemo(
     () =>
-      notes.filter(
+      localNotes.filter(
         (n) =>
           (n.therapist_body?.trim() ?? "").length > 0 &&
           !(n.client_body?.trim() ?? "").length
       ),
-    [notes]
+    [localNotes]
   );
 
   const canWriteFeedback =
@@ -64,13 +127,28 @@ export function SessionNotesPanel({
 
   const sendChat = () => {
     if (!draftChat.trim()) return;
+    const text = draftChat.trim();
     setError(null);
+    setDraftChat("");
+    const optimistic: TherapySessionNoteRow = {
+      id: `tmp-${Date.now()}`,
+      session_id: sessionId,
+      author_id: currentUserId ?? "",
+      author_label: "Du",
+      author_is_staff: mode !== "client",
+      therapist_body: null,
+      client_body: text,
+      reactions: {},
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    setLocalNotes((prev) => [...prev, optimistic]);
     startTransition(async () => {
       try {
-        await onAddFeedback(draftChat.trim());
-        setDraftChat("");
-        router.refresh();
+        await onAddFeedback(text);
       } catch (e) {
+        setLocalNotes(notes);
+        setDraftChat(text);
         setError(e instanceof Error ? e.message : "Senden fehlgeschlagen");
       }
     });
@@ -84,16 +162,65 @@ export function SessionNotesPanel({
         await onAddPrivateNote(draftNoteHtml);
         setDraftNoteHtml("");
         setTab("notes");
-        router.refresh();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Speichern fehlgeschlagen");
       }
     });
   };
 
+  const react = (noteId: string, emoji: string) => {
+    if (!currentUserId) return;
+    setPickerFor(null);
+    setLocalNotes((prev) =>
+      prev.map((n) =>
+        n.id === noteId
+          ? {
+              ...n,
+              reactions: toggleLocalReaction(n.reactions, emoji, currentUserId),
+            }
+          : n
+      )
+    );
+    startTransition(async () => {
+      try {
+        await onToggleReaction(noteId, emoji);
+      } catch {
+        setLocalNotes(notes);
+      }
+    });
+  };
+
+  const reactionPicker =
+    pickerFor && pickerPos && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            id="session-reaction-picker"
+            className="fixed z-[80] flex max-w-[220px] flex-wrap gap-1 rounded-2xl border border-white/15 bg-[#0b1210] p-1.5 shadow-xl"
+            style={{
+              top: pickerPos.top,
+              left: pickerPos.left,
+              transform: "translateY(-100%)",
+            }}
+          >
+            {REACTION_EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                className="rounded-full px-1.5 py-0.5 text-sm hover:bg-white/10"
+                onClick={() => react(pickerFor, emoji)}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>,
+          document.body
+        )
+      : null;
+
   return (
     <div className="mt-8 space-y-4">
-      <div className="flex rounded-full border border-white/15 bg-black/30 p-0.5 text-xs w-fit">
+      {reactionPicker}
+      <div className="flex w-fit rounded-full border border-white/15 bg-black/30 p-0.5 text-xs">
         <button
           type="button"
           onClick={() => setTab("feedback")}
@@ -121,7 +248,7 @@ export function SessionNotesPanel({
       </div>
 
       {tab === "feedback" ? (
-        <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0b1210]/70">
+        <div className="rounded-2xl border border-white/10 bg-[#0b1210]/70">
           <div className="max-h-[420px] space-y-3 overflow-y-auto px-3 py-4 sm:px-4">
             {feedbackNotes.length === 0 ? (
               <p className="py-8 text-center text-sm text-white/40">
@@ -136,7 +263,7 @@ export function SessionNotesPanel({
                     className={`flex ${mine ? "justify-end" : "justify-start"}`}
                   >
                     <div
-                      className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 ${
+                      className={`relative max-w-[85%] rounded-2xl px-3.5 py-2.5 ${
                         mine
                           ? "rounded-br-md bg-[#1f6b4a] text-white"
                           : "rounded-bl-md bg-white/[0.08] text-white"
@@ -158,12 +285,7 @@ export function SessionNotesPanel({
                               <button
                                 key={emoji}
                                 type="button"
-                                onClick={() =>
-                                  startTransition(async () => {
-                                    await onToggleReaction(note.id, emoji);
-                                    router.refresh();
-                                  })
-                                }
+                                onClick={() => react(note.id, emoji)}
                                 className={`rounded-full border px-1.5 py-0.5 text-[11px] ${
                                   currentUserId && users.includes(currentUserId)
                                     ? "border-[#63eca9]/50 bg-[#63eca9]/15"
@@ -176,6 +298,10 @@ export function SessionNotesPanel({
                           )}
                           <button
                             type="button"
+                            ref={(el) => {
+                              if (el) reactionBtnRefs.current.set(note.id, el);
+                              else reactionBtnRefs.current.delete(note.id);
+                            }}
                             onClick={() =>
                               setPickerFor((id) => (id === note.id ? null : note.id))
                             }
@@ -184,26 +310,6 @@ export function SessionNotesPanel({
                           >
                             ☺
                           </button>
-                          {pickerFor === note.id ? (
-                            <div className="absolute bottom-full right-0 z-10 mb-1 flex gap-1 rounded-full border border-white/15 bg-[#0b1210] p-1 shadow-lg">
-                              {REACTION_EMOJIS.map((emoji) => (
-                                <button
-                                  key={emoji}
-                                  type="button"
-                                  className="rounded-full px-1.5 py-0.5 text-sm hover:bg-white/10"
-                                  onClick={() =>
-                                    startTransition(async () => {
-                                      await onToggleReaction(note.id, emoji);
-                                      setPickerFor(null);
-                                      router.refresh();
-                                    })
-                                  }
-                                >
-                                  {emoji}
-                                </button>
-                              ))}
-                            </div>
-                          ) : null}
                         </div>
                       </div>
                     </div>
@@ -214,44 +320,89 @@ export function SessionNotesPanel({
           </div>
 
           {canWriteFeedback ? (
-            <div className="flex items-end gap-2 border-t border-white/10 bg-black/30 px-3 py-3">
-              <button
-                type="button"
-                className="mb-1 rounded-full p-2 text-white/45 hover:bg-white/10 hover:text-white"
-                title="Anhang (folgt)"
-                disabled
-              >
-                +
-              </button>
-              <button
-                type="button"
-                className="mb-1 rounded-full p-2 text-white/45 hover:bg-white/10 hover:text-white"
-                title="Emoji"
-                onClick={() => setDraftChat((t) => `${t}😊`)}
-              >
-                ☺
-              </button>
-              <textarea
-                value={draftChat}
-                onChange={(e) => setDraftChat(e.target.value)}
-                rows={1}
-                placeholder="Nachricht …"
-                className="min-h-[40px] flex-1 resize-none rounded-2xl border border-white/15 bg-white/[0.04] px-3 py-2 text-sm text-white outline-none focus:border-[#63eca9]/40"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    sendChat();
-                  }
-                }}
-              />
-              <button
-                type="button"
-                disabled={pending || !draftChat.trim()}
-                onClick={sendChat}
-                className="mb-0.5 rounded-full bg-[#63eca9] px-4 py-2 text-sm font-medium text-black disabled:opacity-40"
-              >
-                Senden
-              </button>
+            <div ref={inputBarRef} className="relative border-t border-white/10 bg-black/30 px-3 py-3">
+              {(inputEmojiOpen || plusMenuOpen) && (
+                <div className="absolute bottom-full left-3 z-30 mb-2 w-[280px] rounded-2xl border border-white/15 bg-[#0b1210] p-2 shadow-xl">
+                  {plusMenuOpen ? (
+                    <div className="space-y-1">
+                      <button
+                        type="button"
+                        className="w-full rounded-xl px-3 py-2 text-left text-sm text-white/80 hover:bg-white/10"
+                        onClick={() => {
+                          setPlusMenuOpen(false);
+                          setInputEmojiOpen(true);
+                        }}
+                      >
+                        ☺ Emoji einfügen
+                      </button>
+                      <p className="px-3 py-2 text-xs text-white/35">
+                        Datei-Anhang folgt in einem späteren Update.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-8 gap-1">
+                      {INPUT_EMOJIS.map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          className="rounded-lg p-1.5 text-lg hover:bg-white/10"
+                          onClick={() => {
+                            setDraftChat((t) => `${t}${emoji}`);
+                          }}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-end gap-2">
+                <button
+                  type="button"
+                  className="mb-1 rounded-full p-2 text-white/45 hover:bg-white/10 hover:text-white"
+                  title="Mehr"
+                  onClick={() => {
+                    setPlusMenuOpen((o) => !o);
+                    setInputEmojiOpen(false);
+                  }}
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  className="mb-1 rounded-full p-2 text-white/45 hover:bg-white/10 hover:text-white"
+                  title="Emoji"
+                  onClick={() => {
+                    setInputEmojiOpen((o) => !o);
+                    setPlusMenuOpen(false);
+                  }}
+                >
+                  ☺
+                </button>
+                <textarea
+                  value={draftChat}
+                  onChange={(e) => setDraftChat(e.target.value)}
+                  rows={1}
+                  placeholder="Nachricht …"
+                  className="min-h-[40px] flex-1 resize-none rounded-2xl border border-white/15 bg-white/[0.04] px-3 py-2 text-sm text-white outline-none focus:border-[#63eca9]/40"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendChat();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={pending || !draftChat.trim()}
+                  onClick={sendChat}
+                  className="mb-0.5 rounded-full bg-[#63eca9] px-4 py-2 text-sm font-medium text-black disabled:opacity-40"
+                >
+                  Senden
+                </button>
+              </div>
             </div>
           ) : null}
         </div>
@@ -280,8 +431,7 @@ export function SessionNotesPanel({
                     >
                       <div className="min-w-0">
                         <div className="text-xs text-white/40">
-                          {formatGermanDateTime(note.created_at)} ·{" "}
-                          {note.author_label}
+                          {formatGermanDateTime(note.created_at)} · {note.author_label}
                         </div>
                         <div className="mt-1 truncate text-sm text-white/80">
                           {preview || "Notiz"}
@@ -329,7 +479,6 @@ export function SessionNotesPanel({
       ) : null}
 
       {error ? <p className="text-sm text-red-300">{error}</p> : null}
-      {/* keep sessionId referenced for future attachments */}
       <span className="sr-only">{sessionId}</span>
     </div>
   );

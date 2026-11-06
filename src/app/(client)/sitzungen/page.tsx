@@ -95,6 +95,7 @@ export default async function SitzungenPage({
       <TherapySessionsWorkspace
         sessions={sessions}
         mode="client"
+        currentUserId={user.id}
         therapistName={therapistName}
         initialSessionNumber={initialSessionNumber}
         bunnyLibraryId={bunnyLibraryId}

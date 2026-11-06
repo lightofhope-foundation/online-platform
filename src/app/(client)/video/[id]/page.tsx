@@ -50,7 +50,8 @@ export default function VideoPage({ params }: PageProps) {
   const refreshProgressRef = useRef(refreshProgress);
   const getVideoProgressRef = useRef(getVideoProgress);
   const hasAttemptedResumeRef = useRef(false);
-  const MIN_RESUME_TIME = 240; // 4 minutes in seconds
+  /** Resume from any meaningful position (was incorrectly 4 minutes). */
+  const MIN_RESUME_TIME = 5;
 
   // Keep refs in sync
   useEffect(() => {
@@ -65,28 +66,49 @@ export default function VideoPage({ params }: PageProps) {
     getVideoProgressRef.current = getVideoProgress;
   }, [getVideoProgress]);
 
-  // Load progress when available
+  // Load progress when available (hook map + direct DB fallback for resume race)
   useEffect(() => {
+    let cancelled = false;
+
+    const applyProgress = (lastSecond: number, percent: number, completedAt: string | null) => {
+      const progressPayload = {
+        last_second: lastSecond || 0,
+        percent: percent || 0,
+      };
+      savedProgressRef.current = progressPayload;
+      setSavedProgress(progressPayload);
+      if (completedAt) setIsCompleted(true);
+    };
+
     if (!progressLoading) {
-      const progressFetcher = getVideoProgressRef.current;
-      const existingProgress = progressFetcher(id);
+      const existingProgress = getVideoProgressRef.current(id);
       if (existingProgress) {
-        const progressPayload = {
-          last_second: existingProgress.last_second || 0,
-          percent: existingProgress.percent || 0
-        };
-        savedProgressRef.current = progressPayload;
-        setSavedProgress(progressPayload);
-        if (existingProgress.completed_at) {
-          setIsCompleted(true);
-        }
-      } else {
-        savedProgressRef.current = null;
-        setSavedProgress(null);
-        setIsCompleted(false);
+        applyProgress(
+          existingProgress.last_second || 0,
+          existingProgress.percent || 0,
+          existingProgress.completed_at
+        );
+        return;
       }
     }
-  }, [progressLoading, id]);
+
+    (async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user || cancelled) return;
+      const { data } = await supabase
+        .from("video_progress")
+        .select("last_second, percent, completed_at")
+        .eq("user_id", auth.user.id)
+        .eq("video_id", id)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      applyProgress(data.last_second || 0, data.percent || 0, data.completed_at);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [progressLoading, id, supabase]);
 
   useEffect(() => {
     savedProgressRef.current = savedProgress;
@@ -132,20 +154,20 @@ export default function VideoPage({ params }: PageProps) {
       }
 
       const hlsUrl = getBunnyHlsPlaylistUrl(bunnyId);
-      console.log('Initializing player with HLS URL:', hlsUrl);
 
+      // Video.js for UI only — HLS via hls.js (not VHS) to avoid double buffering / RAM spikes
       const player = videojs(el, {
         controls: true,
-        // We already wrap player in an aspect-ratio container.
-        // Keep player non-fluid to avoid double-ratio layout glitches on non-16:9 videos.
         fluid: false,
         preload: 'metadata',
         playbackRates: [0.5, 1, 1.25, 1.5, 2],
         html5: {
           vhs: {
-            overrideNative: false
-          }
-        }
+            overrideNative: false,
+          },
+          nativeAudioTracks: false,
+          nativeVideoTracks: false,
+        },
       });
 
       playerRef.current = player;
@@ -163,31 +185,41 @@ export default function VideoPage({ params }: PageProps) {
         const currentProgress = savedProgressRef.current;
         if (!currentProgress) return;
         const lastPosition = currentProgress.last_second || 0;
-        const shouldResume = lastPosition >= MIN_RESUME_TIME;
-        if (shouldResume && lastPosition > 0 && playerRef.current) {
-          const duration = playerRef.current.duration();
-          if (typeof duration === 'number' && duration > 0 && lastPosition < duration - 2) {
-            console.log(`Resuming from ${lastPosition} seconds`);
-            setTimeout(() => {
-              if (playerRef.current) {
-                playerRef.current.currentTime(lastPosition);
-              }
-            }, 500);
-            setHasAttemptedResume(true);
-          }
+        const percent = currentProgress.percent || 0;
+        const shouldResume =
+          lastPosition >= MIN_RESUME_TIME || (percent >= 2 && lastPosition > 0);
+        if (!shouldResume || !playerRef.current) return;
+        const duration = playerRef.current.duration();
+        const mediaDuration =
+          typeof duration === 'number' && duration > 0
+            ? duration
+            : el.duration || 0;
+        if (mediaDuration > 0 && lastPosition < mediaDuration - 2) {
+          playerRef.current.currentTime(lastPosition);
+          hasAttemptedResumeRef.current = true;
+          setHasAttemptedResume(true);
         }
       };
 
       if (Hls.isSupported()) {
-        console.log('Using Hls.js for HLS playback');
         const hls = new Hls({
           enableWorker: true,
-          lowLatencyMode: false
+          lowLatencyMode: false,
+          maxBufferLength: 20,
+          maxMaxBufferLength: 40,
+          backBufferLength: 12,
+          startLevel: -1,
         });
         hlsRef.current = hls;
         hls.loadSource(hlsUrl);
         hls.attachMedia(el);
-        hls.on(Hls.Events.ERROR, (event, data) => {
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          attemptResume();
+        });
+        hls.on(Hls.Events.LEVEL_LOADED, () => {
+          attemptResume();
+        });
+        hls.on(Hls.Events.ERROR, (_event, data) => {
           if (data.fatal) {
             switch (data.type) {
               case Hls.ErrorTypes.NETWORK_ERROR:
@@ -204,7 +236,6 @@ export default function VideoPage({ params }: PageProps) {
           }
         });
       } else if (el.canPlayType('application/vnd.apple.mpegurl')) {
-        console.log('Using native HLS support');
         el.src = hlsUrl;
       } else {
         setError('HLS is not supported in this browser');
@@ -212,12 +243,10 @@ export default function VideoPage({ params }: PageProps) {
       }
 
       const onLoadedMeta = () => {
-        const duration = player.duration();
-        console.log('Video metadata loaded, duration:', duration);
         attemptResume();
       };
 
-      const saveProgress = async () => {
+      const saveProgress = async (syncUi = false) => {
         if (!playerRef.current) return;
         const currentTime = playerRef.current.currentTime();
         const duration = playerRef.current.duration();
@@ -226,22 +255,20 @@ export default function VideoPage({ params }: PageProps) {
           await updateProgressRef.current(id, currentTime, percent, percent >= 90);
           const progressState = { last_second: currentTime, percent };
           savedProgressRef.current = progressState;
-          setSavedProgress(progressState);
+          // Avoid re-rendering the player on every autosave — only sync UI on pause/ended
+          if (syncUi) setSavedProgress(progressState);
         }
       };
 
       player.on('loadedmetadata', onLoadedMeta);
-      player.on('play', () => {
-        console.log('Video playing');
-      });
       player.on('pause', () => {
-        saveProgress();
+        void saveProgress(true);
       });
       player.on('ended', () => {
         if (playerRef.current) {
           const duration = playerRef.current.duration();
           if (typeof duration === 'number' && duration > 0) {
-            updateProgressRef.current(id, duration, 100, true);
+            void updateProgressRef.current(id, duration, 100, true);
             setIsCompleted(true);
             refreshProgressRef.current();
             const progressState = { last_second: duration, percent: 100 };
@@ -254,16 +281,17 @@ export default function VideoPage({ params }: PageProps) {
       let lastSavedTime = 0;
       player.on('timeupdate', () => {
         const currentTime = player.currentTime();
-        if (typeof currentTime === 'number' && Math.abs(currentTime - lastSavedTime) >= 5) {
+        // Autosave every ~15s of playback — lighter on CPU/network
+        if (typeof currentTime === 'number' && Math.abs(currentTime - lastSavedTime) >= 15) {
           lastSavedTime = currentTime;
           if (saveProgressTimeoutRef.current) {
             clearTimeout(saveProgressTimeoutRef.current);
           }
-          saveProgressTimeoutRef.current = setTimeout(saveProgress, 2000);
+          saveProgressTimeoutRef.current = setTimeout(() => {
+            void saveProgress(false);
+          }, 500);
         }
       });
-
-      console.log('Player initialized successfully');
     };
 
     initialize();
@@ -283,13 +311,15 @@ export default function VideoPage({ params }: PageProps) {
       const player = playerRef.current;
       const handleLoadedMetadata = () => {
         const lastPosition = savedProgress.last_second || 0;
-        const shouldResume = lastPosition >= MIN_RESUME_TIME;
-        
+        const percent = savedProgress.percent || 0;
+        const shouldResume =
+          lastPosition >= MIN_RESUME_TIME || (percent >= 2 && lastPosition > 0);
+
         if (shouldResume && lastPosition > 0) {
           const duration = player.duration();
           if (typeof duration === 'number' && duration > 0 && lastPosition < duration) {
-            console.log(`Resuming from ${lastPosition} seconds (progress loaded after player init)`);
             player.currentTime(lastPosition);
+            hasAttemptedResumeRef.current = true;
             setHasAttemptedResume(true);
           }
         }

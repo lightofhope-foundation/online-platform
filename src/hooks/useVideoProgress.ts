@@ -201,8 +201,6 @@ export const useVideoProgress = () => {
       return false;
     }
     try {
-      console.log('updateProgress called with:', { videoId, lastSecond, percent, completed });
-      
       const progressData = {
         user_id: userId,
         video_id: videoId,
@@ -212,47 +210,39 @@ export const useVideoProgress = () => {
         updated_at: new Date().toISOString()
       };
 
-      // Use upsert to handle both insert and update cases
-      // The unique constraint is on (user_id, video_id)
-      const { data, error } = await supabase
+      // Optimistic local update — avoid full course re-fetch during playback
+      setProgress((prev) => {
+        const next = new Map(prev);
+        const existing = next.get(videoId);
+        next.set(videoId, {
+          id: existing?.id ?? videoId,
+          video_id: videoId,
+          last_second: progressData.last_second,
+          percent: progressData.percent,
+          completed_at: progressData.completed_at,
+          updated_at: progressData.updated_at,
+        });
+        return next;
+      });
+
+      const { error } = await supabase
         .from('video_progress')
-        .upsert(progressData, { 
+        .upsert(progressData, {
           onConflict: 'user_id,video_id'
-        })
-        .select()
-        .single();
+        });
 
       if (error) {
-        console.error('Error upserting progress:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-          fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
-        });
+        console.error('Error upserting progress:', error.message);
         throw error;
       }
-      
-      if (data) {
-        setProgress(prev => new Map(prev).set(videoId, data));
-        // Reload course progress to update dashboard
-        await loadCourseProgress();
-      }
 
-      return true; // Indicate success
+      return true;
     } catch (error: unknown) {
-      const err = error as { message?: string; details?: string; hint?: string; code?: string; stack?: string };
-      console.error('Error updating progress:', {
-        message: err?.message || 'Unknown error',
-        details: err?.details,
-        hint: err?.hint,
-        code: err?.code,
-        stack: err?.stack,
-        fullError: error ? JSON.stringify(error, Object.getOwnPropertyNames(error)) : 'No error object'
-      });
-      return false; // Indicate failure
+      const err = error as { message?: string };
+      console.error('Error updating progress:', err?.message || 'Unknown error');
+      return false;
     }
-  }, [supabase, userId, loadCourseProgress]);
+  }, [supabase, userId]);
 
   // Get progress for a specific video
   const getVideoProgress = useCallback((videoId: string): VideoProgress | null => {

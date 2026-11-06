@@ -714,6 +714,51 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_notifications: {
+        Row: {
+          id: string
+          recipient_user_id: string
+          actor_user_id: string | null
+          kind: string
+          title: string
+          body: string | null
+          href: string | null
+          client_user_id: string | null
+          session_id: string | null
+          note_id: string | null
+          read_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          recipient_user_id: string
+          actor_user_id?: string | null
+          kind: string
+          title: string
+          body?: string | null
+          href?: string | null
+          client_user_id?: string | null
+          session_id?: string | null
+          note_id?: string | null
+          read_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          recipient_user_id?: string
+          actor_user_id?: string | null
+          kind?: string
+          title?: string
+          body?: string | null
+          href?: string | null
+          client_user_id?: string | null
+          session_id?: string | null
+          note_id?: string | null
+          read_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       therapy_session_notes: {
         Row: {
           author_id: string

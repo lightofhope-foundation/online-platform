@@ -175,6 +175,24 @@ export async function clientToggleNoteReaction(noteId: string, emoji: string) {
     "@/lib/therapySessionMutations"
   );
   await toggleTherapySessionNoteReaction(supabase, noteId, user.id, emoji);
+
+  const { data: note } = await supabase
+    .from("therapy_session_notes")
+    .select("session_id")
+    .eq("id", noteId)
+    .maybeSingle();
+  if (note?.session_id) {
+    const { notifyTherapistOfClientSessionActivity } = await import(
+      "@/lib/staffNotifications"
+    );
+    await notifyTherapistOfClientSessionActivity(supabase, {
+      clientUserId: user.id,
+      actorUserId: user.id,
+      sessionId: note.session_id,
+      noteId,
+      kind: "session_reaction",
+    });
+  }
   return { ok: true as const };
 }
 
@@ -320,7 +338,23 @@ export async function adminDeleteSpecialSession(
 
 export async function clientAddSessionNote(sessionId: string, clientBody: string) {
   const { user, supabase, clientId } = await checkClientSessionAccess(sessionId);
-  await createTherapySessionNote(supabase, sessionId, user.id, "", clientBody);
+  const created = await createTherapySessionNote(
+    supabase,
+    sessionId,
+    user.id,
+    "",
+    clientBody
+  );
+  const { notifyTherapistOfClientSessionActivity } = await import(
+    "@/lib/staffNotifications"
+  );
+  await notifyTherapistOfClientSessionActivity(supabase, {
+    clientUserId: user.id,
+    actorUserId: user.id,
+    sessionId,
+    noteId: created.id,
+    kind: "session_comment",
+  });
   revalidateTherapySessionPaths(clientId);
   revalidatePath("/sitzungen");
   return { ok: true as const };

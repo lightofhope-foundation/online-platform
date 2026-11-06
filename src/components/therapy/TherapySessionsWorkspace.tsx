@@ -504,9 +504,12 @@ export function TherapySessionsWorkspace({
             locked={clientSessionLocked}
             onAddFeedback={async (text) => {
               await onAddNote(selected.id, "", text);
+              // Soft refresh without blocking chat UX
+              void Promise.resolve().then(() => router.refresh());
             }}
             onAddPrivateNote={async (html) => {
               await onAddNote(selected.id, html, "");
+              router.refresh();
             }}
             onToggleReaction={async (noteId, emoji) => {
               if (mode === "client") {
