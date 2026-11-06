@@ -132,8 +132,9 @@ export function SessionRecordingPanel({
       </h3>
       <p className="mt-1 text-xs text-white/40">
         Upload geht direkt zu Bunny Storage (beliebige Dateigröße) unter
-        Online-Plattform/sitzungsaufnahmen/therapeut/… und erscheint für den
-        Klienten, sobald die Sitzung freigegeben ist.
+        Online-Plattform/sitzungsaufnahmen/[therapeut]/[klient]/… — der
+        Therapeuten-Ordner entsteht automatisch beim ersten Upload — und
+        erscheint für den Klienten, sobald die Sitzung freigegeben ist.
       </p>
 
       {hasRecording && (

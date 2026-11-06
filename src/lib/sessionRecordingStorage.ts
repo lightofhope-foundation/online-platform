@@ -1,6 +1,7 @@
 import type { TherapySessionRow } from "@/lib/therapySessions";
 
-const STORAGE_ROOT = "Online-Plattform/sitzungsaufnahmen/therapeut";
+/** Root under Bunny Storage zone — therapist folder is created implicitly on first PUT. */
+const STORAGE_ROOT = "Online-Plattform/sitzungsaufnahmen";
 
 type SessionPathBits = Pick<
   TherapySessionRow,
@@ -19,6 +20,24 @@ function slugPart(value: string | null | undefined): string {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Therapist folder under sitzungsaufnahmen — e.g. `boris`.
+ * Prefer first name (LOH convention); fall back to first-last or short user id.
+ * Bunny creates the folder automatically on first upload PUT.
+ */
+export function buildTherapistRecordingFolderSlug(opts: {
+  firstName?: string | null;
+  lastName?: string | null;
+  therapistUserId?: string | null;
+}): string {
+  const first = slugPart(opts.firstName);
+  if (first) return first;
+  const last = slugPart(opts.lastName);
+  if (last) return last;
+  const id = slugPart(opts.therapistUserId)?.slice(0, 8);
+  return id ? `therapeut-${id}` : "therapeut";
 }
 
 /** Folder: vorname-nachname-klientenid */
@@ -67,18 +86,31 @@ export function buildSessionRecordingFileBase(
 }
 
 export function buildSessionRecordingStoragePath(opts: {
+  therapistFirstName?: string | null;
+  therapistLastName?: string | null;
+  therapistUserId?: string | null;
   firstName?: string | null;
   lastName?: string | null;
   clientId: string;
   session: SessionPathBits;
   allSessions: SessionPathBits[];
   extension: string;
-}): { folderSlug: string; fileBase: string; storagePath: string } {
+}): {
+  therapistSlug: string;
+  folderSlug: string;
+  fileBase: string;
+  storagePath: string;
+} {
+  const therapistSlug = buildTherapistRecordingFolderSlug({
+    firstName: opts.therapistFirstName,
+    lastName: opts.therapistLastName,
+    therapistUserId: opts.therapistUserId,
+  });
   const folderSlug = buildClientRecordingFolderSlug(opts);
   const fileBase = buildSessionRecordingFileBase(opts.session, opts.allSessions);
   const ext = opts.extension.replace(/^\./, "").toLowerCase() || "mp4";
-  const storagePath = `${STORAGE_ROOT}/${folderSlug}/${fileBase}.${ext}`;
-  return { folderSlug, fileBase, storagePath };
+  const storagePath = `${STORAGE_ROOT}/${therapistSlug}/${folderSlug}/${fileBase}.${ext}`;
+  return { therapistSlug, folderSlug, fileBase, storagePath };
 }
 
 export function isStorageRecordingRef(ref: string | null | undefined): boolean {

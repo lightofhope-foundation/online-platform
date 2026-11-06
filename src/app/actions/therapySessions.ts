@@ -262,7 +262,7 @@ export async function therapistPrepareSessionRecordingUpload(
   title: string,
   fileNameHint?: string
 ) {
-  const { supabase, clientId: resolvedClientId, userId } =
+  const { supabase, clientId: resolvedClientId, userId, user } =
     await checkTherapistClientAccess(clientId);
   const trimmed = title.trim();
   if (!trimmed) throw new Error("Bitte einen Videotitel angeben");
@@ -287,6 +287,18 @@ export async function therapistPrepareSessionRecordingUpload(
     .eq("user_id", userId)
     .maybeSingle();
 
+  const { data: assignment } = await supabase
+    .from("clients")
+    .select("therapist_user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  const therapistUserId = assignment?.therapist_user_id ?? user.id;
+  const { data: therapistProfile } = await supabase
+    .from("profiles")
+    .select("first_name, last_name")
+    .eq("user_id", therapistUserId)
+    .maybeSingle();
+
   const extFromHint = fileNameHint?.includes(".")
     ? fileNameHint.split(".").pop()?.toLowerCase()
     : null;
@@ -306,6 +318,9 @@ export async function therapistPrepareSessionRecordingUpload(
   }
 
   const { storagePath } = buildSessionRecordingStoragePath({
+    therapistFirstName: therapistProfile?.first_name,
+    therapistLastName: therapistProfile?.last_name,
+    therapistUserId,
     firstName: profile?.first_name,
     lastName: profile?.last_name,
     clientId: profile?.client_id ?? resolvedClientId,

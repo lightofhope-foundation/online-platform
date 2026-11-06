@@ -79,6 +79,20 @@ export async function POST(req: Request) {
       .eq("user_id", resolved.userId)
       .maybeSingle();
 
+    // Folder = assigned therapist (not admin uploader), so new therapists get
+    // their own Bunny folder on first recording PUT.
+    const { data: assignment } = await supabase
+      .from("clients")
+      .select("therapist_user_id")
+      .eq("user_id", resolved.userId)
+      .maybeSingle();
+    const therapistUserId = assignment?.therapist_user_id ?? user.id;
+    const { data: therapistProfile } = await supabase
+      .from("profiles")
+      .select("first_name, last_name")
+      .eq("user_id", therapistUserId)
+      .maybeSingle();
+
     const extFromHint = body.fileName?.includes(".")
       ? body.fileName.split(".").pop()?.toLowerCase()
       : null;
@@ -86,6 +100,9 @@ export async function POST(req: Request) {
       extFromHint && /^[a-z0-9]{2,5}$/.test(extFromHint) ? extFromHint : "mp4";
 
     const { storagePath } = buildSessionRecordingStoragePath({
+      therapistFirstName: therapistProfile?.first_name,
+      therapistLastName: therapistProfile?.last_name,
+      therapistUserId,
       firstName: profile?.first_name,
       lastName: profile?.last_name,
       clientId: profile?.client_id ?? resolved.clientId,
