@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, Json } from "@/lib/database.types";
+import type { Database } from "@/lib/database.types";
 import { parseIntake, type LeadIntakeView } from "@/lib/leadVault";
 import { resolvePersonLabel } from "@/lib/formatDisplayName";
 
@@ -25,6 +25,8 @@ export type TherapistClientDetail = {
   intake: LeadIntakeView;
   createdAt: string;
   lastLogin: string | null;
+  /** Soft-release: assigned therapist may edit; others read-only view */
+  isAssignedTherapist: boolean;
 };
 
 /** Load assigned clients for therapist Milanote board (active + archived). */
@@ -36,6 +38,7 @@ export async function loadTherapistClientBoard(
     .from("clients")
     .select("user_id, access_revoked, archived_at")
     .eq("therapist_user_id", therapistUserId)
+    .eq("pipeline_status", "client")
     .is("deleted_at", null);
 
   if (error) throw new Error(error.message);
@@ -104,15 +107,19 @@ export async function loadTherapistClientDetail(
     .is("deleted_at", null)
     .maybeSingle();
 
-  if (!client || client.therapist_user_id !== therapistUserId) return null;
+  // Soft-release: plattformweite Akten-Einsicht für Therapeuten (nicht nur eigene)
+  if (!client) return null;
 
-  const { data: authUserRes } = await supabase.auth.admin.getUserById(profile.user_id);
-  const authUser = authUserRes?.user ?? null;
+  const intake = parseIntake(client.intake_data);
+  const emailFromIntake =
+    typeof intake.email === "string" && intake.email.trim()
+      ? intake.email.trim()
+      : null;
 
   const name = resolvePersonLabel(
     profile.first_name,
     profile.last_name,
-    authUser?.email,
+    emailFromIntake,
     profile.display_alias
   );
 
@@ -120,11 +127,12 @@ export async function loadTherapistClientDetail(
     userId: profile.user_id,
     clientId: profile.client_id,
     name,
-    email: authUser?.email ?? null,
+    email: emailFromIntake,
     accessRevoked: client.access_revoked,
     archived: Boolean(client.archived_at),
-    intake: parseIntake(client.intake_data as Json),
+    intake,
     createdAt: profile.created_at,
-    lastLogin: authUser?.last_sign_in_at ?? null,
+    lastLogin: null,
+    isAssignedTherapist: client.therapist_user_id === therapistUserId,
   };
 }

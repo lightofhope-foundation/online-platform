@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { SOFT_RELEASE } from "@/lib/softRelease";
 
 type AdminSettingsSubpageProps = {
   title: string;
@@ -25,11 +26,16 @@ export function AdminSettingsSubpage({
         </Link>
         <h1 className="mt-2 text-2xl font-semibold text-white">{title}</h1>
         <p className="mt-1 text-sm text-white/60">{description}</p>
+        {SOFT_RELEASE.phaseLabels && phaseLabel ? (
+          <p className="mt-1 text-xs text-white/40">{phaseLabel}</p>
+        ) : null}
       </div>
 
       {children ?? (
         <div className="rounded-[20px] border border-white/10 bg-white/[0.02] p-8 text-center">
-          <p className="text-white/70">{phaseLabel}</p>
+          {SOFT_RELEASE.phaseLabels && phaseLabel ? (
+            <p className="text-white/70">{phaseLabel}</p>
+          ) : null}
           <p className="mt-2 text-sm text-white/45">
             Dieser Bereich wird im nächsten Entwicklungsschritt freigeschaltet.
           </p>

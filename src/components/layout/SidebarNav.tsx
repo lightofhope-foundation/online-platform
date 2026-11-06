@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { LOH_LOGO_SRC, SIDEBAR_QUOTE } from "@/lib/branding";
 import {
@@ -8,8 +8,10 @@ import {
   clientNavItems,
   therapistNavItems,
   setterNavItems,
+  erstgespraechlerNavItems,
   teamleadNavItems,
   resolveNavArea,
+  isErstgespraechlerPath,
   isNavItemActive,
   visibleNavItems,
 } from "@/lib/navConfig";
@@ -47,7 +49,9 @@ function GlassNavLogout() {
 
 export function SidebarNav() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const navArea = resolveNavArea(pathname);
+  const egView = isErstgespraechlerPath(pathname, searchParams?.toString() ?? "");
   const navItems = visibleNavItems(
     navArea === "admin"
       ? adminNavItems
@@ -56,7 +60,9 @@ export function SidebarNav() {
         : navArea === "teamlead"
           ? teamleadNavItems
           : navArea === "setter"
-            ? setterNavItems
+            ? egView
+              ? erstgespraechlerNavItems
+              : setterNavItems
             : clientNavItems
   );
 

@@ -53,6 +53,13 @@ export function accentClass(accent: string): string {
   }
 }
 
+export type CustomIntakeCard = {
+  id: string;
+  column: 0 | 1 | 2;
+  title: string;
+  body?: string;
+};
+
 export type LeadIntakeView = {
   setter_name?: string;
   closer_name?: string;
@@ -72,6 +79,7 @@ export type LeadIntakeView = {
   value_set?: string;
   value_tags?: string[];
   free_notes?: string;
+  custom_cards?: CustomIntakeCard[];
 };
 
 export function parseIntake(raw: Json | null | undefined): LeadIntakeView {

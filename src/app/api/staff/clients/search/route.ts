@@ -66,19 +66,8 @@ export async function GET(request: Request) {
   }
   const like = `%${safe}%`;
 
-  let clientUserIds: string[] | null = null;
-  if (userHasPortalRole(roles, "therapist") && !userHasPortalRole(roles, "admin")) {
-    const { data: owned } = await admin
-      .from("clients")
-      .select("user_id")
-      .eq("therapist_user_id", user.id);
-    clientUserIds = (owned ?? []).map((r) => r.user_id);
-    if (clientUserIds.length === 0) {
-      return NextResponse.json({ results: [] as SearchHit[] });
-    }
-  }
-
-  let query = admin
+  // Soft-release: plattformweit für alle Staff — ohne N+1 Auth-Lookups
+  const { data: profiles, error } = await admin
     .from("profiles")
     .select("user_id, first_name, last_name, client_id, display_alias")
     .eq("role", "client")
@@ -87,58 +76,67 @@ export async function GET(request: Request) {
       `first_name.ilike.${like},last_name.ilike.${like},client_id.ilike.${like},display_alias.ilike.${like}`
     )
     .limit(20);
-
-  if (clientUserIds) {
-    query = query.in("user_id", clientUserIds);
-  }
-
-  const { data: profiles, error } = await query;
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const hits: SearchHit[] = [];
-  for (const p of profiles ?? []) {
-    if (!p.client_id) continue;
-    const { data: auth } = await admin.auth.admin.getUserById(p.user_id);
-    const email = auth.user?.email ?? null;
+  const list = profiles ?? [];
+  if (list.length === 0) {
+    return NextResponse.json({ results: [] as SearchHit[], matchCount: 0 });
+  }
 
-    // Also match email client-side if profile fields missed
+  const userIds = list.map((p) => p.user_id);
+  const { data: clientRows } = await admin
+    .from("clients")
+    .select("user_id, therapist_user_id, intake_data")
+    .in("user_id", userIds);
+
+  const clientByUser = new Map((clientRows ?? []).map((c) => [c.user_id, c]));
+  const therapistIds = [
+    ...new Set(
+      (clientRows ?? [])
+        .map((c) => c.therapist_user_id)
+        .filter((id): id is string => Boolean(id))
+    ),
+  ];
+
+  const therapistLabelById = new Map<string, string>();
+  if (therapistIds.length > 0) {
+    const { data: therapists } = await admin
+      .from("profiles")
+      .select("user_id, first_name, last_name, display_alias")
+      .in("user_id", therapistIds);
+    for (const tp of therapists ?? []) {
+      therapistLabelById.set(
+        tp.user_id,
+        resolvePersonLabel(tp.first_name, tp.last_name, null, tp.display_alias)
+      );
+    }
+  }
+
+  const hits: SearchHit[] = [];
+  for (const p of list) {
+    if (!p.client_id) continue;
+    const clientRow = clientByUser.get(p.user_id);
+    const intake =
+      clientRow?.intake_data &&
+      typeof clientRow.intake_data === "object" &&
+      !Array.isArray(clientRow.intake_data)
+        ? (clientRow.intake_data as Record<string, unknown>)
+        : {};
+    const email =
+      typeof intake.email === "string" && intake.email.trim()
+        ? intake.email.trim()
+        : null;
     const name = resolvePersonLabel(
       p.first_name,
       p.last_name,
       email,
       p.display_alias
     );
-    if (
-      q.length >= 2 &&
-      !`${name} ${p.client_id} ${email ?? ""}`.toLowerCase().includes(q.toLowerCase())
-    ) {
-      // keep — ilike already filtered DB fields; email-only matches need extra pass
-    }
-
-    const { data: clientRow } = await admin
-      .from("clients")
-      .select("therapist_user_id")
-      .eq("user_id", p.user_id)
-      .maybeSingle();
-
-    let therapistLabel: string | null = null;
-    if (clientRow?.therapist_user_id) {
-      const { data: tp } = await admin
-        .from("profiles")
-        .select("first_name, last_name, display_alias")
-        .eq("user_id", clientRow.therapist_user_id)
-        .maybeSingle();
-      if (tp) {
-        therapistLabel = resolvePersonLabel(
-          tp.first_name,
-          tp.last_name,
-          null,
-          tp.display_alias
-        );
-      }
-    }
+    const therapistLabel = clientRow?.therapist_user_id
+      ? therapistLabelById.get(clientRow.therapist_user_id) ?? null
+      : null;
 
     hits.push({
       clientId: p.client_id,
@@ -147,11 +145,6 @@ export async function GET(request: Request) {
       therapistLabel,
       href: hrefForRoles(roles, p.client_id),
     });
-  }
-
-  // Secondary: email search for short result sets
-  if (hits.length < 8 && q.includes("@")) {
-    // skip heavy email scan for now
   }
 
   return NextResponse.json({ results: hits, matchCount: hits.length });

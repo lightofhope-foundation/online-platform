@@ -20,6 +20,7 @@ export default async function TherapistHomePage() {
     .from("clients")
     .select("user_id, created_at")
     .eq("therapist_user_id", user.id)
+    .eq("pipeline_status", "client")
     .is("deleted_at", null);
 
   const clientUserIds = (assignments ?? []).map((a) => a.user_id);
@@ -42,73 +43,17 @@ export default async function TherapistHomePage() {
     profiles = data ?? [];
   }
 
-  const authById = new Map<string, { email?: string; last_sign_in_at?: string }>();
-  if (clientUserIds.length > 0) {
-    const { data: authUsersRes } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    for (const u of authUsersRes?.users ?? []) {
-      if (clientUserIds.includes(u.id)) {
-        authById.set(u.id, u);
-      }
-    }
-  }
-
-  const videoProgressByUser = new Map<string, number>();
-  const { data: publishedCourses } = await supabase
-    .from("courses")
-    .select("id")
-    .eq("published", true)
-    .is("deleted_at", null);
-  const courseIds = (publishedCourses ?? []).map((c) => c.id);
-
-  if (courseIds.length > 0 && clientUserIds.length > 0) {
-    const { data: chapters } = await supabase
-      .from("chapters")
-      .select("id")
-      .in("course_id", courseIds)
-      .is("deleted_at", null);
-    const chapterIds = (chapters ?? []).map((c) => c.id);
-
-    if (chapterIds.length > 0) {
-      const { data: videos } = await supabase
-        .from("videos")
-        .select("id")
-        .in("chapter_id", chapterIds)
-        .is("deleted_at", null);
-      const totalVideoIds = new Set((videos ?? []).map((v) => v.id));
-      const totalVideos = totalVideoIds.size;
-
-      if (totalVideos > 0) {
-        const { data: progressRows } = await supabase
-          .from("video_progress")
-          .select("user_id, video_id, completed_at")
-          .in("user_id", clientUserIds)
-          .not("completed_at", "is", null);
-
-        const completedByUser = new Map<string, Set<string>>();
-        (progressRows ?? []).forEach((row) => {
-          if (!totalVideoIds.has(row.video_id)) return;
-          if (!completedByUser.has(row.user_id)) completedByUser.set(row.user_id, new Set());
-          completedByUser.get(row.user_id)!.add(row.video_id);
-        });
-        completedByUser.forEach((videoIds, userId) => {
-          videoProgressByUser.set(userId, Math.round((videoIds.size / totalVideos) * 100));
-        });
-      }
-    }
-  }
-
   const rows: TherapistClientRow[] = profiles.map((p) => {
-    const au = authById.get(p.user_id);
     const detailHref = p.client_id ? `/therapist/clients/${p.client_id.toLowerCase()}` : null;
     return {
       user_id: p.user_id,
       client_id: p.client_id,
-      email: au?.email ?? "—",
-      name: resolvePersonLabel(p.first_name, p.last_name, au?.email, p.display_alias),
+      email: "—",
+      name: resolvePersonLabel(p.first_name, p.last_name, null, p.display_alias),
       access_level: p.access_level ?? 0,
-      video_progress: videoProgressByUser.get(p.user_id) ?? 0,
+      video_progress: 0,
       created_at: formatGermanDateTime(p.created_at),
-      last_login: formatGermanDateTime(au?.last_sign_in_at),
+      last_login: "—",
       detail_href: detailHref,
     };
   });
@@ -121,22 +66,21 @@ export default async function TherapistHomePage() {
         <div>
           <h1 className="typo-section font-normal">Therapeut-Bereich</h1>
           <p className="text-sm text-white/60">
-            Willkommen{therapistName !== "—" ? `, ${therapistName}` : ""}. Als Therapeut sehen Sie nur Ihre zugewiesenen Klient:innen — kein Zugriff auf den Admin-Bereich.
+            Willkommen{therapistName !== "—" ? `, ${therapistName}` : ""}. Soft-Release:
+            Fokus auf deine zugewiesenen Klienten — globale Suche findet alle Akten.
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <StatCard label="Zugewiesene Klient:innen" value={rows.length} />
-        <StatCard
-          label="Ø Video-Fortschritt"
-          value={
-            rows.length > 0
-              ? `${Math.round(rows.reduce((s, r) => s + r.video_progress, 0) / rows.length)} %`
-              : "—"
-          }
-        />
-        <StatCard label="Phase" value="T0" hint="Zuweisung über Admin in T1" />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <StatCard label="Meine Klient:innen" value={rows.length} />
+        <Link
+          href="/therapist/all-clients"
+          className="rounded-2xl border border-white/12 bg-white/[0.03] px-5 py-4 transition hover:border-[#63eca9]/35"
+        >
+          <div className="text-sm text-white/55">Alle Klienten</div>
+          <div className="mt-1 text-sm text-[#63eca9]">Nach Therapeut öffnen →</div>
+        </Link>
       </div>
 
       <div className="space-y-4">
@@ -162,10 +106,10 @@ function StatCard({
   hint?: string;
 }) {
   return (
-    <div className="glass-panel rounded-2xl p-4">
-      <div className="text-sm text-white/60">{label}</div>
-      <div className="mt-1 text-2xl font-bold">{value}</div>
-      {hint ? <div className="mt-1 text-xs text-white/45">{hint}</div> : null}
+    <div className="rounded-2xl border border-white/12 bg-white/[0.03] px-5 py-4">
+      <div className="text-sm text-white/55">{label}</div>
+      <div className="mt-1 text-3xl font-semibold text-white">{value}</div>
+      {hint ? <p className="mt-1 text-[11px] text-white/40">{hint}</p> : null}
     </div>
   );
 }

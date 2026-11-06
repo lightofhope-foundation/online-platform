@@ -131,6 +131,43 @@ export async function updateTherapySessionNote(
   if (error) throw new Error(error.message);
 }
 
+export async function toggleTherapySessionNoteReaction(
+  supabase: AdminClient,
+  noteId: string,
+  userId: string,
+  emoji: string
+) {
+  const safe = emoji.trim().slice(0, 8);
+  if (!safe) throw new Error("Emoji fehlt");
+
+  const { data: existing, error: loadError } = await supabase
+    .from("therapy_session_notes")
+    .select("reactions")
+    .eq("id", noteId)
+    .maybeSingle();
+
+  if (loadError || !existing) throw new Error("Notiz nicht gefunden");
+
+  const reactions =
+    existing.reactions && typeof existing.reactions === "object" && !Array.isArray(existing.reactions)
+      ? ({ ...(existing.reactions as Record<string, string[]>) } as Record<string, string[]>)
+      : ({} as Record<string, string[]>);
+
+  const list = new Set(reactions[safe] ?? []);
+  if (list.has(userId)) list.delete(userId);
+  else list.add(userId);
+
+  if (list.size === 0) delete reactions[safe];
+  else reactions[safe] = [...list];
+
+  const { error } = await supabase
+    .from("therapy_session_notes")
+    .update({ reactions, updated_at: new Date().toISOString() })
+    .eq("id", noteId);
+
+  if (error) throw new Error(error.message);
+}
+
 export async function setTherapySessionRecording(
   supabase: AdminClient,
   sessionId: string,

@@ -1,6 +1,6 @@
+import Link from "next/link";
 import { getAuthUserFromCookie } from "@/lib/supabaseServer";
 import { getUserPortalRoles } from "@/lib/userRoles";
-import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +13,8 @@ export default async function TeamleadHomePage() {
       <div>
         <h1 className="typo-section font-normal text-white">Teamleitung</h1>
         <p className="mt-1 max-w-2xl text-sm text-white/60">
-          Gesamt- und Einzelansicht für Vertriebskennzahlen (laut Dincer-Konzept). Funnel und
-          Personenfilter folgen, sobald die Status-/RP-Regeln festliegen.
+          Soft-Release: gleicher Arbeitsfluss wie Setter/EG — Klienten und Leads ohne
+          Notion-Pull. Kennzahlen-Funnel folgt später.
         </p>
       </div>
 
@@ -25,16 +25,22 @@ export default async function TeamleadHomePage() {
 
       <div className="flex flex-wrap gap-3">
         <Link
-          href="/setter/leadboard"
+          href="/teamlead/clients"
           className="rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3 text-sm text-[#63eca9] hover:bg-white/[0.07]"
         >
-          Notion Leadboard (live)
+          Klienten
         </Link>
         <Link
-          href="/setter"
+          href="/teamlead/leads"
+          className="rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3 text-sm text-[#63eca9] hover:bg-white/[0.07]"
+        >
+          Leads
+        </Link>
+        <Link
+          href="/teamlead/my-clients"
           className="rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3 text-sm text-white/80 hover:bg-white/[0.07]"
         >
-          Setter-Bereich
+          Meine Klienten
         </Link>
       </div>
     </div>

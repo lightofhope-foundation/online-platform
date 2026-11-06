@@ -150,6 +150,34 @@ export async function therapistUpdateSessionNote(
   return { ok: true as const };
 }
 
+export async function therapistToggleNoteReaction(
+  clientId: string,
+  noteId: string,
+  emoji: string
+) {
+  const { user, supabase, clientId: resolvedClientId } =
+    await checkTherapistClientAccess(clientId);
+  const { toggleTherapySessionNoteReaction } = await import(
+    "@/lib/therapySessionMutations"
+  );
+  await toggleTherapySessionNoteReaction(supabase, noteId, user.id, emoji);
+  revalidateTherapySessionPaths(resolvedClientId);
+  return { ok: true as const };
+}
+
+export async function clientToggleNoteReaction(noteId: string, emoji: string) {
+  const { getAuthUserFromCookie } = await import("@/lib/supabaseServer");
+  const { getSupabaseAdminClient } = await import("@/lib/supabaseAdmin");
+  const user = await getAuthUserFromCookie();
+  if (!user) throw new Error("Nicht autorisiert");
+  const supabase = getSupabaseAdminClient();
+  const { toggleTherapySessionNoteReaction } = await import(
+    "@/lib/therapySessionMutations"
+  );
+  await toggleTherapySessionNoteReaction(supabase, noteId, user.id, emoji);
+  return { ok: true as const };
+}
+
 export async function therapistPrepareSessionRecordingUpload(
   clientId: string,
   sessionId: string,

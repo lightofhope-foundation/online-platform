@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AdminUsersTable, type AdminUserRow } from "@/components/admin/AdminUsersTable";
 import { NotionOpenLeadsList } from "@/components/setter/NotionOpenLeadsList";
 import { checkSetterAccess } from "@/lib/checkSetterAccess";
@@ -8,6 +9,7 @@ import {
   fetchMetaLeads,
   isUntouchedMetaLead,
 } from "@/lib/notion/metaLeads";
+import { SOFT_RELEASE } from "@/lib/softRelease";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -21,9 +23,13 @@ function formatFullName(firstName: string | null, lastName: string | null): stri
 
 /**
  * Offene Leads = (1) unberührte Notion Meta-Leads + (2) LOH-Klienten ohne Therapeut.
- * Notion-Kontakte werden nicht als Auth-User angelegt — nur gelesen.
+ * Soft-Release: Notion-Pull ausgeblendet → Redirect zu /setter/leads (Code bleibt).
  */
 export default async function SetterUsersPage() {
+  if (!SOFT_RELEASE.notionOpenLeads) {
+    redirect("/setter/leads");
+  }
+
   const { supabase } = await checkSetterAccess();
   const accessLevels = await fetchAccessLevelOptions();
 

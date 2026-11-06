@@ -35,8 +35,14 @@ export default async function TherapistClientDetailPage({
   return (
     <div className="space-y-8">
       <Link href="/therapist/clients" className="text-sm text-[#63eca9] hover:underline">
-        ← Klientenakte
+        ← Meine Klienten
       </Link>
+
+      {!detail.isAssignedTherapist ? (
+        <p className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/55">
+          Plattformweite Einsicht — dieser Klient ist dir nicht zugewiesen (nur Lesen).
+        </p>
+      ) : null}
 
       <LeadDetailCards
         name={detail.name}
@@ -45,16 +51,19 @@ export default async function TherapistClientDetailPage({
         intake={intake}
         eyebrow="Klient"
         statusHint={detail.archived ? "archiviert" : null}
-        editable
+        editable={detail.isAssignedTherapist}
       />
 
-      <div
-        className="mx-1 border-t border-white/10"
-        role="separator"
-        aria-hidden
-      />
-
-      <TherapistClientTiles clientId={detail.clientId} />
+      {detail.isAssignedTherapist ? (
+        <>
+          <div
+            className="mx-1 border-t border-white/10"
+            role="separator"
+            aria-hidden
+          />
+          <TherapistClientTiles clientId={detail.clientId} />
+        </>
+      ) : null}
     </div>
   );
 }

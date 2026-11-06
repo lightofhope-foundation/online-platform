@@ -36,7 +36,7 @@ export function SetterClientTherapistAssignment({
         return;
       }
       if (therapistUserId) {
-        setMessage("Zugewiesen — Lead verlässt die offenen Leads …");
+        setMessage("Zugewiesen — Klient erscheint unter „Meine Klienten“ …");
         router.push(redirectOnAssign);
         router.refresh();
         return;
@@ -52,7 +52,7 @@ export function SetterClientTherapistAssignment({
         <p className="text-sm text-white/70">Aktuell: {currentTherapistLabel}</p>
       ) : (
         <p className="text-sm text-white/50">
-          Noch kein Therapeut — Lead bleibt in der Setter-Pipeline, bis du zuweist.
+          Noch kein Therapeut — erst nach Lead→Klient-Umwandlung zuweisen.
         </p>
       )}
 

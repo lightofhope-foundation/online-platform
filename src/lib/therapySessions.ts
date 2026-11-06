@@ -63,7 +63,9 @@ export type TherapySessionNoteRow = {
   created_at: string;
   updated_at: string;
   author_label?: string;
+  author_is_staff?: boolean;
   revision_count?: number;
+  reactions?: Record<string, string[]>;
 };
 
 export type TherapySessionWithNotes = TherapySessionRow & {
@@ -135,10 +137,11 @@ export async function loadTherapySessionsWithNotes(
   const authorIds = [...new Set(noteRows.map((n) => n.author_id))];
 
   const authorLabels = new Map<string, string>();
+  const authorIsStaff = new Map<string, boolean>();
   if (authorIds.length > 0) {
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("user_id, first_name, last_name, display_alias")
+      .select("user_id, first_name, last_name, display_alias, role")
       .in("user_id", authorIds);
 
     (profiles ?? []).forEach((p) => {
@@ -147,6 +150,10 @@ export async function loadTherapySessionsWithNotes(
         [p.first_name, p.last_name].filter(Boolean).join(" ") ||
         "Nutzer";
       authorLabels.set(p.user_id, label);
+      authorIsStaff.set(
+        p.user_id,
+        p.role !== "client" && p.role !== "patient"
+      );
     });
   }
 
@@ -179,7 +186,12 @@ export async function loadTherapySessionsWithNotes(
     const enriched: TherapySessionNoteRow = {
       ...note,
       author_label: authorLabels.get(note.author_id) ?? "Nutzer",
+      author_is_staff: authorIsStaff.get(note.author_id) ?? false,
       revision_count: revisionCounts.get(note.id) ?? 0,
+      reactions:
+        note.reactions && typeof note.reactions === "object"
+          ? (note.reactions as Record<string, string[]>)
+          : {},
       therapist_body: options?.clientView ? null : note.therapist_body,
     };
 

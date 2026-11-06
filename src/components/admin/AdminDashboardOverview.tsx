@@ -2,7 +2,6 @@ import Link from "next/link";
 import { MagicBentoTileGrid } from "@/components/dashboard/MagicBentoTileGrid";
 import {
   CoursesManageIcon,
-  FeedbackIcon,
   SettingsIcon,
   TherapyIcon,
   UsersIcon,
@@ -45,21 +44,20 @@ export function AdminDashboardOverview({ stats }: { stats: AdminDashboardStats }
           columns={3}
           tiles={[
             {
-              key: "leadboard",
-              title: "Notion Leadboard",
-              label: "Vertrieb · Meta",
-              description:
-                "Live-Pipeline aus Notion: Suche, Filter, Karten nach Status (nur Lesen).",
-              href: "/setter/leadboard",
+              key: "clients",
+              title: "Klienten",
+              label: "Nach Therapeut",
+              description: "Alle Klienten, gruppiert nach zugewiesenem Therapeuten.",
+              href: "/admin/clients",
+              stat: stats.clientCount,
               icon: <UsersIcon size={20} />,
             },
             {
-              key: "open-leads",
-              title: "Offene Leads",
-              label: "Ohne Therapeut",
-              description:
-                "LOH-Leads ohne Therapeut-Zuweisung — Akte öffnen und zuweisen.",
-              href: "/setter/users",
+              key: "leads",
+              title: "Leads",
+              label: "Vertrieb Soft-Release",
+              description: "LOH-Leads anlegen, Akten pflegen, zum Klienten machen.",
+              href: "/admin/leads",
               icon: <UsersIcon size={20} />,
             },
             {
@@ -74,7 +72,7 @@ export function AdminDashboardOverview({ stats }: { stats: AdminDashboardStats }
             },
             {
               key: "users",
-              title: "Nutzer / Klienten",
+              title: "Nutzerverwaltung",
               label: "Alle Accounts",
               description:
                 "Nutzerliste, Zugangsstufen, Video-Fortschritt und Klienten-Akten.",
@@ -91,14 +89,6 @@ export function AdminDashboardOverview({ stats }: { stats: AdminDashboardStats }
               href: "/admin/therapists",
               stat: stats.therapistCount,
               icon: <TherapyIcon size={20} />,
-            },
-            {
-              key: "feedback",
-              title: "Feedback",
-              label: "Demnächst",
-              description: "Feedback und Kommunikation mit Klient:innen — wird ausgebaut.",
-              href: "/admin/userfeedback",
-              icon: <FeedbackIcon size={20} />,
             },
             {
               key: "settings",

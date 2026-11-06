@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, type ReactNode } from "react";
-import type { LeadIntakeView } from "@/lib/leadVault";
+import type { CustomIntakeCard, LeadIntakeView } from "@/lib/leadVault";
 import { PencilIcon } from "@/components/icons/Icons";
 import { therapistSaveClientIntake } from "@/app/therapist/clients/[slug]/actions";
 import { setterSaveClientIntake } from "@/app/setter/actions";
@@ -16,7 +16,21 @@ type CardKey =
   | "goals"
   | "expectations"
   | "value_set"
-  | "consequences";
+  | "consequences"
+  | `custom:${string}`;
+
+function PlusIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 5v14M5 12h14"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
 
 function FloppyIcon({ size = 16 }: { size?: number }) {
   return (
@@ -115,6 +129,26 @@ export function LeadDetailCards({
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const persist = (next: LeadIntakeView, closeEdit = true) => {
+    if (!clientId || !editable) return;
+    startTransition(async () => {
+      const payload = next as ClientIntakeData;
+      const result =
+        saveVia === "setter"
+          ? await setterSaveClientIntake(clientId, payload)
+          : saveVia === "admin"
+            ? await adminSaveClientIntake(clientId, next)
+            : await therapistSaveClientIntake(clientId, next);
+      if (result.ok) {
+        setData(next);
+        if (closeEdit) setEditing(null);
+        setMessage("Gespeichert.");
+      } else {
+        setMessage(result.error);
+      }
+    });
+  };
+
   const startEdit = (key: CardKey) => {
     setDraft(data);
     setEditing(key);
@@ -127,24 +161,108 @@ export function LeadDetailCards({
   };
 
   const save = () => {
-    if (!clientId || !editable) return;
-    startTransition(async () => {
-      const payload = draft as ClientIntakeData;
-      const result =
-        saveVia === "setter"
-          ? await setterSaveClientIntake(clientId, payload)
-          : saveVia === "admin"
-            ? await adminSaveClientIntake(clientId, draft)
-            : await therapistSaveClientIntake(clientId, draft);
-      if (result.ok) {
-        setData(draft);
-        setEditing(null);
-        setMessage("Gespeichert.");
-      } else {
-        setMessage(result.error);
-      }
-    });
+    persist(draft);
   };
+
+  const addCustomCard = (column: 0 | 1 | 2) => {
+    if (!editable) return;
+    const title = window.prompt("Titel für das neue Feld (z. B. Vergangenheit)");
+    if (!title?.trim()) return;
+    const card: CustomIntakeCard = {
+      id: `c_${Date.now().toString(36)}`,
+      column,
+      title: title.trim(),
+      body: "",
+    };
+    const next: LeadIntakeView = {
+      ...data,
+      custom_cards: [...(data.custom_cards ?? []), card],
+    };
+    setDraft(next);
+    persist(next, false);
+    setEditing(`custom:${card.id}`);
+  };
+
+  const updateCustomCard = (id: string, patch: Partial<CustomIntakeCard>) => {
+    const cards = (draft.custom_cards ?? []).map((c) =>
+      c.id === id ? { ...c, ...patch } : c
+    );
+    setDraft({ ...draft, custom_cards: cards });
+  };
+
+  const removeCustomCard = (id: string) => {
+    if (!window.confirm("Feld entfernen?")) return;
+    const next: LeadIntakeView = {
+      ...data,
+      custom_cards: (data.custom_cards ?? []).filter((c) => c.id !== id),
+    };
+    setDraft(next);
+    persist(next);
+  };
+
+  const customInColumn = (col: 0 | 1 | 2) =>
+    (data.custom_cards ?? []).filter((c) => c.column === col);
+
+  const renderCustomCards = (col: 0 | 1 | 2) =>
+    customInColumn(col).map((card) => {
+      const key: CardKey = `custom:${card.id}`;
+      const draftCard = (draft.custom_cards ?? []).find((c) => c.id === card.id);
+      return (
+        <CardShell
+          key={card.id}
+          title={card.title}
+          accent="bg-white/30"
+          headerRight={
+            editable ? (
+              <div className="flex items-center gap-1">
+                {editBtn(key)}
+                <button
+                  type="button"
+                  onClick={() => removeCustomCard(card.id)}
+                  className="rounded-lg px-1.5 py-1 text-[10px] text-white/35 hover:text-red-300"
+                  title="Entfernen"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : null
+          }
+        >
+          {editing === key ? (
+            <div className="space-y-2">
+              <input
+                className={fieldClass()}
+                value={draftCard?.title ?? card.title}
+                onChange={(e) => updateCustomCard(card.id, { title: e.target.value })}
+                placeholder="Titel"
+              />
+              <textarea
+                className={fieldClass()}
+                rows={4}
+                value={draftCard?.body ?? ""}
+                onChange={(e) => updateCustomCard(card.id, { body: e.target.value })}
+                placeholder="Inhalt …"
+              />
+            </div>
+          ) : (
+            <BulletList text={card.body} />
+          )}
+        </CardShell>
+      );
+    });
+
+  const ColumnPlus = ({ column }: { column: 0 | 1 | 2 }) =>
+    editable ? (
+      <button
+        type="button"
+        onClick={() => addCustomCard(column)}
+        className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-white/20 py-2 text-xs text-white/45 transition hover:border-[#63eca9]/40 hover:text-[#63eca9]"
+        title="Feld hinzufügen"
+      >
+        <PlusIcon size={14} />
+        Feld hinzufügen
+      </button>
+    ) : null;
 
   const editBtn = (key: CardKey) => {
     if (!editable) return null;
@@ -216,6 +334,7 @@ export function LeadDetailCards({
 
       <div className="grid gap-4 lg:grid-cols-3 xl:grid-cols-4">
         <div className="space-y-4">
+          <ColumnPlus column={0} />
           <CardShell
             title="Daten"
             subtitle="Setter · Erstkontakt"
@@ -336,9 +455,11 @@ export function LeadDetailCards({
               <p className="text-white/35 italic">Noch leer …</p>
             )}
           </CardShell>
+          {renderCustomCards(0)}
         </div>
 
         <div className="space-y-4">
+          <ColumnPlus column={1} />
           <CardShell
             title="Probleme"
             subtitle="Seit wann akut"
@@ -374,9 +495,11 @@ export function LeadDetailCards({
               <BulletList text={data.side_note} />
             )}
           </CardShell>
+          {renderCustomCards(1)}
         </div>
 
         <div className="space-y-4 lg:col-span-1 xl:col-span-2">
+          <ColumnPlus column={2} />
           <CardShell
             title="Lösungen / Ziele"
             subtitle="Therapeut · Erstgespräch"
@@ -468,6 +591,7 @@ export function LeadDetailCards({
               <BulletList text={data.consequences} />
             )}
           </CardShell>
+          {renderCustomCards(2)}
         </div>
       </div>
     </div>

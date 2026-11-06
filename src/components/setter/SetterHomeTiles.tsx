@@ -8,22 +8,22 @@ export function SetterHomeTiles() {
       columns={2}
       tiles={[
         {
-          key: "notion-leadboard",
-          title: "Notion Leadboard",
-          description: "Live-Anzeige Meta-Pipeline (nur Lesen)",
-          href: "/setter/leadboard",
+          key: "leads",
+          title: "Leads",
+          description: "Pipeline-Leads anlegen und Akten bearbeiten",
+          href: "/setter/leads",
         },
         {
-          key: "open-leads",
-          title: "Offene Leads",
-          description: "Unberührt Notion + LOH ohne Therapeut",
-          href: "/setter/users",
+          key: "clients",
+          title: "Klienten",
+          description: "Alle Klienten, gruppiert nach zugewiesenem Therapeuten",
+          href: "/setter/clients",
         },
         {
-          key: "new-client",
-          title: "Neuer Klient",
-          description: "Lead anlegen (standardmäßig ohne Therapeut)",
-          href: "/setter/users/new",
+          key: "new-lead",
+          title: "Neuer Lead",
+          description: "Lead anlegen (noch kein Klient, kein Therapeut)",
+          href: "/setter/leads/new",
         },
       ]}
     />

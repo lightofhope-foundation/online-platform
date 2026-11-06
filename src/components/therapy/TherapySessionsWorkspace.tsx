@@ -10,13 +10,16 @@ import {
   adminUpdateSessionMeta,
   adminUpdateSessionNote,
   clientAddSessionNote,
+  clientToggleNoteReaction,
   therapistAddSessionNote,
   therapistDeleteSpecialSession,
   therapistInsertSpecialSession,
   therapistSetSessionReleased,
+  therapistToggleNoteReaction,
   therapistUpdateSessionMeta,
   therapistUpdateSessionNote,
 } from "@/app/actions/therapySessions";
+import { SessionNotesPanel } from "@/components/therapy/SessionNotesPanel";
 import type { TherapySessionWithNotes } from "@/lib/therapySessions";
 import { formatTherapySessionLabel } from "@/lib/therapySessions";
 import { sortSessionsOnPath } from "@/lib/therapyPathLayout";
@@ -39,6 +42,7 @@ export type TherapySessionsWorkspaceProps = {
   initialSessionNumber?: number | null;
   bunnyLibraryId?: string;
   pathChrome?: SessionPathChrome | null;
+  currentUserId?: string | null;
 };
 
 function getInitialSessionId(
@@ -67,24 +71,6 @@ function getInitialSessionId(
   );
 }
 
-function NoteBlock({
-  label,
-  body,
-  className,
-}: {
-  label: string;
-  body: string | null;
-  className?: string;
-}) {
-  if (!body?.trim()) return null;
-  return (
-    <div className={className}>
-      <p className="mb-1 text-xs font-medium uppercase tracking-wide text-white/40">{label}</p>
-      <p className="whitespace-pre-wrap text-sm text-white/85">{body}</p>
-    </div>
-  );
-}
-
 export function TherapySessionsWorkspace({
   sessions,
   mode,
@@ -93,6 +79,7 @@ export function TherapySessionsWorkspace({
   initialSessionNumber,
   bunnyLibraryId,
   pathChrome,
+  currentUserId,
 }: TherapySessionsWorkspaceProps) {
   const router = useRouter();
   const onSetReleased = useMemo(() => {
@@ -508,143 +495,30 @@ export function TherapySessionsWorkspace({
           </p>
         )}
 
-        {!clientSessionLocked && (
-        <div className="mt-8 space-y-4">
-          <h3 className="text-sm font-medium uppercase tracking-wide text-white/50">Notizen</h3>
-
-          {selected.notes.length === 0 && (
-            <p className="text-sm text-white/40">Noch keine Einträge in dieser Sitzung.</p>
-          )}
-
-          {selected.notes.map((note) => (
-            <article
-              key={note.id}
-              className="rounded-2xl border border-white/10 bg-white/[0.02] p-4"
-            >
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-white/45">
-                <span>{note.author_label ?? "Nutzer"}</span>
-                <span>
-                  {formatGermanDateTime(note.created_at)}
-                  {mode === "admin" && (note.revision_count ?? 0) > 0 && (
-                    <span className="ml-2 text-red-400">
-                      ({note.revision_count} Änderungen)
-                    </span>
-                  )}
-                </span>
-              </div>
-
-              {editingNoteId === note.id && canManage ? (
-                <div className="space-y-3">
-                  {showTherapistNotes && (
-                    <textarea
-                      value={editTherapist}
-                      onChange={(e) => setEditTherapist(e.target.value)}
-                      rows={3}
-                      placeholder="Therapeuten-Notizen"
-                      className="w-full rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 text-sm text-white"
-                    />
-                  )}
-                  <textarea
-                    value={editClient}
-                    onChange={(e) => setEditClient(e.target.value)}
-                    rows={3}
-                    placeholder="Klienten-Notizen"
-                    className="w-full rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 text-sm text-white"
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      disabled={pending}
-                      onClick={saveEditNote}
-                      className="rounded-lg bg-[#63eca9]/20 px-3 py-1.5 text-sm text-[#63eca9]"
-                    >
-                      Speichern
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditingNoteId(null)}
-                      className="rounded-lg px-3 py-1.5 text-sm text-white/50"
-                    >
-                      Abbrechen
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {showTherapistNotes && (
-                    <NoteBlock label="Therapeut" body={note.therapist_body} className="mb-3" />
-                  )}
-                  <NoteBlock label="Klient" body={note.client_body} />
-                  {canManage && onUpdateNote && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        startEditNote(note.id, note.therapist_body, note.client_body)
-                      }
-                      className="mt-3 text-xs text-[#63eca9] hover:underline"
-                    >
-                      Bearbeiten
-                    </button>
-                  )}
-                </>
-              )}
-            </article>
-          ))}
-        </div>
-        )}
-
-        {canManage && onAddNote && (
-          <div className="mt-6 space-y-3 rounded-2xl border border-dashed border-white/15 p-4">
-            <p className="text-sm text-white/60">Neuer Eintrag</p>
-            {showTherapistNotes && (
-              <textarea
-                value={draftTherapist}
-                onChange={(e) => setDraftTherapist(e.target.value)}
-                rows={3}
-                placeholder="Therapeuten-Notizen (nur Team)"
-                className="w-full rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 text-sm text-white"
-              />
-            )}
-            <textarea
-              value={draftClient}
-              onChange={(e) => setDraftClient(e.target.value)}
-              rows={3}
-              placeholder="Klienten-Notizen (sichtbar für Klient wenn freigegeben)"
-              className="w-full rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 text-sm text-white"
-            />
-            {noteError && <p className="text-sm text-red-400">{noteError}</p>}
-            <button
-              type="button"
-              disabled={pending}
-              onClick={submitNote}
-              className="rounded-xl border border-[#63eca9]/40 bg-[#63eca9]/15 px-4 py-2 text-sm text-[#63eca9] hover:bg-[#63eca9]/25 disabled:opacity-50"
-            >
-              Eintrag hinzufügen
-            </button>
-          </div>
-        )}
-
-        {canClientAddNote && (
-          <div className="mt-6 space-y-3 rounded-2xl border border-dashed border-white/15 p-4">
-            <p className="text-sm text-white/60">Neuer Eintrag</p>
-            <textarea
-              value={draftClient}
-              onChange={(e) => setDraftClient(e.target.value)}
-              rows={3}
-              placeholder="Deine Notizen für diese Sitzung"
-              className="w-full rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 text-sm text-white"
-            />
-            {noteError && <p className="text-sm text-red-400">{noteError}</p>}
-            <button
-              type="button"
-              disabled={pending || !draftClient.trim()}
-              onClick={submitNote}
-              className="rounded-xl border border-[#63eca9]/40 bg-[#63eca9]/15 px-4 py-2 text-sm text-[#63eca9] hover:bg-[#63eca9]/25 disabled:opacity-50"
-            >
-              Eintrag hinzufügen
-            </button>
-          </div>
-        )}
+        {!clientSessionLocked && onAddNote ? (
+          <SessionNotesPanel
+            notes={selected.notes}
+            mode={mode}
+            currentUserId={currentUserId}
+            sessionId={selected.id}
+            locked={clientSessionLocked}
+            onAddFeedback={async (text) => {
+              await onAddNote(selected.id, "", text);
+            }}
+            onAddPrivateNote={async (html) => {
+              await onAddNote(selected.id, html, "");
+            }}
+            onToggleReaction={async (noteId, emoji) => {
+              if (mode === "client") {
+                await clientToggleNoteReaction(noteId, emoji);
+                return;
+              }
+              if (!clientId) return;
+              await therapistToggleNoteReaction(clientId, noteId, emoji);
+            }}
+          />
+        ) : null}
+        {noteError ? <p className="mt-2 text-sm text-red-400">{noteError}</p> : null}
       </div>
 
       {canManage && (

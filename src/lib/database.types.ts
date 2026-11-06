@@ -146,8 +146,10 @@ export type Database = {
           archived_at: string | null
           created_at: string
           deleted_at: string | null
+          erstgespraechler_user_id: string | null
           intake_data: Json
           is_paid: boolean
+          pipeline_status: string
           session_path_background_url: string | null
           therapist_user_id: string | null
           updated_at: string
@@ -158,8 +160,10 @@ export type Database = {
           archived_at?: string | null
           created_at?: string
           deleted_at?: string | null
+          erstgespraechler_user_id?: string | null
           intake_data?: Json
           is_paid?: boolean
+          pipeline_status?: string
           session_path_background_url?: string | null
           therapist_user_id?: string | null
           updated_at?: string
@@ -170,8 +174,10 @@ export type Database = {
           archived_at?: string | null
           created_at?: string
           deleted_at?: string | null
+          erstgespraechler_user_id?: string | null
           intake_data?: Json
           is_paid?: boolean
+          pipeline_status?: string
           session_path_background_url?: string | null
           therapist_user_id?: string | null
           updated_at?: string
@@ -714,6 +720,7 @@ export type Database = {
           client_body: string | null
           created_at: string
           id: string
+          reactions: Json
           session_id: string
           therapist_body: string | null
           updated_at: string
@@ -723,6 +730,7 @@ export type Database = {
           client_body?: string | null
           created_at?: string
           id?: string
+          reactions?: Json
           session_id: string
           therapist_body?: string | null
           updated_at?: string
@@ -732,6 +740,7 @@ export type Database = {
           client_body?: string | null
           created_at?: string
           id?: string
+          reactions?: Json
           session_id?: string
           therapist_body?: string | null
           updated_at?: string

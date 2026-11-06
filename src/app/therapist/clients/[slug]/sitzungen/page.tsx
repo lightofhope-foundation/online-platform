@@ -89,6 +89,7 @@ export default async function TherapistClientSitzungenPage({
           sessions={sessions}
           mode="therapist"
           clientId={boundClientId}
+          currentUserId={user.id}
         />
       </SessionPathHero>
     );

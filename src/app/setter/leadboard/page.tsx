@@ -1,12 +1,19 @@
+import { redirect } from "next/navigation";
 import { checkSetterAccess } from "@/lib/checkSetterAccess";
 import { fetchMetaLeads } from "@/lib/notion/metaLeads";
 import { NotionLeadboardBoard } from "@/components/setter/NotionLeadboardBoard";
 import { resolvePersonLabel } from "@/lib/formatDisplayName";
+import { SOFT_RELEASE } from "@/lib/softRelease";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+/** Soft-Release: Notion Leadboard ausgeblendet — Code bleibt für Re-Enable. */
 export default async function SetterLeadboardPage() {
+  if (!SOFT_RELEASE.notionLeadboard) {
+    redirect("/setter/leads");
+  }
+
   const { user, supabase } = await checkSetterAccess();
   const { leads, error, fetchedAt, truncated } = await fetchMetaLeads("all");
 
