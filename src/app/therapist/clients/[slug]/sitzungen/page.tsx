@@ -26,10 +26,20 @@ function formatFullName(firstName: string | null, lastName: string | null): stri
 
 export default async function TherapistClientSitzungenPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ session?: string }>;
 }) {
   const { slug } = await params;
+  const { session: sessionRaw } = await searchParams;
+  const initialSessionId =
+    sessionRaw &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      sessionRaw
+    )
+      ? sessionRaw
+      : null;
   const clientId = normalizeClientIdForUrl(slug);
 
   if (!isValidClientIdFormat(clientId)) {
@@ -90,6 +100,7 @@ export default async function TherapistClientSitzungenPage({
           mode="therapist"
           clientId={boundClientId}
           currentUserId={user.id}
+          initialSessionId={initialSessionId}
         />
       </SessionPathHero>
     );

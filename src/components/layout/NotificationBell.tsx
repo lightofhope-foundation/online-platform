@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { formatGermanDateTime } from "@/lib/clientId";
 import { resolveNavArea } from "@/lib/navConfig";
@@ -19,8 +18,13 @@ type Notif = {
 
 export function NotificationBell() {
   const pathname = usePathname();
+  const router = useRouter();
   const area = resolveNavArea(pathname);
-  const enabled = area === "therapist" || area === "admin" || area === "teamlead";
+  const enabled =
+    area === "therapist" ||
+    area === "admin" ||
+    area === "teamlead" ||
+    area === "client";
 
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Notif[]>([]);
@@ -62,16 +66,21 @@ export function NotificationBell() {
     );
   }
 
+  const markRead = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    const now = new Date().toISOString();
+    setItems((prev) =>
+      prev.map((i) => (ids.includes(i.id) ? { ...i, read_at: i.read_at ?? now } : i))
+    );
+    await supabase
+      .from("staff_notifications")
+      .update({ read_at: now })
+      .in("id", ids);
+  };
+
   const markAllRead = () => {
     startTransition(async () => {
-      const unreadIds = items.filter((i) => !i.read_at).map((i) => i.id);
-      if (unreadIds.length === 0) return;
-      const now = new Date().toISOString();
-      await supabase
-        .from("staff_notifications")
-        .update({ read_at: now })
-        .in("id", unreadIds);
-      setItems((prev) => prev.map((i) => ({ ...i, read_at: i.read_at ?? now })));
+      await markRead(items.filter((i) => !i.read_at).map((i) => i.id));
     });
   };
 
@@ -117,25 +126,17 @@ export function NotificationBell() {
             ) : (
               items.map((item) => (
                 <li key={item.id} className="border-b border-white/[0.06] last:border-0">
-                  <Link
-                    href={item.href || "#"}
+                  <button
+                    type="button"
                     onClick={() => {
                       setOpen(false);
-                      if (!item.read_at) {
-                        void supabase
-                          .from("staff_notifications")
-                          .update({ read_at: new Date().toISOString() })
-                          .eq("id", item.id);
-                        setItems((prev) =>
-                          prev.map((n) =>
-                            n.id === item.id
-                              ? { ...n, read_at: new Date().toISOString() }
-                              : n
-                          )
-                        );
-                      }
+                      void (async () => {
+                        if (!item.read_at) await markRead([item.id]);
+                        const target = item.href?.trim();
+                        if (target && target !== "#") router.push(target);
+                      })();
                     }}
-                    className={`block px-3 py-3 transition hover:bg-[#63eca9]/08 ${
+                    className={`block w-full px-3 py-3 text-left transition hover:bg-[#63eca9]/08 ${
                       item.read_at ? "opacity-70" : ""
                     }`}
                   >
@@ -155,7 +156,7 @@ export function NotificationBell() {
                         </div>
                       </div>
                     </div>
-                  </Link>
+                  </button>
                 </li>
               ))
             )}

@@ -120,13 +120,33 @@ export async function therapistAddSessionNote(
 ) {
   const { user, supabase, clientId: resolvedClientId } =
     await checkTherapistClientAccess(clientId);
-  await createTherapySessionNote(
+  const created = await createTherapySessionNote(
     supabase,
     sessionId,
     user.id,
     therapistBody,
     clientBody
   );
+  // Feedback-Chat (client_body) → Klient benachrichtigen; private Notiz nicht
+  if (clientBody.trim()) {
+    const { data: session } = await supabase
+      .from("therapy_sessions")
+      .select("client_user_id")
+      .eq("id", sessionId)
+      .maybeSingle();
+    if (session?.client_user_id) {
+      const { notifyClientOfTherapistSessionActivity } = await import(
+        "@/lib/staffNotifications"
+      );
+      await notifyClientOfTherapistSessionActivity(supabase, {
+        clientUserId: session.client_user_id,
+        actorUserId: user.id,
+        sessionId,
+        noteId: created.id,
+        kind: "therapist_session_comment",
+      });
+    }
+  }
   revalidateTherapySessionPaths(resolvedClientId);
   return { ok: true as const };
 }
@@ -161,6 +181,31 @@ export async function therapistToggleNoteReaction(
     "@/lib/therapySessionMutations"
   );
   await toggleTherapySessionNoteReaction(supabase, noteId, user.id, emoji);
+
+  const { data: note } = await supabase
+    .from("therapy_session_notes")
+    .select("session_id, author_id")
+    .eq("id", noteId)
+    .maybeSingle();
+  if (note?.session_id && note.author_id && note.author_id !== user.id) {
+    const { data: session } = await supabase
+      .from("therapy_sessions")
+      .select("client_user_id")
+      .eq("id", note.session_id)
+      .maybeSingle();
+    if (session?.client_user_id) {
+      const { notifyClientOfTherapistSessionActivity } = await import(
+        "@/lib/staffNotifications"
+      );
+      await notifyClientOfTherapistSessionActivity(supabase, {
+        clientUserId: session.client_user_id,
+        actorUserId: user.id,
+        sessionId: note.session_id,
+        noteId,
+        kind: "therapist_session_reaction",
+      });
+    }
+  }
   revalidateTherapySessionPaths(resolvedClientId);
   return { ok: true as const };
 }
@@ -280,13 +325,32 @@ export async function adminAddSessionNote(
 ) {
   const { user, supabase, clientId: resolvedClientId } =
     await checkAdminClientAccess(clientId);
-  await createTherapySessionNote(
+  const created = await createTherapySessionNote(
     supabase,
     sessionId,
     user.id,
     therapistBody,
     clientBody
   );
+  if (clientBody.trim()) {
+    const { data: session } = await supabase
+      .from("therapy_sessions")
+      .select("client_user_id")
+      .eq("id", sessionId)
+      .maybeSingle();
+    if (session?.client_user_id) {
+      const { notifyClientOfTherapistSessionActivity } = await import(
+        "@/lib/staffNotifications"
+      );
+      await notifyClientOfTherapistSessionActivity(supabase, {
+        clientUserId: session.client_user_id,
+        actorUserId: user.id,
+        sessionId,
+        noteId: created.id,
+        kind: "therapist_session_comment",
+      });
+    }
+  }
   revalidateTherapySessionPaths(resolvedClientId);
   return { ok: true as const };
 }

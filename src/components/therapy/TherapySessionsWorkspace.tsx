@@ -40,6 +40,8 @@ export type TherapySessionsWorkspaceProps = {
   clientId?: string;
   therapistName?: string;
   initialSessionNumber?: number | null;
+  /** Deep-link by session UUID (works for Notsitzungen too). */
+  initialSessionId?: string | null;
   bunnyLibraryId?: string;
   pathChrome?: SessionPathChrome | null;
   currentUserId?: string | null;
@@ -48,11 +50,21 @@ export type TherapySessionsWorkspaceProps = {
 function getInitialSessionId(
   mode: TherapySessionsMode,
   sessions: TherapySessionWithNotes[],
-  preferred?: number | null
+  preferredNumber?: number | null,
+  preferredId?: string | null
 ): string | null {
-  if (preferred != null && preferred >= 1 && preferred <= 18) {
+  if (preferredId) {
+    const byId = sessions.find((s) => s.id === preferredId);
+    if (byId) {
+      if (mode === "client" && !byId.released_to_client) {
+        return sessions.find((s) => s.released_to_client)?.id ?? null;
+      }
+      return byId.id;
+    }
+  }
+  if (preferredNumber != null && preferredNumber >= 1 && preferredNumber <= 18) {
     const match = sessions.find(
-      (s) => !s.is_special && s.session_number === preferred
+      (s) => !s.is_special && s.session_number === preferredNumber
     );
     if (match) {
       if (mode === "client" && !match.released_to_client) {
@@ -77,6 +89,7 @@ export function TherapySessionsWorkspace({
   clientId,
   therapistName,
   initialSessionNumber,
+  initialSessionId,
   bunnyLibraryId,
   pathChrome,
   currentUserId,
@@ -145,7 +158,7 @@ export function TherapySessionsWorkspace({
   const sortedSessions = useMemo(() => sortSessionsOnPath(sessions), [sessions]);
 
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(() =>
-    getInitialSessionId(mode, sessions, initialSessionNumber)
+    getInitialSessionId(mode, sessions, initialSessionNumber, initialSessionId)
   );
   const [highlightSessionId, setHighlightSessionId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();

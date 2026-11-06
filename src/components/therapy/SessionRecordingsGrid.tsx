@@ -12,6 +12,7 @@ import {
 
 export type SessionRecordingCard = Pick<
   TherapySessionRow,
+  | "id"
   | "session_number"
   | "recording_title"
   | "recording_bunny_video_id"
@@ -62,9 +63,13 @@ export function SessionRecordingsGrid({
             });
           };
 
+          const sessionHref = session.is_special
+            ? `/sitzungen?session=${session.id}`
+            : `/sitzungen?sitzung=${session.session_number}`;
+
           return (
             <article
-              key={session.session_number}
+              key={session.id}
               className={`flex flex-col overflow-hidden rounded-[20px] border backdrop-blur-sm ${
                 canWatch
                   ? session.is_special
@@ -102,13 +107,17 @@ export function SessionRecordingsGrid({
                     <VideoThumbnailPreview
                       bunnyVideoId={session.recording_bunny_video_id}
                       title={sessionLabel}
-                      href={`/sitzungsaufnahmen/${session.session_number}`}
+                      href={
+                        session.is_special
+                          ? sessionHref
+                          : `/sitzungsaufnahmen/${session.session_number}`
+                      }
                       className="aspect-video w-full"
                     />
 
                     <div className="mt-auto flex flex-col gap-2">
                       <Link
-                        href={`/sitzungen?sitzung=${session.session_number}`}
+                        href={sessionHref}
                         className="inline-flex justify-center rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 text-sm text-white/80 hover:bg-white/[0.08]"
                       >
                         Zur Sitzung

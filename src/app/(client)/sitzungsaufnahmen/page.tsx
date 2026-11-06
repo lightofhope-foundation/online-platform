@@ -3,7 +3,6 @@ import { SessionRecordingsGrid } from "@/components/therapy/SessionRecordingsGri
 import { getAuthUserFromCookie } from "@/lib/supabaseServer";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 import { loadTherapySessionsWithNotes } from "@/lib/therapySessions";
-import { getStandardSessionCount } from "@/lib/platformTherapyConfig";
 import { sortSessionsOnPath } from "@/lib/therapyPathLayout";
 
 export const dynamic = "force-dynamic";
@@ -24,33 +23,16 @@ export default async function SitzungsaufnahmenPage() {
   }
 
   const sessions = await loadTherapySessionsWithNotes(supabase, profile.user_id);
-  const sessionCount = await getStandardSessionCount(supabase);
-  const byNumber = new Map(
-    sessions.filter((s) => !s.is_special).map((s) => [s.session_number, s])
-  );
-  const standardOrdered = Array.from({ length: sessionCount }, (_, i) => {
-    const n = i + 1;
-    const row = byNumber.get(n);
-    return {
-      session_number: n,
-      topic: row?.topic ?? null,
-      is_special: false,
-      released_to_client: row?.released_to_client ?? false,
-      recording_bunny_video_id: row?.recording_bunny_video_id ?? null,
-      recording_title: row?.recording_title ?? null,
-    };
-  });
-  const specialWithRecordings = sortSessionsOnPath(sessions)
-    .filter((s) => s.is_special && s.recording_bunny_video_id)
-    .map((s) => ({
-      session_number: s.session_number,
-      topic: s.topic,
-      is_special: true,
-      released_to_client: s.released_to_client,
-      recording_bunny_video_id: s.recording_bunny_video_id,
-      recording_title: s.recording_title,
-    }));
-  const ordered = [...standardOrdered, ...specialWithRecordings];
+  // Exact therapy-path order (Notsitzung between Sitzung 1 and 2, etc.)
+  const ordered = sortSessionsOnPath(sessions).map((s) => ({
+    id: s.id,
+    session_number: s.session_number,
+    topic: s.topic,
+    is_special: s.is_special,
+    released_to_client: s.released_to_client,
+    recording_bunny_video_id: s.recording_bunny_video_id,
+    recording_title: s.recording_title,
+  }));
 
   const availableCount = ordered.filter(
     (s) => s.released_to_client && s.recording_bunny_video_id

@@ -12,16 +12,23 @@ export const dynamic = "force-dynamic";
 export default async function SitzungenPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sitzung?: string }>;
+  searchParams: Promise<{ sitzung?: string; session?: string }>;
 }) {
   const user = await getAuthUserFromCookie();
   if (!user) redirect("/login");
 
-  const { sitzung: sitzungRaw } = await searchParams;
+  const { sitzung: sitzungRaw, session: sessionRaw } = await searchParams;
   const sitzungNum = sitzungRaw ? Number(sitzungRaw) : NaN;
   const initialSessionNumber =
     Number.isInteger(sitzungNum) && sitzungNum >= 1 && sitzungNum <= 18
       ? sitzungNum
+      : null;
+  const initialSessionId =
+    sessionRaw &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      sessionRaw
+    )
+      ? sessionRaw
       : null;
 
   const supabase = getSupabaseAdminClient();
@@ -98,6 +105,7 @@ export default async function SitzungenPage({
         currentUserId={user.id}
         therapistName={therapistName}
         initialSessionNumber={initialSessionNumber}
+        initialSessionId={initialSessionId}
         bunnyLibraryId={bunnyLibraryId}
       />
     </SessionPathHero>

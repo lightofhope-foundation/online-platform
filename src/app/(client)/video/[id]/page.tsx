@@ -34,6 +34,7 @@ export default function VideoPage({ params }: PageProps) {
   const [error, setError] = useState<string | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
   const [nextVideoId, setNextVideoId] = useState<string | null>(null);
+  const [prevVideoId, setPrevVideoId] = useState<string | null>(null);
   const [savedProgress, setSavedProgress] = useState<{ last_second: number; percent: number } | null>(null);
   const [hasAttemptedResume, setHasAttemptedResume] = useState(false);
   const [prevVideoStatus, setPrevVideoStatus] = useState<{
@@ -338,54 +339,6 @@ export default function VideoPage({ params }: PageProps) {
     }
   }, [savedProgress, hasAttemptedResume]);
 
-  // Reset progress for testing (no full page reload — avoids Next dev overlay crash)
-  const resetProgress = async () => {
-    try {
-      await updateProgress(id, 0, 0, false);
-      savedProgressRef.current = null;
-      setSavedProgress(null);
-      setIsCompleted(false);
-      setHasAttemptedResume(false);
-      hasAttemptedResumeRef.current = false;
-      if (playerRef.current) {
-        playerRef.current.currentTime(0);
-      }
-      refreshProgress();
-    } catch (error) {
-      console.error("Error resetting progress:", error);
-    }
-  };
-
-  // Mark video as completed — stored as if never started (position 0, 100%)
-  const markAsCompleted = async () => {
-    console.log("Marking video as completed (fresh):", id);
-    try {
-      await updateProgress(id, 0, 100, true);
-      const freshProgress = { last_second: 0, percent: 100 };
-      savedProgressRef.current = freshProgress;
-      setSavedProgress(freshProgress);
-      setIsCompleted(true);
-      setHasAttemptedResume(true);
-      if (playerRef.current) {
-        playerRef.current.currentTime(0);
-      }
-      refreshProgress();
-    } catch (error) {
-      console.error("Error updating progress:", error);
-    }
-  };
-
-  // Undo completion
-  const undoCompletion = async () => {
-    console.log('Undoing video completion:', id);
-    const currentProgress = savedProgress || getVideoProgress(id);
-    const lastSecond = currentProgress?.last_second || 0;
-    const percent = currentProgress?.percent || 0;
-    await updateProgress(id, lastSecond, percent, false);
-    setIsCompleted(false);
-    refreshProgress();
-  };
-
   // Load video data
   useEffect(() => {
     let cancelled = false;
@@ -418,6 +371,11 @@ export default function VideoPage({ params }: PageProps) {
             const ordered = await fetchPublishedVideosOrdered(supabase, user.id);
             const videoIndex = ordered.findIndex((ov) => ov.id === id);
             if (videoIndex >= 0) {
+              setPrevVideoId(
+                videoIndex > 0 ? ordered[videoIndex - 1]?.id ?? null : null
+              );
+              setNextVideoId(ordered[videoIndex + 1]?.id ?? null);
+
               const orderedIds = ordered.map((ov) => ov.id);
               const { data: titleRows } = await supabase
                 .from("videos")
@@ -514,23 +472,6 @@ export default function VideoPage({ params }: PageProps) {
           }
 
           setVideo({ title: v.title || "Video" });
-          
-          // Find next video in the same chapter
-          if (v.chapter_id) {
-            const { data: nextVideo } = await supabase
-              .from("videos")
-              .select("id")
-              .eq("chapter_id", v.chapter_id)
-              .gt("position", v.position || 0)
-              .is("deleted_at", null)
-              .order("position", { ascending: true })
-              .limit(1)
-              .maybeSingle();
-              
-            if (nextVideo) {
-              setNextVideoId(nextVideo.id);
-            }
-          }
         }
       } catch (err) {
         console.error("Unexpected error:", err);
@@ -581,27 +522,79 @@ export default function VideoPage({ params }: PageProps) {
     );
   }
 
+  const nextLocked = !isCompleted;
+  const nextDisabled = nextLocked || !nextVideoId;
+  const prevDisabled = !prevVideoId;
+
   return (
       <div className="space-y-6">
-        {/* Breadcrumbs */}
-        <nav className="flex items-center space-x-2 text-sm text-white/70">
-          <Link href="/" className="hover:text-white transition-colors">
-            Startseite
-          </Link>
-          <span>/</span>
-          <Link href="/courses" className="hover:text-white transition-colors">
-            Kurse
-          </Link>
-          <span>/</span>
-          <Link href={`/courses/${course?.slug || '#'}`} className="hover:text-white transition-colors">
-            {course?.title || 'Kurs'}
-          </Link>
-          <span>/</span>
-          <span className="text-white">{video?.title || 'Video'}</span>
-        </nav>
+        <div className="flex items-start justify-between gap-4">
+          <nav className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/70">
+            <Link href="/" className="hover:text-white transition-colors">
+              Startseite
+            </Link>
+            <span>/</span>
+            <Link href="/courses" className="hover:text-white transition-colors">
+              Kurse
+            </Link>
+            <span>/</span>
+            <Link href={`/courses/${course?.slug || '#'}`} className="hover:text-white transition-colors">
+              {course?.title || 'Kurs'}
+            </Link>
+            <span>/</span>
+            <span className="text-white">{video?.title || 'Video'}</span>
+          </nav>
+
+          <div className="flex shrink-0 items-center gap-2">
+            {prevDisabled ? (
+              <span
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white/25"
+                aria-disabled
+                title="Kein vorheriges Video"
+              >
+                ←
+              </span>
+            ) : (
+              <Link
+                href={`/video/${prevVideoId}`}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 text-white/85 transition hover:border-[#63eca9]/50 hover:bg-[#63eca9]/10 hover:text-[#63eca9]"
+                title="Vorheriges Video"
+                aria-label="Vorheriges Video"
+              >
+                ←
+              </Link>
+            )}
+            {nextDisabled ? (
+              <span
+                className="group relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white/25"
+                aria-disabled
+                title={
+                  nextLocked
+                    ? "Video erst fertig schauen bitte"
+                    : "Kein nächstes Video"
+                }
+              >
+                →
+                {nextLocked ? (
+                  <span className="pointer-events-none absolute right-0 top-full z-20 mt-2 hidden whitespace-nowrap rounded-lg border border-white/15 bg-[#0b1210] px-2.5 py-1.5 text-[11px] text-white/80 shadow-xl group-hover:block">
+                    Video erst fertig schauen bitte
+                  </span>
+                ) : null}
+              </span>
+            ) : (
+              <Link
+                href={`/video/${nextVideoId}`}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 text-white/85 transition hover:border-[#63eca9]/50 hover:bg-[#63eca9]/10 hover:text-[#63eca9]"
+                title="Nächstes Video"
+                aria-label="Nächstes Video"
+              >
+                →
+              </Link>
+            )}
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
-          {/* Video Player */}
           <div className="lg:col-span-2">
             <div className="aspect-video w-full rounded-lg bg-black/60 overflow-hidden relative z-10 pointer-events-auto">
               <video
@@ -613,65 +606,20 @@ export default function VideoPage({ params }: PageProps) {
               />
             </div>
 
-            {/* Resume notification */}
-            {savedProgress && savedProgress.last_second >= MIN_RESUME_TIME && savedProgress.last_second > 0 && (
+            {savedProgress && savedProgress.last_second >= MIN_RESUME_TIME && savedProgress.last_second > 0 && !isCompleted && (
               <div className="mt-4 p-3 rounded-lg border border-[#63eca9]/50 bg-[#63eca9]/10 text-[#63eca9] text-sm">
                 Video wird bei {Math.floor(savedProgress.last_second / 60)}:{(savedProgress.last_second % 60).toFixed(0).padStart(2, '0')} fortgesetzt
               </div>
             )}
 
-            {/* Video Controls */}
-            <div className="mt-4 p-4 rounded-lg border border-white/10 bg-white/[0.02]">
-              <div className="flex items-center gap-4 flex-wrap">
-                {!isCompleted ? (
-                  <button
-                    onClick={markAsCompleted}
-                    className="px-4 py-2 rounded-lg border border-white/20 text-white hover:bg-white/10 transition-colors"
-                  >
-                    Als abgeschlossen markieren
-                  </button>
-                ) : (
-                  <button
-                    onClick={undoCompletion}
-                    className="px-4 py-2 rounded-lg border border-red-500/50 text-red-400 hover:bg-red-500/10 transition-colors"
-                  >
-                    Abgeschlossen rückgängig machen
-                  </button>
-                )}
-                
-                {/* Reset Progress Button for Testing */}
-                <button
-                  onClick={resetProgress}
-                  className="px-4 py-2 rounded-lg border border-orange-500/50 text-orange-400 hover:bg-orange-500/10 transition-colors"
-                >
-                  🔄 Progress zurücksetzen (Test)
-                </button>
-
-                {prevVideoStatus && (
-                  <PreviousVideoStatusBadge
-                    previousTitle={prevVideoStatus.previousTitle}
-                    completed={prevVideoStatus.completed}
-                  />
-                )}
-                
-                {isCompleted && nextVideoId && (
-                  <Link 
-                    href={`/video/${nextVideoId}`}
-                    className="px-4 py-2 rounded-lg bg-[#63eca9] text-black font-medium hover:bg-[#53e0b6] transition-colors"
-                  >
-                    Nächstes Video
-                  </Link>
-                )}
-                {isCompleted && !nextVideoId && (
-                  <Link 
-                    href={`/courses/${course?.slug || ''}`}
-                    className="px-4 py-2 rounded-lg bg-[#63eca9] text-black font-medium hover:bg-[#53e0b6] transition-colors"
-                  >
-                    Zurück zum Kurs
-                  </Link>
-                )}
+            {prevVideoStatus ? (
+              <div className="mt-4">
+                <PreviousVideoStatusBadge
+                  previousTitle={prevVideoStatus.previousTitle}
+                  completed={prevVideoStatus.completed}
+                />
               </div>
-            </div>
+            ) : null}
           </div>
           <aside>
             <h2 className="text-lg font-semibold mb-3">Aufgaben</h2>
