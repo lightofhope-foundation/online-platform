@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { formatGermanDateTime } from "@/lib/clientId";
@@ -30,6 +30,7 @@ export function NotificationBell() {
   const [items, setItems] = useState<Notif[]>([]);
   const [navigatingId, setNavigatingId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const rootRef = useRef<HTMLDivElement>(null);
   const supabase = getSupabaseBrowserClient();
 
   const unread = items.filter((i) => !i.read_at).length;
@@ -43,7 +44,7 @@ export function NotificationBell() {
       .select("id, title, body, href, kind, created_at, read_at")
       .eq("recipient_user_id", auth.user.id)
       .order("created_at", { ascending: false })
-      .limit(30);
+      .limit(40);
     setItems((data as Notif[]) ?? []);
   }, [enabled, supabase]);
 
@@ -53,6 +54,24 @@ export function NotificationBell() {
     const t = window.setInterval(() => void load(), 20000);
     return () => window.clearInterval(t);
   }, [load, enabled]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDoc(e: MouseEvent) {
+      if (!rootRef.current?.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   if (!enabled) {
     return (
@@ -85,8 +104,24 @@ export function NotificationBell() {
     });
   };
 
+  const openItem = async (item: Notif) => {
+    setNavigatingId(item.id);
+    try {
+      if (!item.read_at) await markRead([item.id]);
+      const target = item.href?.trim();
+      // Kurzes Feedback sichtbar lassen
+      await new Promise((r) => window.setTimeout(r, 350));
+      if (target && target !== "#") {
+        router.push(target);
+      }
+    } finally {
+      setOpen(false);
+      window.setTimeout(() => setNavigatingId(null), 600);
+    }
+  };
+
   return (
-    <div className="relative">
+    <div ref={rootRef} className="relative">
       <button
         type="button"
         onClick={() => {
@@ -94,6 +129,7 @@ export function NotificationBell() {
           if (!open) void load();
         }}
         aria-label="Benachrichtigungen"
+        aria-expanded={open}
         className="relative cursor-pointer rounded-full border border-white/10 bg-white/[0.04] p-2.5 text-white/90 transition hover:border-[#63eca9]/40 hover:bg-white/[0.08]"
       >
         <BellIcon />
@@ -105,7 +141,7 @@ export function NotificationBell() {
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-full z-50 mt-2 w-[340px] overflow-hidden rounded-2xl border border-white/12 bg-[#0b1210]/96 shadow-[0_20px_60px_rgba(0,0,0,0.55)] backdrop-blur-md">
+        <div className="absolute right-0 top-full z-50 mt-2 w-[380px] overflow-hidden rounded-2xl border border-white/12 bg-[#0b1210]/96 shadow-[0_20px_60px_rgba(0,0,0,0.55)] backdrop-blur-md">
           <div className="flex items-center justify-between border-b border-white/10 px-3 py-2.5">
             <span className="text-sm font-medium text-white">Benachrichtigungen</span>
             {unread > 0 ? (
@@ -119,7 +155,7 @@ export function NotificationBell() {
               </button>
             ) : null}
           </div>
-          <ul className="max-h-[360px] overflow-y-auto">
+          <ul className="max-h-[520px] overflow-y-auto">
             {items.length === 0 ? (
               <li className="px-4 py-8 text-center text-sm text-white/40">
                 Keine Benachrichtigungen
@@ -132,39 +168,29 @@ export function NotificationBell() {
                     <button
                       type="button"
                       disabled={Boolean(navigatingId)}
-                      onClick={() => {
-                        setNavigatingId(item.id);
-                        void (async () => {
-                          try {
-                            if (!item.read_at) await markRead([item.id]);
-                            const target = item.href?.trim();
-                            if (target && target !== "#") {
-                              router.push(target);
-                            }
-                          } finally {
-                            setOpen(false);
-                            window.setTimeout(() => setNavigatingId(null), 800);
-                          }
-                        })();
-                      }}
-                      className={`block w-full cursor-pointer px-3 py-3 text-left transition hover:bg-[#63eca9]/15 disabled:cursor-wait ${
+                      onClick={() => void openItem(item)}
+                      className={`block w-full cursor-pointer px-3 py-3.5 text-left transition hover:bg-[#63eca9]/18 disabled:cursor-wait ${
                         item.read_at ? "opacity-70" : ""
-                      } ${loading ? "bg-[#63eca9]/12" : ""}`}
+                      } ${loading ? "bg-[#63eca9]/20" : ""}`}
                     >
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-start gap-2.5">
                         {loading ? (
-                          <span className="mt-1 h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-[#63eca9]/30 border-t-[#63eca9]" />
+                          <span className="mt-1 h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[#63eca9]/30 border-t-[#63eca9]" />
                         ) : !item.read_at ? (
-                          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#63eca9]" />
+                          <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#63eca9]" />
                         ) : (
-                          <span className="mt-1.5 h-1.5 w-1.5 shrink-0" />
+                          <span className="mt-1.5 h-2 w-2 shrink-0" />
                         )}
-                        <div className="min-w-0">
-                          <div className="text-sm text-white">{item.title}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium text-white">
+                            {item.title}
+                          </div>
                           {item.body ? (
-                            <div className="mt-0.5 text-xs text-white/50">{item.body}</div>
+                            <div className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-white/55">
+                              {item.body}
+                            </div>
                           ) : null}
-                          <div className="mt-1 text-[10px] text-white/35">
+                          <div className="mt-1.5 text-[10px] text-white/35">
                             {loading
                               ? "Wird geöffnet …"
                               : formatGermanDateTime(item.created_at)}

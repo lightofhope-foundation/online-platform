@@ -1,10 +1,9 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useRef, useState } from "react";
 import {
   therapistClearSessionRecording,
   therapistLinkSessionRecording,
-  therapistPrepareSessionRecordingUpload,
   therapistSaveSessionRecording,
 } from "@/app/actions/therapySessions";
 import { VideoThumbnailPreview } from "@/components/dashboard/VideoThumbnailPreview";
@@ -29,7 +28,7 @@ export function SessionRecordingPanel({
   onUpdated,
 }: SessionRecordingPanelProps) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const [pending, startTransition] = useTransition();
+  const [busy, setBusy] = useState(false);
   const [title, setTitle] = useState(
     recordingTitle ?? `Sitzung ${sessionNumber} — Aufnahme`
   );
@@ -39,62 +38,86 @@ export function SessionRecordingPanel({
 
   const hasRecording = Boolean(bunnyVideoId?.trim());
 
-  const handleUpload = (file: File) => {
-    startTransition(async () => {
-      try {
-        setError(null);
-        setUploadPct(0);
-        const prepared = await therapistPrepareSessionRecordingUpload(
+  const handleUpload = async (file: File) => {
+    setBusy(true);
+    setError(null);
+    setUploadPct(0);
+    try {
+      const prepRes = await fetch("/api/therapist/session-recording/prepare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           clientId,
           sessionId,
           title,
-          file.name
-        );
-        await uploadBunnyStorageFileDirect(
-          prepared.putUrl,
-          prepared.accessKey,
-          file,
-          (p) => setUploadPct(p)
-        );
-        await therapistSaveSessionRecording(
-          clientId,
-          sessionId,
-          prepared.publicUrl,
-          title
-        );
-        setUploadPct(null);
-        onUpdated();
-      } catch (e) {
-        setUploadPct(null);
-        setError(e instanceof Error ? e.message : "Upload fehlgeschlagen");
+          fileName: file.name,
+        }),
+      });
+      const prepJson = (await prepRes.json()) as {
+        error?: string;
+        putUrl?: string;
+        accessKey?: string;
+        publicUrl?: string;
+      };
+      if (!prepRes.ok || !prepJson.putUrl || !prepJson.accessKey || !prepJson.publicUrl) {
+        throw new Error(prepJson.error || `Prepare fehlgeschlagen (${prepRes.status})`);
       }
-    });
+
+      await uploadBunnyStorageFileDirect(
+        prepJson.putUrl,
+        prepJson.accessKey,
+        file,
+        (p) => setUploadPct(p)
+      );
+
+      await therapistSaveSessionRecording(
+        clientId,
+        sessionId,
+        prepJson.publicUrl,
+        title
+      );
+      setUploadPct(null);
+      onUpdated();
+    } catch (e) {
+      setUploadPct(null);
+      const msg = e instanceof Error ? e.message : "Upload fehlgeschlagen";
+      // Next Server Action digests → klarere Meldung
+      setError(
+        msg.includes("Server Components render") || msg.includes("digest")
+          ? "Upload fehlgeschlagen (Serverfehler). Bitte Bunny-Storage-Env in Vercel prüfen oder erneut versuchen."
+          : msg
+      );
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const handleLink = () => {
-    startTransition(async () => {
-      try {
-        setError(null);
-        await therapistLinkSessionRecording(clientId, sessionId, linkInput, title);
-        setLinkInput("");
-        onUpdated();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Verknüpfung fehlgeschlagen");
-      }
-    });
+  const handleLink = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await therapistLinkSessionRecording(clientId, sessionId, linkInput, title);
+      setLinkInput("");
+      onUpdated();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Verknüpfung fehlgeschlagen");
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const handleClear = () => {
+  const handleClear = async () => {
     if (!confirm("Sitzungsaufnahme wirklich entfernen?")) return;
-    startTransition(async () => {
-      try {
-        setError(null);
-        await therapistClearSessionRecording(clientId, sessionId);
-        onUpdated();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Löschen fehlgeschlagen");
-      }
-    });
+    setBusy(true);
+    setError(null);
+    try {
+      await therapistClearSessionRecording(clientId, sessionId);
+      onUpdated();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Löschen fehlgeschlagen");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const progressLabel =
@@ -130,8 +153,8 @@ export function SessionRecordingPanel({
           </div>
           <button
             type="button"
-            disabled={pending}
-            onClick={handleClear}
+            disabled={busy}
+            onClick={() => void handleClear()}
             className="rounded-lg border border-white/15 px-3 py-1.5 text-xs text-white/60 hover:bg-white/5"
           >
             Entfernen
@@ -158,13 +181,13 @@ export function SessionRecordingPanel({
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) handleUpload(file);
+              if (file) void handleUpload(file);
               e.target.value = "";
             }}
           />
           <button
             type="button"
-            disabled={pending}
+            disabled={busy}
             onClick={() => fileRef.current?.click()}
             className="rounded-xl border border-[#63eca9]/40 bg-[#63eca9]/15 px-4 py-2 text-sm text-[#63eca9] hover:bg-[#63eca9]/25 disabled:opacity-50"
           >
@@ -182,8 +205,8 @@ export function SessionRecordingPanel({
           />
           <button
             type="button"
-            disabled={pending || !linkInput.trim()}
-            onClick={handleLink}
+            disabled={busy || !linkInput.trim()}
+            onClick={() => void handleLink()}
             className="rounded-xl border border-white/20 bg-white/[0.06] px-4 py-2 text-sm text-white hover:bg-white/10 disabled:opacity-50"
           >
             Link verknüpfen

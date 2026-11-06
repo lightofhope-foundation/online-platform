@@ -10,6 +10,16 @@ export type StaffNotificationKind =
 
 type AdminClient = SupabaseClient;
 
+function previewNoteText(raw: string | null | undefined, max = 120): string {
+  const plain = (raw ?? "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!plain) return "";
+  return plain.length > max ? `${plain.slice(0, max)}…` : plain;
+}
+
 async function loadSessionContext(
   supabase: AdminClient,
   sessionId: string,
@@ -39,6 +49,23 @@ async function loadSessionContext(
   return { clientProfile, session, sessionLabel };
 }
 
+async function loadNotePreview(
+  supabase: AdminClient,
+  noteId?: string | null
+): Promise<string> {
+  if (!noteId) return "";
+  const { data } = await supabase
+    .from("therapy_session_notes")
+    .select("client_body, therapist_body")
+    .eq("id", noteId)
+    .maybeSingle();
+  return (
+    previewNoteText(data?.client_body) ||
+    previewNoteText(data?.therapist_body) ||
+    ""
+  );
+}
+
 async function insertNotification(
   supabase: AdminClient,
   row: {
@@ -58,6 +85,15 @@ async function insertNotification(
     console.error("[staff_notifications] insert failed:", error.message);
     throw new Error(`Benachrichtigung fehlgeschlagen: ${error.message}`);
   }
+}
+
+function buildBody(
+  sessionLabel: string,
+  kindLabel: string,
+  notePreview: string
+): string {
+  const base = `${sessionLabel}: ${kindLabel}`;
+  return notePreview ? `${base}\n„${notePreview}“` : base;
 }
 
 /** Notify assigned therapist when a client comments or reacts in a session. */
@@ -80,11 +116,10 @@ export async function notifyTherapistOfClientSessionActivity(
   const therapistId = clientRow?.therapist_user_id;
   if (!therapistId || therapistId === opts.actorUserId) return;
 
-  const { clientProfile, sessionLabel } = await loadSessionContext(
-    supabase,
-    opts.sessionId,
-    opts.clientUserId
-  );
+  const [{ clientProfile, sessionLabel }, notePreview] = await Promise.all([
+    loadSessionContext(supabase, opts.sessionId, opts.clientUserId),
+    loadNotePreview(supabase, opts.noteId),
+  ]);
 
   const clientName = resolvePersonLabel(
     clientProfile?.first_name,
@@ -97,18 +132,15 @@ export async function notifyTherapistOfClientSessionActivity(
     ? `/therapist/clients/${slug}/sitzungen?session=${opts.sessionId}`
     : "/therapist/clients";
 
+  const kindLabel =
+    opts.kind === "session_comment" ? "neuer Kommentar" : "neue Reaktion";
+
   await insertNotification(supabase, {
     recipient_user_id: therapistId,
     actor_user_id: opts.actorUserId,
     kind: opts.kind,
-    title:
-      opts.kind === "session_comment"
-        ? `${clientName} · neuer Kommentar`
-        : `${clientName} · neue Reaktion`,
-    body:
-      opts.kind === "session_comment"
-        ? `${sessionLabel}: neuer Kommentar`
-        : `${sessionLabel}: neue Reaktion`,
+    title: `${clientName} · ${kindLabel}`,
+    body: buildBody(sessionLabel, kindLabel, notePreview),
     href,
     client_user_id: opts.clientUserId,
     session_id: opts.sessionId,
@@ -129,14 +161,18 @@ export async function notifyClientOfTherapistSessionActivity(
 ): Promise<void> {
   if (!opts.clientUserId || opts.clientUserId === opts.actorUserId) return;
 
-  const [{ data: therapistProfile }, { sessionLabel }] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("first_name, last_name, display_alias")
-      .eq("user_id", opts.actorUserId)
-      .maybeSingle(),
-    loadSessionContext(supabase, opts.sessionId, opts.clientUserId),
-  ]);
+  const [[{ data: therapistProfile }, { sessionLabel }], notePreview] =
+    await Promise.all([
+      Promise.all([
+        supabase
+          .from("profiles")
+          .select("first_name, last_name, display_alias")
+          .eq("user_id", opts.actorUserId)
+          .maybeSingle(),
+        loadSessionContext(supabase, opts.sessionId, opts.clientUserId),
+      ]),
+      loadNotePreview(supabase, opts.noteId),
+    ]);
 
   const therapistName = resolvePersonLabel(
     therapistProfile?.first_name,
@@ -145,18 +181,17 @@ export async function notifyClientOfTherapistSessionActivity(
     therapistProfile?.display_alias
   );
 
+  const kindLabel =
+    opts.kind === "therapist_session_comment"
+      ? "neuer Kommentar"
+      : "neue Reaktion";
+
   await insertNotification(supabase, {
     recipient_user_id: opts.clientUserId,
     actor_user_id: opts.actorUserId,
     kind: opts.kind,
-    title:
-      opts.kind === "therapist_session_comment"
-        ? `${therapistName} · neuer Kommentar`
-        : `${therapistName} · neue Reaktion`,
-    body:
-      opts.kind === "therapist_session_comment"
-        ? `${sessionLabel}: neuer Kommentar`
-        : `${sessionLabel}: neue Reaktion`,
+    title: `${therapistName} · ${kindLabel}`,
+    body: buildBody(sessionLabel, kindLabel, notePreview),
     href: `/sitzungen?session=${opts.sessionId}`,
     client_user_id: opts.clientUserId,
     session_id: opts.sessionId,

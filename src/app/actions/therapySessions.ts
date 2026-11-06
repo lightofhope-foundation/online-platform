@@ -22,9 +22,15 @@ import {
 } from "@/lib/therapySessionMutations";
 
 async function checkTherapistClientAccess(clientId: string) {
-  const { user, supabase } = await checkTherapistAccess();
+  const { user, supabase, roles } = await checkTherapistAccess();
   const resolved = await resolveClientProfileByClientId(supabase, clientId);
-  await assertTherapistOwnsClient(supabase, user.id, resolved.userId);
+  const { userHasPortalRole } = await import("@/lib/userRoles");
+  // Admin/Teamlead dürfen Sitzungsaufnahmen für alle Klienten vorbereiten
+  const staffOverride =
+    userHasPortalRole(roles, "admin") || userHasPortalRole(roles, "teamlead");
+  if (!staffOverride) {
+    await assertTherapistOwnsClient(supabase, user.id, resolved.userId);
+  }
   return { user, supabase, ...resolved };
 }
 
