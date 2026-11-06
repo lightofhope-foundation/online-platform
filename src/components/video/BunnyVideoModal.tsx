@@ -3,6 +3,10 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { BunnyEmbedPlayer } from "./BunnyEmbedPlayer";
+import {
+  isStorageRecordingRef,
+  resolveRecordingPublicUrl,
+} from "@/lib/sessionRecordingStorage";
 
 type BunnyVideoModalProps = {
   open: boolean;
@@ -31,6 +35,9 @@ export function BunnyVideoModal({
   }, [open, onClose]);
 
   if (!open || typeof document === "undefined") return null;
+
+  const storage = isStorageRecordingRef(bunnyVideoId);
+  const storageUrl = storage ? resolveRecordingPublicUrl(bunnyVideoId) : null;
 
   return createPortal(
     <div
@@ -66,16 +73,29 @@ export function BunnyVideoModal({
             </button>
           </div>
 
-          <BunnyEmbedPlayer
-            key={bunnyVideoId}
-            libraryId={bunnyLibraryId}
-            bunnyVideoId={bunnyVideoId}
-            title={title}
-            autoPlay
-          />
+          {storageUrl ? (
+            <video
+              key={storageUrl}
+              src={storageUrl}
+              controls
+              playsInline
+              autoPlay
+              className="aspect-video w-full rounded-xl bg-black"
+            />
+          ) : (
+            <BunnyEmbedPlayer
+              key={bunnyVideoId}
+              libraryId={bunnyLibraryId}
+              bunnyVideoId={bunnyVideoId}
+              title={title}
+              autoPlay
+            />
+          )}
 
           <p className="text-center text-xs text-white/35">
-            Vollbild über den Player-Button unten rechts
+            {storage
+              ? "Wiedergabe direkt aus Bunny Storage (MP4)"
+              : "Vollbild über den Player-Button unten rechts"}
           </p>
         </div>
       </div>

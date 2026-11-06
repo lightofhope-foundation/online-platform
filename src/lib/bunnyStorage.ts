@@ -72,3 +72,23 @@ export async function uploadBunnyStorageFile(
 
   return `https://${cdnHost}/${cleanPath}`;
 }
+
+/** Credentials for direct browser → Bunny Storage PUT (avoids Vercel payload limits). */
+export function getBunnyStorageDirectUploadTarget(path: string): {
+  putUrl: string;
+  accessKey: string;
+  publicUrl: string;
+  storagePath: string;
+  zone: string;
+} {
+  const { zone, accessKey, cdnHost } = getStorageConfig();
+  const cleanPath = path.replace(/^\//, "");
+  return {
+    putUrl: `https://storage.bunnycdn.com/${zone}/${cleanPath}`,
+    accessKey,
+    publicUrl: `https://${cdnHost}/${cleanPath}`,
+    storagePath: cleanPath,
+    zone,
+  };
+}
+

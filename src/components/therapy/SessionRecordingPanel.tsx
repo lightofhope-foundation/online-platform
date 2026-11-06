@@ -8,7 +8,8 @@ import {
   therapistSaveSessionRecording,
 } from "@/app/actions/therapySessions";
 import { VideoThumbnailPreview } from "@/components/dashboard/VideoThumbnailPreview";
-import { uploadBunnyVideo } from "@/lib/bunnyCDN";
+import { uploadBunnyStorageFileDirect } from "@/lib/bunnyStorageUploadClient";
+import { isStorageRecordingRef } from "@/lib/sessionRecordingStorage";
 
 type SessionRecordingPanelProps = {
   clientId: string;
@@ -43,13 +44,24 @@ export function SessionRecordingPanel({
       try {
         setError(null);
         setUploadPct(0);
-        const { bunnyVideoId: newId } = await therapistPrepareSessionRecordingUpload(
+        const prepared = await therapistPrepareSessionRecordingUpload(
           clientId,
           sessionId,
+          title,
+          file.name
+        );
+        await uploadBunnyStorageFileDirect(
+          prepared.putUrl,
+          prepared.accessKey,
+          file,
+          (p) => setUploadPct(p)
+        );
+        await therapistSaveSessionRecording(
+          clientId,
+          sessionId,
+          prepared.publicUrl,
           title
         );
-        await uploadBunnyVideo(newId, file, (p) => setUploadPct(p), "/api/therapist/session-recording/upload");
-        await therapistSaveSessionRecording(clientId, sessionId, newId, title);
         setUploadPct(null);
         onUpdated();
       } catch (e) {
@@ -85,14 +97,20 @@ export function SessionRecordingPanel({
     });
   };
 
+  const progressLabel =
+    uploadPct !== null
+      ? `Wird hochgeladen ${uploadPct.toFixed(1)}%`
+      : "Video hochladen";
+
   return (
     <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
       <h3 className="text-sm font-medium uppercase tracking-wide text-white/50">
         Sitzungsaufnahme
       </h3>
       <p className="mt-1 text-xs text-white/40">
-        Video wird über Bunny CDN hochgeladen und erscheint für den Klienten unter
-        Sitzungsaufnahmen (wenn die Sitzung freigegeben ist).
+        Upload geht direkt zu Bunny Storage (beliebige Dateigröße) unter
+        Online-Plattform/sitzungsaufnahmen/therapeut/… und erscheint für den
+        Klienten, sobald die Sitzung freigegeben ist.
       </p>
 
       {hasRecording && (
@@ -104,7 +122,11 @@ export function SessionRecordingPanel({
           />
           <div className="min-w-0 flex-1">
             <p className="font-medium text-white">{recordingTitle ?? "Aufnahme"}</p>
-            <p className="mt-0.5 truncate font-mono text-xs text-white/45">{bunnyVideoId}</p>
+            <p className="mt-0.5 truncate font-mono text-xs text-white/45">
+              {isStorageRecordingRef(bunnyVideoId)
+                ? "Bunny Storage"
+                : bunnyVideoId}
+            </p>
           </div>
           <button
             type="button"
@@ -146,7 +168,7 @@ export function SessionRecordingPanel({
             onClick={() => fileRef.current?.click()}
             className="rounded-xl border border-[#63eca9]/40 bg-[#63eca9]/15 px-4 py-2 text-sm text-[#63eca9] hover:bg-[#63eca9]/25 disabled:opacity-50"
           >
-            {uploadPct !== null ? `Upload ${uploadPct}%` : "Video hochladen"}
+            {progressLabel}
           </button>
         </div>
 
@@ -155,7 +177,7 @@ export function SessionRecordingPanel({
             type="text"
             value={linkInput}
             onChange={(e) => setLinkInput(e.target.value)}
-            placeholder="Bunny-Link oder Video-GUID einfügen"
+            placeholder="Storage-CDN-URL oder Stream-GUID einfügen"
             className="flex-1 rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 text-sm text-white"
           />
           <button

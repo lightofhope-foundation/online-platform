@@ -28,6 +28,7 @@ export function NotificationBell() {
 
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Notif[]>([]);
+  const [navigatingId, setNavigatingId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const supabase = getSupabaseBrowserClient();
 
@@ -93,7 +94,7 @@ export function NotificationBell() {
           if (!open) void load();
         }}
         aria-label="Benachrichtigungen"
-        className="relative rounded-full border border-white/10 bg-white/[0.04] p-2.5 text-white/90 transition hover:border-[#63eca9]/40 hover:bg-white/[0.08]"
+        className="relative cursor-pointer rounded-full border border-white/10 bg-white/[0.04] p-2.5 text-white/90 transition hover:border-[#63eca9]/40 hover:bg-white/[0.08]"
       >
         <BellIcon />
         {unread > 0 ? (
@@ -112,7 +113,7 @@ export function NotificationBell() {
                 type="button"
                 disabled={pending}
                 onClick={markAllRead}
-                className="text-[11px] text-[#63eca9] hover:underline disabled:opacity-50"
+                className="cursor-pointer text-[11px] text-[#63eca9] hover:underline disabled:opacity-50"
               >
                 Alle gelesen
               </button>
@@ -124,41 +125,56 @@ export function NotificationBell() {
                 Keine Benachrichtigungen
               </li>
             ) : (
-              items.map((item) => (
-                <li key={item.id} className="border-b border-white/[0.06] last:border-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOpen(false);
-                      void (async () => {
-                        if (!item.read_at) await markRead([item.id]);
-                        const target = item.href?.trim();
-                        if (target && target !== "#") router.push(target);
-                      })();
-                    }}
-                    className={`block w-full px-3 py-3 text-left transition hover:bg-[#63eca9]/08 ${
-                      item.read_at ? "opacity-70" : ""
-                    }`}
-                  >
-                    <div className="flex items-start gap-2">
-                      {!item.read_at ? (
-                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#63eca9]" />
-                      ) : (
-                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0" />
-                      )}
-                      <div className="min-w-0">
-                        <div className="text-sm text-white">{item.title}</div>
-                        {item.body ? (
-                          <div className="mt-0.5 text-xs text-white/50">{item.body}</div>
-                        ) : null}
-                        <div className="mt-1 text-[10px] text-white/35">
-                          {formatGermanDateTime(item.created_at)}
+              items.map((item) => {
+                const loading = navigatingId === item.id;
+                return (
+                  <li key={item.id} className="border-b border-white/[0.06] last:border-0">
+                    <button
+                      type="button"
+                      disabled={Boolean(navigatingId)}
+                      onClick={() => {
+                        setNavigatingId(item.id);
+                        void (async () => {
+                          try {
+                            if (!item.read_at) await markRead([item.id]);
+                            const target = item.href?.trim();
+                            if (target && target !== "#") {
+                              router.push(target);
+                            }
+                          } finally {
+                            setOpen(false);
+                            window.setTimeout(() => setNavigatingId(null), 800);
+                          }
+                        })();
+                      }}
+                      className={`block w-full cursor-pointer px-3 py-3 text-left transition hover:bg-[#63eca9]/15 disabled:cursor-wait ${
+                        item.read_at ? "opacity-70" : ""
+                      } ${loading ? "bg-[#63eca9]/12" : ""}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        {loading ? (
+                          <span className="mt-1 h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-[#63eca9]/30 border-t-[#63eca9]" />
+                        ) : !item.read_at ? (
+                          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#63eca9]" />
+                        ) : (
+                          <span className="mt-1.5 h-1.5 w-1.5 shrink-0" />
+                        )}
+                        <div className="min-w-0">
+                          <div className="text-sm text-white">{item.title}</div>
+                          {item.body ? (
+                            <div className="mt-0.5 text-xs text-white/50">{item.body}</div>
+                          ) : null}
+                          <div className="mt-1 text-[10px] text-white/35">
+                            {loading
+                              ? "Wird geöffnet …"
+                              : formatGermanDateTime(item.created_at)}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </button>
-                </li>
-              ))
+                    </button>
+                  </li>
+                );
+              })
             )}
           </ul>
         </div>

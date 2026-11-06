@@ -39,6 +39,27 @@ async function loadSessionContext(
   return { clientProfile, session, sessionLabel };
 }
 
+async function insertNotification(
+  supabase: AdminClient,
+  row: {
+    recipient_user_id: string;
+    actor_user_id: string;
+    kind: StaffNotificationKind;
+    title: string;
+    body: string;
+    href: string;
+    client_user_id: string;
+    session_id: string;
+    note_id?: string | null;
+  }
+) {
+  const { error } = await supabase.from("staff_notifications").insert(row);
+  if (error) {
+    console.error("[staff_notifications] insert failed:", error.message);
+    throw new Error(`Benachrichtigung fehlgeschlagen: ${error.message}`);
+  }
+}
+
 /** Notify assigned therapist when a client comments or reacts in a session. */
 export async function notifyTherapistOfClientSessionActivity(
   supabase: AdminClient,
@@ -76,21 +97,18 @@ export async function notifyTherapistOfClientSessionActivity(
     ? `/therapist/clients/${slug}/sitzungen?session=${opts.sessionId}`
     : "/therapist/clients";
 
-  const title =
-    opts.kind === "session_comment"
-      ? `${clientName} · neuer Kommentar`
-      : `${clientName} · neue Reaktion`;
-  const body =
-    opts.kind === "session_comment"
-      ? `${sessionLabel}: neuer Kommentar`
-      : `${sessionLabel}: neue Reaktion`;
-
-  await supabase.from("staff_notifications").insert({
+  await insertNotification(supabase, {
     recipient_user_id: therapistId,
     actor_user_id: opts.actorUserId,
     kind: opts.kind,
-    title,
-    body,
+    title:
+      opts.kind === "session_comment"
+        ? `${clientName} · neuer Kommentar`
+        : `${clientName} · neue Reaktion`,
+    body:
+      opts.kind === "session_comment"
+        ? `${sessionLabel}: neuer Kommentar`
+        : `${sessionLabel}: neue Reaktion`,
     href,
     client_user_id: opts.clientUserId,
     session_id: opts.sessionId,
@@ -127,21 +145,18 @@ export async function notifyClientOfTherapistSessionActivity(
     therapistProfile?.display_alias
   );
 
-  const title =
-    opts.kind === "therapist_session_comment"
-      ? `${therapistName} · neuer Kommentar`
-      : `${therapistName} · neue Reaktion`;
-  const body =
-    opts.kind === "therapist_session_comment"
-      ? `${sessionLabel}: neuer Kommentar`
-      : `${sessionLabel}: neue Reaktion`;
-
-  await supabase.from("staff_notifications").insert({
+  await insertNotification(supabase, {
     recipient_user_id: opts.clientUserId,
     actor_user_id: opts.actorUserId,
     kind: opts.kind,
-    title,
-    body,
+    title:
+      opts.kind === "therapist_session_comment"
+        ? `${therapistName} · neuer Kommentar`
+        : `${therapistName} · neue Reaktion`,
+    body:
+      opts.kind === "therapist_session_comment"
+        ? `${sessionLabel}: neuer Kommentar`
+        : `${sessionLabel}: neue Reaktion`,
     href: `/sitzungen?session=${opts.sessionId}`,
     client_user_id: opts.clientUserId,
     session_id: opts.sessionId,

@@ -4,6 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getBunnyThumbnailCandidates } from "@/lib/bunnyCDN";
 import { PlayIcon } from "@/components/icons/Icons";
+import {
+  isStorageRecordingRef,
+  resolveRecordingPublicUrl,
+} from "@/lib/sessionRecordingStorage";
 
 type VideoThumbnailPreviewProps = {
   bunnyVideoId: string | null | undefined;
@@ -20,9 +24,17 @@ export function VideoThumbnailPreview({
   onPlay,
   className = "h-20 w-32 shrink-0",
 }: VideoThumbnailPreviewProps) {
+  const isStorage = isStorageRecordingRef(bunnyVideoId);
+  const storageUrl = isStorage && bunnyVideoId
+    ? resolveRecordingPublicUrl(bunnyVideoId)
+    : null;
+
   const candidates = useMemo(
-    () => (bunnyVideoId ? getBunnyThumbnailCandidates(bunnyVideoId, 480) : []),
-    [bunnyVideoId]
+    () =>
+      !isStorage && bunnyVideoId
+        ? getBunnyThumbnailCandidates(bunnyVideoId, 480)
+        : [],
+    [bunnyVideoId, isStorage]
   );
   const [candidateIndex, setCandidateIndex] = useState(0);
   const [allFailed, setAllFailed] = useState(false);
@@ -51,7 +63,22 @@ export function VideoThumbnailPreview({
         interactive ? "transition hover:border-[#63eca9]/40 hover:opacity-95" : ""
       }`}
     >
-      {src ? (
+      {storageUrl ? (
+        <>
+          <video
+            src={storageUrl}
+            muted
+            playsInline
+            preload="metadata"
+            className="h-full w-full object-cover"
+          />
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
+            <span className="rounded-full bg-black/55 p-2 text-white shadow-lg">
+              <PlayIcon size={22} />
+            </span>
+          </div>
+        </>
+      ) : src ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img

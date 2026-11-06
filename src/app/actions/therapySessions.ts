@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { checkAdminAccess } from "@/lib/checkAdminAccess";
 import { checkTherapistAccess } from "@/lib/authRoles";
-import { createBunnyVideo, extractBunnyVideoId } from "@/lib/bunnyCDN";
+import { extractBunnyVideoId } from "@/lib/bunnyCDN";
 import {
   assertTherapistOwnsClient,
   resolveClientProfileByClientId,
@@ -129,22 +129,26 @@ export async function therapistAddSessionNote(
   );
   // Feedback-Chat (client_body) → Klient benachrichtigen; private Notiz nicht
   if (clientBody.trim()) {
-    const { data: session } = await supabase
-      .from("therapy_sessions")
-      .select("client_user_id")
-      .eq("id", sessionId)
-      .maybeSingle();
-    if (session?.client_user_id) {
-      const { notifyClientOfTherapistSessionActivity } = await import(
-        "@/lib/staffNotifications"
-      );
-      await notifyClientOfTherapistSessionActivity(supabase, {
-        clientUserId: session.client_user_id,
-        actorUserId: user.id,
-        sessionId,
-        noteId: created.id,
-        kind: "therapist_session_comment",
-      });
+    try {
+      const { data: session } = await supabase
+        .from("therapy_sessions")
+        .select("client_user_id")
+        .eq("id", sessionId)
+        .maybeSingle();
+      if (session?.client_user_id) {
+        const { notifyClientOfTherapistSessionActivity } = await import(
+          "@/lib/staffNotifications"
+        );
+        await notifyClientOfTherapistSessionActivity(supabase, {
+          clientUserId: session.client_user_id,
+          actorUserId: user.id,
+          sessionId,
+          noteId: created.id,
+          kind: "therapist_session_comment",
+        });
+      }
+    } catch (err) {
+      console.error("Client-Notify nach Therapeuten-Nachricht fehlgeschlagen:", err);
     }
   }
   revalidateTherapySessionPaths(resolvedClientId);
@@ -188,22 +192,26 @@ export async function therapistToggleNoteReaction(
     .eq("id", noteId)
     .maybeSingle();
   if (note?.session_id && note.author_id && note.author_id !== user.id) {
-    const { data: session } = await supabase
-      .from("therapy_sessions")
-      .select("client_user_id")
-      .eq("id", note.session_id)
-      .maybeSingle();
-    if (session?.client_user_id) {
-      const { notifyClientOfTherapistSessionActivity } = await import(
-        "@/lib/staffNotifications"
-      );
-      await notifyClientOfTherapistSessionActivity(supabase, {
-        clientUserId: session.client_user_id,
-        actorUserId: user.id,
-        sessionId: note.session_id,
-        noteId,
-        kind: "therapist_session_reaction",
-      });
+    try {
+      const { data: session } = await supabase
+        .from("therapy_sessions")
+        .select("client_user_id")
+        .eq("id", note.session_id)
+        .maybeSingle();
+      if (session?.client_user_id) {
+        const { notifyClientOfTherapistSessionActivity } = await import(
+          "@/lib/staffNotifications"
+        );
+        await notifyClientOfTherapistSessionActivity(supabase, {
+          clientUserId: session.client_user_id,
+          actorUserId: user.id,
+          sessionId: note.session_id,
+          noteId,
+          kind: "therapist_session_reaction",
+        });
+      }
+    } catch (err) {
+      console.error("Client-Notify nach Therapeuten-Reaktion fehlgeschlagen:", err);
     }
   }
   revalidateTherapySessionPaths(resolvedClientId);
@@ -241,17 +249,75 @@ export async function clientToggleNoteReaction(noteId: string, emoji: string) {
   return { ok: true as const };
 }
 
+/** Direct Bunny Storage upload credentials (large files, no Vercel body limit). */
 export async function therapistPrepareSessionRecordingUpload(
   clientId: string,
   sessionId: string,
-  title: string
+  title: string,
+  fileNameHint?: string
 ) {
-  await checkTherapistClientAccess(clientId);
+  const { supabase, clientId: resolvedClientId, userId } =
+    await checkTherapistClientAccess(clientId);
   const trimmed = title.trim();
   if (!trimmed) throw new Error("Bitte einen Videotitel angeben");
 
-  const bunnyVideo = await createBunnyVideo(trimmed);
-  return { ok: true as const, bunnyVideoId: bunnyVideo.guid };
+  const { data: session } = await supabase
+    .from("therapy_sessions")
+    .select("id, session_number, is_special, path_order, client_user_id")
+    .eq("id", sessionId)
+    .maybeSingle();
+  if (!session || session.client_user_id !== userId) {
+    throw new Error("Sitzung nicht gefunden");
+  }
+
+  const { data: allSessions } = await supabase
+    .from("therapy_sessions")
+    .select("id, session_number, is_special, path_order")
+    .eq("client_user_id", userId);
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("first_name, last_name, client_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const extFromHint = fileNameHint?.includes(".")
+    ? fileNameHint.split(".").pop()?.toLowerCase()
+    : null;
+  const extension =
+    extFromHint && /^[a-z0-9]{2,5}$/.test(extFromHint) ? extFromHint : "mp4";
+
+  const { buildSessionRecordingStoragePath } = await import(
+    "@/lib/sessionRecordingStorage"
+  );
+  const { getBunnyStorageDirectUploadTarget, isBunnyStorageConfigured } =
+    await import("@/lib/bunnyStorage");
+
+  if (!isBunnyStorageConfigured()) {
+    throw new Error(
+      "Bunny Storage ist nicht konfiguriert (BUNNY_STORAGE_ZONE_NAME / BUNNY_STORAGE_ACCESS_KEY)."
+    );
+  }
+
+  const { storagePath } = buildSessionRecordingStoragePath({
+    firstName: profile?.first_name,
+    lastName: profile?.last_name,
+    clientId: profile?.client_id ?? resolvedClientId,
+    session,
+    allSessions: allSessions ?? [session],
+    extension,
+  });
+
+  const target = getBunnyStorageDirectUploadTarget(storagePath);
+  return {
+    ok: true as const,
+    putUrl: target.putUrl,
+    accessKey: target.accessKey,
+    publicUrl: target.publicUrl,
+    storagePath: target.storagePath,
+    /** @deprecated Stream GUID — kept empty; Storage uses publicUrl */
+    bunnyVideoId: target.publicUrl,
+  };
 }
 
 export async function therapistSaveSessionRecording(
@@ -261,10 +327,17 @@ export async function therapistSaveSessionRecording(
   title: string
 ) {
   const { supabase, clientId: resolvedClientId } = await checkTherapistClientAccess(clientId);
-  const guid = extractBunnyVideoId(bunnyVideoId);
-  if (!guid) throw new Error("Ungültige Bunny Video-ID");
+  const raw = bunnyVideoId.trim();
+  if (!raw) throw new Error("Ungültige Video-Referenz");
 
-  await setTherapySessionRecording(supabase, sessionId, guid, title.trim());
+  // Storage CDN URL or legacy Stream GUID
+  const { isStorageRecordingRef } = await import("@/lib/sessionRecordingStorage");
+  const stored = isStorageRecordingRef(raw)
+    ? raw
+    : extractBunnyVideoId(raw);
+  if (!stored) throw new Error("Ungültige Bunny Video-ID / Storage-URL");
+
+  await setTherapySessionRecording(supabase, sessionId, stored, title.trim());
   revalidateTherapySessionPaths(resolvedClientId);
   return { ok: true as const };
 }
@@ -275,9 +348,16 @@ export async function therapistLinkSessionRecording(
   linkOrGuid: string,
   title: string
 ) {
-  const guid = extractBunnyVideoId(linkOrGuid);
+  const raw = linkOrGuid.trim();
+  const { isStorageRecordingRef } = await import("@/lib/sessionRecordingStorage");
+  if (isStorageRecordingRef(raw) || raw.startsWith("http")) {
+    return therapistSaveSessionRecording(clientId, sessionId, raw, title);
+  }
+  const guid = extractBunnyVideoId(raw);
   if (!guid) {
-    throw new Error("Ungültiger Bunny-Link. Bitte GUID oder Bunny-URL einfügen.");
+    throw new Error(
+      "Ungültiger Link. Bitte Storage-CDN-URL, Bunny-Stream-GUID oder Bunny-URL einfügen."
+    );
   }
   return therapistSaveSessionRecording(clientId, sessionId, guid, title);
 }

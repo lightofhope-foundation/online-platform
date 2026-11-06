@@ -65,7 +65,14 @@ export function SessionNotesPanel({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const inputBarRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
   const reactionBtnRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+
+  const scrollChatToBottom = () => {
+    const el = chatScrollRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  };
 
   useEffect(() => {
     setLocalNotes(notes);
@@ -121,6 +128,10 @@ export function SessionNotesPanel({
     [localNotes]
   );
 
+  useEffect(() => {
+    scrollChatToBottom();
+  }, [feedbackNotes.length, tab]);
+
   const canWriteFeedback =
     !locked && (mode === "therapist" || mode === "admin" || mode === "client");
   const canWritePrivate = !locked && (mode === "therapist" || mode === "admin");
@@ -143,9 +154,11 @@ export function SessionNotesPanel({
       updated_at: new Date().toISOString(),
     };
     setLocalNotes((prev) => [...prev, optimistic]);
+    requestAnimationFrame(() => scrollChatToBottom());
     startTransition(async () => {
       try {
         await onAddFeedback(text);
+        requestAnimationFrame(() => scrollChatToBottom());
       } catch (e) {
         setLocalNotes(notes);
         setDraftChat(text);
@@ -249,14 +262,19 @@ export function SessionNotesPanel({
 
       {tab === "feedback" ? (
         <div className="rounded-2xl border border-white/10 bg-[#0b1210]/70">
-          <div className="max-h-[420px] space-y-3 overflow-y-auto px-3 py-4 sm:px-4">
+          <div
+            ref={chatScrollRef}
+            className="max-h-[420px] space-y-3 overflow-y-auto px-3 py-4 sm:px-4"
+          >
             {feedbackNotes.length === 0 ? (
               <p className="py-8 text-center text-sm text-white/40">
                 Noch keine Nachrichten in diesem Chat.
               </p>
             ) : (
               feedbackNotes.map((note) => {
-                const mine = note.author_is_staff;
+                const mine = Boolean(
+                  currentUserId && note.author_id === currentUserId
+                );
                 return (
                   <div
                     key={note.id}

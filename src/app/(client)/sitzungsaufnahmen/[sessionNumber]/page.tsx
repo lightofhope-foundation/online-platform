@@ -7,6 +7,10 @@ import {
   formatTherapySessionLabel,
   loadTherapySessionsWithNotes,
 } from "@/lib/therapySessions";
+import {
+  isStorageRecordingRef,
+  resolveRecordingPublicUrl,
+} from "@/lib/sessionRecordingStorage";
 
 export const dynamic = "force-dynamic";
 
@@ -39,8 +43,10 @@ export default async function SitzungsaufnahmeWatchPage({
     notFound();
   }
 
+  const ref = session.recording_bunny_video_id;
+  const storage = isStorageRecordingRef(ref);
   const bunnyLibraryId = process.env.BUNNY_STREAM_LIBRARY_ID?.trim();
-  if (!bunnyLibraryId) notFound();
+  if (!storage && !bunnyLibraryId) notFound();
 
   const sessionLabel = formatTherapySessionLabel(
     sessionNumber,
@@ -62,7 +68,11 @@ export default async function SitzungsaufnahmeWatchPage({
           <p className="mt-1 text-sm text-white/50">{recordingTitle}</p>
         )}
         <Link
-          href={`/sitzungen?sitzung=${sessionNumber}`}
+          href={
+            session.is_special
+              ? `/sitzungen?session=${session.id}`
+              : `/sitzungen?sitzung=${sessionNumber}`
+          }
           className="mt-2 inline-block text-sm text-[#63eca9] hover:underline"
         >
           Zur Sitzungsakte
@@ -70,12 +80,21 @@ export default async function SitzungsaufnahmeWatchPage({
       </div>
 
       <div className="overflow-hidden rounded-[24px] border border-white/10 bg-black/40 shadow-2xl">
-        <BunnyEmbedPlayer
-          libraryId={bunnyLibraryId}
-          bunnyVideoId={session.recording_bunny_video_id}
-          title={sessionLabel}
-          className="min-h-[360px] rounded-none sm:min-h-[480px]"
-        />
+        {storage ? (
+          <video
+            src={resolveRecordingPublicUrl(ref)}
+            controls
+            playsInline
+            className="aspect-video w-full bg-black"
+          />
+        ) : (
+          <BunnyEmbedPlayer
+            libraryId={bunnyLibraryId!}
+            bunnyVideoId={ref}
+            title={sessionLabel}
+            className="min-h-[360px] rounded-none sm:min-h-[480px]"
+          />
+        )}
       </div>
     </div>
   );
